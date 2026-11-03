@@ -35,6 +35,9 @@ import { logger } from "./utils/logger.js";
 
 const app = Fastify({
   loggerInstance: logger.child({ module: "server", operation: "api" }),
+  // Darrere d'un proxy invers, X-Forwarded-For és la IP real (necessari per als límits
+  // de login). Desactivat per defecte: només s'activa amb TRUST_PROXY=true.
+  trustProxy: config.TRUST_PROXY,
 });
 
 app.register(fastifyCookie);
@@ -88,8 +91,9 @@ function createRes(reply: FastifyReply, app: any, request: FastifyRequest): ResA
     json(data: any) {
       // Si el handler ha marcat un usuari per signar (cas del login)
       if (adapter._userToSign) {
-        const token = app.jwt.sign(adapter._userToSign);
-        data.token = token;
+        // Caducitat explícita: el JWT viu el mateix que la cookie. Només viatja a la
+        // cookie httpOnly; no es retorna al cos (evita que quedi a localStorage o logs).
+        const token = app.jwt.sign(adapter._userToSign, { expiresIn: "30d" });
 
         const cookieOptions: any = {
           path: "/",
@@ -225,6 +229,7 @@ function wrap(handler: ApiHandler, options: { protected?: boolean } = {}) {
       headers: request.headers,
       params: request.params,
       url: request.url,
+      ip: request.ip,
       log: request.log,
       user,
     };

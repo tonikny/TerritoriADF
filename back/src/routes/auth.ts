@@ -1,12 +1,11 @@
 import bcrypt from "bcryptjs";
 import { db } from "../db/index.js";
-import { users, mqttUsers } from "../db/schema.js";
+import { users, mqttUsers, adfs } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import type { ApiHandler } from "../types.js";
 import { permissionsFor } from "../permissions.js";
-
-/** Longitud mínima de contrasenya (changePassword i enllaç d'accés). */
-export const MIN_PASSWORD_LENGTH = 6;
+import { passwordProblem } from "../utils/password.js";
+import { loginBlock, registerLoginFailure, resetLoginFailures } from "../services/loginThrottle.js";
 
 /**
  * Usuari exposat al client. Mateix shape per a /login i /me: els permisos es deriven
@@ -44,18 +43,31 @@ export function toPublicUser(user: {
  * Body: { username, password }
  */
 export const login: ApiHandler = async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body ?? {};
 
   if (!username || !password) {
     return res.status(400).json({ error: "Falten credencials" });
+  }
+
+  // Fre de força bruta: es mira abans de tocar bcrypt per no gastar CPU amb atacs.
+  const blocked = loginBlock(username, req.ip);
+  if (blocked) {
+    req.log
+      .child({ module: "auth", operation: "login" })
+      .warn({ username }, "Login bloquejat per massa intents");
+    res.setHeader("Retry-After", String(blocked.retryAfterSeconds));
+    return res.status(429).json({ error: blocked.error });
   }
 
   try {
     const user = db.select().from(users).where(eq(users.username, username)).get();
 
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+      registerLoginFailure(username, req.ip);
       return res.status(401).json({ error: "Usuari o contrasenya incorrectes" });
     }
+
+    resetLoginFailures(username, req.ip);
 
     const publicUser = toPublicUser(user);
 
@@ -94,15 +106,21 @@ export const changePassword: ApiHandler = async (req, res) => {
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: "Cal indicar la contrasenya actual i la nova" });
   }
-  if (typeof newPassword !== "string" || newPassword.length < MIN_PASSWORD_LENGTH) {
-    return res.status(400).json({
-      error: `La contrasenya nova ha de tenir com a mínim ${MIN_PASSWORD_LENGTH} caràcters`,
-    });
-  }
-
   const user = db.select().from(users).where(eq(users.id, userId)).get();
   if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {
     return res.status(401).json({ error: "La contrasenya actual no és correcta" });
+  }
+
+  const adfNom = user.adf_id
+    ? (db.select({ nom: adfs.nom }).from(adfs).where(eq(adfs.id, user.adf_id)).get()?.nom ?? null)
+    : null;
+
+  const problem = passwordProblem(newPassword, "La contrasenya nova", {
+    username: user.username,
+    adfNom,
+  });
+  if (problem) {
+    return res.status(400).json({ error: problem });
   }
 
   const hash = bcrypt.hashSync(newPassword, 10);

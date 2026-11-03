@@ -5,10 +5,11 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { accessTokens, users } from "../db/schema.js";
+import { accessTokens, adfs, users } from "../db/schema.js";
 import type { ApiHandler } from "../types.js";
 import { findAccessToken } from "../services/accessTokens.js";
-import { MIN_PASSWORD_LENGTH, toPublicUser } from "./auth.js";
+import { passwordProblem } from "../utils/password.js";
+import { toPublicUser } from "./auth.js";
 
 type AccessTarget = { userId: string; tokenId: string } | { error: string; status: number };
 
@@ -65,15 +66,22 @@ const redeem: ApiHandler = async (req, res) => {
   }
 
   const { password } = req.body ?? {};
-  if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
-    return res.status(400).json({
-      error: `La contrasenya ha de tenir com a mínim ${MIN_PASSWORD_LENGTH} caràcters`,
-    });
-  }
 
   const user = db.select().from(users).where(eq(users.id, target.userId)).get();
   if (!user) {
     return res.status(404).json({ error: "Aquest enllaç ja no és vàlid." });
+  }
+
+  const adfNom = user.adf_id
+    ? (db.select({ nom: adfs.nom }).from(adfs).where(eq(adfs.id, user.adf_id)).get()?.nom ?? null)
+    : null;
+
+  const problem = passwordProblem(password, "La contrasenya", {
+    username: user.username,
+    adfNom,
+  });
+  if (problem) {
+    return res.status(400).json({ error: problem });
   }
 
   const hash = bcrypt.hashSync(password, 10);

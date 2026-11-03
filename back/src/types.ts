@@ -8,6 +8,8 @@ export type ApiRequest = {
   headers?: any;
   params?: any;
   url?: string;
+  /** IP del client (real només si `TRUST_PROXY=true`); per als límits de login. */
+  ip?: string;
   log: FastifyBaseLogger;
   user?: {
     id: string;

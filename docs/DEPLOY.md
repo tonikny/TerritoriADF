@@ -2,6 +2,8 @@
 
 Aquesta guia detalla el procés per fer el deploy de la Xarxa d'Hidrants ADF en un entorn de producció utilitzant Docker.
 
+Si és el primer desplegament (o el primer després d'un canvi de seguretat), segueix la **checklist de §10** abans i després de pujar la versió.
+
 ## 1. Requisits del Sistema
 
 - **SO:** Debian 13 (Trixie) recomanat, o qualsevol distribució Linux compatible amb Docker.
@@ -314,3 +316,65 @@ Self-test (host):
 ```bash
 npm run telegram:selftest
 ```
+
+## 10. Checklist de desplegament
+
+Coses que el codi **no** pot fer per tu perquè depenen del servidor o són secrets. Marca-les totes abans de donar el desplegament per bo.
+
+Resum del que demana cada canvi d'aquesta versió:
+
+| Canvi                                                                    | Què cal fer al desplegar                                           |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `JWT_SECRET` i `ENCRYPTION_SECRET` obligatoris (mínim 32, sense defecte) | Generar-los al servidor. Si en falta un, el backend **no arrenca** |
+| Token de sessió només a cookie `httpOnly` (30 dies, `secure` en prod)    | Entrar sempre per HTTPS; canviar `JWT_SECRET` desconnecta tothom   |
+| Mínim de contrasenya publicat a `GET /api/config`                        | Res; comprovar que el formulari de la UI mostra el mínim de 8      |
+| Regles de contrasenya (lletres+xifres, no repetida, sense nom d'usuari)  | Res; les contrasenyes antigues **no** es revaliden soles           |
+| Fre de força bruta al login (429, finestra de 15 min)                    | `TRUST_PROXY=true` si hi ha proxy; provar els 6 intents fallits    |
+
+### 10.1 Secrets i `back/.env`
+
+- [ ] `cp back/.env.example back/.env` i omplir-lo. El backend **no arrenca** sense `JWT_SECRET` ni `ENCRYPTION_SECRET` (mínim 32 caràcters).
+- [ ] Generar-ne de nous al servidor, no reutilitzar els de desenvolupament:
+  ```bash
+  openssl rand -base64 64   # JWT_SECRET
+  openssl rand -base64 64   # ENCRYPTION_SECRET
+  ```
+- [ ] Si la BD ja tenia dades, canviar `ENCRYPTION_SECRET` **invalida** els secrets xifrats (`mqtt_users.mqtt_password_enc`, `telegramBots.token_enc`): caldrà tornar a activar el tracking de cada usuari i tornar a registrar el bot de cada ADF. En un desplegament nou no afecta res.
+- [ ] Si canvies `JWT_SECRET`, tots els tokens de 30 dies deixen de valer: tothom haurà de tornar a entrar (no perden la contrasenya, només la sessió). Fes-ho a posta i avisa.
+- [ ] Les contrasenyes creades abans d'aquesta versió **no es revaliden**: un compte amb `12345678` continua entrant fins que la canviï. Si vols tancar-ho, genera enllaços d'accés nous per als comptes febles des de Configuració → Usuaris.
+- [ ] `OTRC_HOST=<domini>`, `OTRC_PORT=51823`, `OTRC_TLS=true` per al `.otrc` d'OwnTracks.
+
+### 10.2 Proxy, HTTPS i xarxa
+
+- [ ] `TRUST_PROXY=true` a `back/.env`: la petició passa pel Nginx del contenidor `frontend` i pel Nginx del host, així que `request.ip` ha de sortir de `X-Forwarded-For` perquè funcioni el límit de 30 intents per IP (§10.9 de `docs/DEV.md`). Deixa'l a `false` només si exposes el 3033 directament a Internet.
+- [ ] El proxy del host ha de reenviar `/api/` a `127.0.0.1:8080` conservant `Host`, `X-Forwarded-For` i `X-Forwarded-Proto`. El `Host` és el que permet derivar la URL del webhook de Telegram sense `WEBHOOK_PUBLIC_URL`.
+- [ ] Entrar **sempre per HTTPS**: la imatge va amb `NODE_ENV=production` i la cookie `auth_token` es marca `secure`, així que per HTTP pla el navegador no la desa i el login sembla que falli.
+- [ ] Firewall: només 80/443 i 51823 (OwnTracks TLS) oberts. `3034` (backend), `8080` (front) i `1883` (MQTT) han de quedar a `127.0.0.1`.
+- [ ] Cert Let's Encrypt renovat per cron i hook de còpia a Mosquitto (`scripts/copy-mosquitto-certs.sh`).
+
+### 10.3 Just abans de pujar
+
+- [ ] `npm run docker:deploy -- --dry-run` per veure les passes.
+- [ ] Còpia de seguretat: l'script en fa una de `back/data/` a `backups/pre-deploy/`, però si desplegues a mà, `./scripts/backup/backup.sh daily` primer.
+- [ ] `git status` net. No hi ha d'aparèixer `back/.env` (si hi apareix, el `.gitignore` s'ha trencat i els secrets es publicarien).
+- [ ] Les migracions són només cap endavant: un rollback de codi sense restaurar la BD dóna errors.
+
+### 10.4 Just després de pujar
+
+- [ ] `curl -s https://<domini>/api/config` → `"min_password_length":8` i `role_permissions`.
+- [ ] Fre de força bruta: 5 intents dolents seguits i el 6è ha de ser `429` amb `Retry-After`.
+  ```bash
+  for i in 1 2 3 4 5 6; do
+    curl -s -o /dev/null -w "%{http_code}\n" -H 'Content-Type: application/json' \
+      -d '{"username":"prova-deploy","password":"malament1"}' https://<domini>/api/auth/login
+  done
+  # esperat: 401 401 401 401 401 429
+  ```
+  Al log ha d'aparèixer `Login bloquejat per massa intents` (sense contrasenya).
+- [ ] Entrar per la UI amb un usuari real: el formulari de contrasenya ha de mostrar el mínim de 8 caràcters (ve de `/api/config`, no està hardcodejat al front).
+- [ ] Comprovar que el `429` es veu a la pantalla de login amb el missatge en català i no com un error genèric.
+- [ ] `docker compose ps` amb tots els serveis `healthy` i `npm run docker:logs` sense errors.
+- [ ] Telegram: registrar el bot d'una ADF de prova i comprovar que la vinculació al grup arriba (webhook HTTPS públic).
+- [ ] Backups actius: `./scripts/backup/setup-cron.sh status`.
+
+> El comptador del fre de força bruta viu **en memòria**: reiniciar el backend l'esborra i no queda cap rastre de les contrasenyes provades. Amb una sola instància n'hi ha prou; si un dia escales el backend a diverses rèpliques, cada una comptaria els seus propis intents.

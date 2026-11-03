@@ -2,9 +2,7 @@ import React, { useEffect, useState } from "react";
 import { inputClass, primaryButtonClass } from "../../styles/uiStyles";
 import { PasswordInput } from "./PasswordInput";
 import { enterApp } from "../../utils/route";
-
-/** Longitud mínima de contrasenya (la valida també el backend). */
-const MIN_PASSWORD_LENGTH = 6;
+import { useAppConfig } from "../../hooks/useAppConfig";
 
 /**
  * Pantalla d'un enllaç d'accés (/acces/<token>): l'usuari hi tria la seva contrasenya.
@@ -12,6 +10,8 @@ const MIN_PASSWORD_LENGTH = 6;
  * sessió oberta i es recarrega l'app.
  */
 export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
+  // Longitud mínima definida al backend (GET /api/config); aquí només per a l'atribut `minLength`.
+  const { minPasswordLength } = useAppConfig();
   const [username, setUsername] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
@@ -94,7 +94,7 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
               Contrasenya nova:
               <PasswordInput
                 autoComplete="new-password"
-                minLength={MIN_PASSWORD_LENGTH}
+                minLength={minPasswordLength}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`${inputClass} bg-white`}
@@ -105,7 +105,7 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
               Repeteix la contrasenya:
               <PasswordInput
                 autoComplete="new-password"
-                minLength={MIN_PASSWORD_LENGTH}
+                minLength={minPasswordLength}
                 value={repeat}
                 onChange={(e) => setRepeat(e.target.value)}
                 className={`${inputClass} bg-white`}

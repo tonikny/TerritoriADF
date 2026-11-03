@@ -12,6 +12,7 @@ import {
   secondaryButtonClass,
 } from "../../../styles/uiStyles";
 import { adfLabel } from "../../../utils/adfLabel";
+import { useAppConfig } from "../../../hooks/useAppConfig";
 
 interface ManagedUser {
   id: string;
@@ -51,6 +52,8 @@ function NumberField({ value, onChange }: { value: string; onChange: (v: string)
 }
 
 export function UsuarisTab() {
+  // Longitud mínima de contrasenya definida al backend (GET /api/config).
+  const { minPasswordLength } = useAppConfig();
   const { user, logout, actualRole, viewRole, setViewRole } = useAuth();
   const { adfs } = useAdf();
   const isAdmin = user?.role === "admin";
@@ -587,7 +590,7 @@ export function UsuarisTab() {
                               Nova contrasenya:
                               <PasswordInput
                                 autoComplete="new-password"
-                                minLength={6}
+                                minLength={minPasswordLength}
                                 value={pwDraft.next}
                                 onChange={(e) =>
                                   setPwDraft((d) => (d ? { ...d, next: e.target.value } : d))
@@ -600,7 +603,7 @@ export function UsuarisTab() {
                               Repeteix la nova contrasenya:
                               <PasswordInput
                                 autoComplete="new-password"
-                                minLength={6}
+                                minLength={minPasswordLength}
                                 value={pwDraft.repeat}
                                 onChange={(e) =>
                                   setPwDraft((d) => (d ? { ...d, repeat: e.target.value } : d))

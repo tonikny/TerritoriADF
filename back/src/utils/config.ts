@@ -9,20 +9,23 @@ dotenv.config();
 const configSchema = z.object({
   BASE_DOMAIN_URL: z.string().default("localhost"),
   PORT: z.coerce.number().default(3033),
+  // Si hi ha un proxy invers al davant (nginx, Caddy), activa-ho perquè `request.ip`
+  // sigui la IP real del client (capçalera X-Forwarded-For) i els límits per IP funcionin.
+  // No ho activis si el backend està exposat directament: permetria falsejar la IP.
+  TRUST_PROXY: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
   OVERPASS_URL: z.string().default("https://overpass-api.de/api/interpreter"),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_CHAT_ID: z.string().optional(),
   GRAPHHOPPER_API_KEY: z.string().optional(),
   FASTIFY_LOGLEVEL: z.string().default("info"),
-  JWT_SECRET: z
-    .string()
-    .min(1, "JWT_SECRET és obligatori")
-    .default("canvia_aixo_per_una_clau_segura"),
+  // Sense valor per defecte: si falten, el backend no arrenca. Així una instal·lació
+  // no pot quedar-se signant JWT amb una clau pública coneguda.
+  JWT_SECRET: z.string().min(32, "JWT_SECRET ha de tenir com a mínim 32 caràcters"),
 
-  ENCRYPTION_SECRET: z
-    .string()
-    .min(1, "ENCRYPTION_SECRET és obligatori")
-    .default("canvia_aixo_per_una_clau_de_xifrat"),
+  ENCRYPTION_SECRET: z.string().min(32, "ENCRYPTION_SECRET ha de tenir com a mínim 32 caràcters"),
 
   MQTT_BROKER_URL: z.string().default("mqtt://mosquitto:1883"),
   MQTT_ADMIN_USERNAME: z.string().default("admin"),
