@@ -10,6 +10,7 @@ import {
   secondaryButtonClass,
 } from "../../styles/uiStyles";
 import { CollapsibleSection } from "../panel/shared/CollapsibleSection";
+import { PasswordInput } from "./PasswordInput";
 
 type TelegramStatus =
   "NO_CONFIGURAT" | "BOT_CONFIGURAT" | "GRUP_PENDENT" | "CONFIGURAT" | "DESACTIVAT";
@@ -348,27 +349,25 @@ export function TelegramConfigPanel() {
                     <StepNumber number="2" /> Crea el bot de la teva ADF
                   </h5>
                   <p className="m-0 text-[0.8rem] text-muted leading-snug">
-                      El bot és la identitat que enviarà cada notificació de{" "}
-                      <strong>{groupAdf}</strong> al grup; cada ADF en té un de propi. A Telegram,
-                      escriu a <strong>@BotFather</strong> → <strong>/newbot</strong>. Et demanarà
-                      dos noms: el <strong>nom</strong> (com es veurà al grup, per exemple{" "}
-                      <em>{groupAdf} · Bot d'avisos</em>) i el <strong>nom d'usuari</strong>, que
-                      ha d'acabar en <em>bot</em> (per exemple{" "}
-                      <em>{botUsernameExample(activeAdf)}</em>). BotFather et donarà un{" "}
-                      <strong>token</strong>.
-                    </p>
+                    El bot és la identitat que enviarà cada notificació de{" "}
+                    <strong>{groupAdf}</strong> al grup; cada ADF en té un de propi. A Telegram,
+                    escriu a <strong>@BotFather</strong> → <strong>/newbot</strong>. Et demanarà dos
+                    noms: el <strong>nom</strong> (com es veurà al grup, per exemple{" "}
+                    <em>{groupAdf} · Bot d'avisos</em>) i el <strong>nom d'usuari</strong>, que ha
+                    d'acabar en <em>bot</em> (per exemple <em>{botUsernameExample(activeAdf)}</em>).
+                    BotFather et donarà un <strong>token</strong>.
+                  </p>
                 </li>
                 <li>
                   <h5 className="m-0 mb-1 font-semibold">
                     <StepNumber number="3" /> Introdueix el token
                   </h5>
                   <p className="m-0 mb-2 text-[0.8rem] text-muted">
-                      Enganxa aquí el token de <strong>@BotFather</strong> i prem{" "}
-                      <strong>Validar bot</strong>. El token és una contrasenya:
-                      es guarda xifrat i no s'ha de compartir amb ningú.
-                    </p>
-                  <input
-                    type="password"
+                    Enganxa aquí el token de <strong>@BotFather</strong> i prem{" "}
+                    <strong>Validar bot</strong>. El token és una contrasenya: es guarda xifrat i no
+                    s'ha de compartir amb ningú.
+                  </p>
+                  <PasswordInput
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value)}
                     placeholder="123456789:AAF..."

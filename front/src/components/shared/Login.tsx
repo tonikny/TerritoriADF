@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth, type LoginResponse } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
 import { inputClass, primaryButtonClass } from "../../styles/uiStyles";
+import { PasswordInput } from "./PasswordInput";
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -63,9 +64,8 @@ export const Login: React.FC = () => {
           <label htmlFor="password" className="text-[0.9rem] font-semibold">
             Contrasenya
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

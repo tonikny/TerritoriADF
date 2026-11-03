@@ -1,6 +1,6 @@
-import React from 'react';
+import React from "react";
 
-export const ShareIcon = ({ size = 22, color = "#555" }: { size?: number, color?: string }) => (
+export const ShareIcon = ({ size = 22, color = "#555" }: { size?: number; color?: string }) => (
   <svg
     width={size}
     height={size}
@@ -19,7 +19,41 @@ export const ShareIcon = ({ size = 22, color = "#555" }: { size?: number, color?
   </svg>
 );
 
-export const OsmIcon = ({ size = 22, color = "#555" }: { size?: number, color?: string }) => (
+export const EyeIcon = ({ size = 18, color = "#555" }: { size?: number; color?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+export const EyeOffIcon = ({ size = 18, color = "#555" }: { size?: number; color?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17.94 17.94A10.4 10.4 0 0 1 12 19c-6.4 0-10-7-10-7a19.4 19.4 0 0 1 5.06-5.94" />
+    <path d="M9.9 4.24A9.9 9.9 0 0 1 12 4c6.4 0 10 7 10 7a19.5 19.5 0 0 1-2.16 3.19" />
+    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+    <line x1="2" y1="2" x2="22" y2="22" />
+  </svg>
+);
+
+export const OsmIcon = ({ size = 22, color = "#555" }: { size?: number; color?: string }) => (
   <svg
     width={size}
     height={size}

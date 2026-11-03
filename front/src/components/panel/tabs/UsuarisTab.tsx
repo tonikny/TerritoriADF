@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdf } from "../../../contexts/AdfContext";
 import { Login } from "../../shared/Login";
+import { PasswordInput } from "../../shared/PasswordInput";
 import { toast } from "react-toastify";
 import { logError } from "../../../utils/log";
 import {
@@ -338,8 +339,7 @@ export function UsuarisTab() {
               </label>
               <label className="block text-[0.8rem] italic mb-2">
                 Contrasenya:
-                <input
-                  type="password"
+                <PasswordInput
                   value={createDraft.password}
                   onChange={(e) => setCreateDraft((d) => ({ ...d, password: e.target.value }))}
                   className={`${inputClass} bg-white`}
@@ -476,8 +476,7 @@ export function UsuarisTab() {
                             </label>
                             <label className="block text-[0.8rem] italic mb-2">
                               Nova contrasenya (opcional):
-                              <input
-                                type="password"
+                              <PasswordInput
                                 value={editDraft.password}
                                 onChange={(e) =>
                                   setEditDraft((d) => (d ? { ...d, password: e.target.value } : d))
@@ -515,8 +514,7 @@ export function UsuarisTab() {
                             </div>
                             <label className="block text-[0.8rem] italic mb-2">
                               Contrasenya actual:
-                              <input
-                                type="password"
+                              <PasswordInput
                                 autoComplete="current-password"
                                 value={pwDraft.current}
                                 onChange={(e) =>
@@ -528,8 +526,7 @@ export function UsuarisTab() {
                             </label>
                             <label className="block text-[0.8rem] italic mb-2">
                               Nova contrasenya:
-                              <input
-                                type="password"
+                              <PasswordInput
                                 autoComplete="new-password"
                                 minLength={6}
                                 value={pwDraft.next}
@@ -542,8 +539,7 @@ export function UsuarisTab() {
                             </label>
                             <label className="block text-[0.8rem] italic mb-2">
                               Repeteix la nova contrasenya:
-                              <input
-                                type="password"
+                              <PasswordInput
                                 autoComplete="new-password"
                                 minLength={6}
                                 value={pwDraft.repeat}
