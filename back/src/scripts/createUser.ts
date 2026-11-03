@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import { users, adfs } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
+import { passwordProblem } from '../utils/password.js';
 
 const log = logger.child({ module: 'auth', operation: 'create_user' });
 
@@ -43,12 +44,25 @@ if (m) {
   adf_id = adfIdArg;
 }
 
+let adfNom: string | null = null;
 if (adf_id !== null) {
-  const adf = db.select({ id: adfs.id }).from(adfs).where(eq(adfs.id, adf_id)).get();
+  const adf = db
+    .select({ id: adfs.id, nom: adfs.nom })
+    .from(adfs)
+    .where(eq(adfs.id, adf_id))
+    .get();
   if (!adf) {
     log.error({ adf_id }, '❌ ADF no existeix a la base de dades');
     process.exit(1);
   }
+  adfNom = adf.nom;
+}
+
+// La contrasenya es valida quan ja se sap l'usuari i l'ADF (per no acceptar-ne el nom).
+const problem = passwordProblem(password, 'La contrasenya', { username, adfNom });
+if (problem) {
+  log.error(problem);
+  process.exit(1);
 }
 
 const id = uuidv4();

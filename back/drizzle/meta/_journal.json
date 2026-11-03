@@ -57,6 +57,13 @@
       "when": 1786719911492,
       "tag": "0007_remote_osm_data",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793730408344,
+      "tag": "0008_medical_maximus",
+      "breakpoints": true
     }
   ]
 }

@@ -14,7 +14,8 @@ import boundary from "./routes/boundary.js";
 import hidrants from "./routes/hidrants.js";
 import incidencies from "./routes/incidencies.js";
 import { login, me, logout, changePassword } from "./routes/auth.js";
-import users from "./routes/users.js";
+import access from "./routes/access.js";
+import users, { accessLink as userAccessLink } from "./routes/users.js";
 import tracking from "./routes/tracking.js";
 import trackingSharing from "./routes/trackingSharing.js";
 import telegram from "./routes/telegram.js";
@@ -34,6 +35,9 @@ import { logger } from "./utils/logger.js";
 
 const app = Fastify({
   loggerInstance: logger.child({ module: "server", operation: "api" }),
+  // Darrere d'un proxy invers, X-Forwarded-For és la IP real (necessari per als límits
+  // de login). Desactivat per defecte: només s'activa amb TRUST_PROXY=true.
+  trustProxy: config.TRUST_PROXY,
 });
 
 app.register(fastifyCookie);
@@ -87,8 +91,9 @@ function createRes(reply: FastifyReply, app: any, request: FastifyRequest): ResA
     json(data: any) {
       // Si el handler ha marcat un usuari per signar (cas del login)
       if (adapter._userToSign) {
-        const token = app.jwt.sign(adapter._userToSign);
-        data.token = token;
+        // Caducitat explícita: el JWT viu el mateix que la cookie. Només viatja a la
+        // cookie httpOnly; no es retorna al cos (evita que quedi a localStorage o logs).
+        const token = app.jwt.sign(adapter._userToSign, { expiresIn: "30d" });
 
         const cookieOptions: any = {
           path: "/",
@@ -224,6 +229,7 @@ function wrap(handler: ApiHandler, options: { protected?: boolean } = {}) {
       headers: request.headers,
       params: request.params,
       url: request.url,
+      ip: request.ip,
       log: request.log,
       user,
     };
@@ -242,6 +248,7 @@ const routes = [
   { path: "/api/auth/logout", handler: logout },
   { path: "/api/auth/me", handler: me },
   { path: "/api/auth/password", handler: changePassword, protected: true },
+  { path: "/api/auth/access/:token", handler: access },
   { path: "/api/config", handler: appConfig },
   { path: "/api/overpass", handler: overpass },
   { path: "/api/hidrants/sync", handler: hidrants, protected: true },
@@ -269,6 +276,7 @@ const routes = [
   { path: "/api/telegram/webhook/:secret", handler: telegramWebhook },
   { path: "/api/users", handler: users, protected: true },
   { path: "/api/users/:id", handler: users, protected: true },
+  { path: "/api/users/:id/access-link", handler: userAccessLink, protected: true },
   { path: "/api/osm/status", handler: osm, protected: true },
   { path: "/api/osm/pending", handler: osm, protected: true },
   { path: "/api/osm/push-sync", handler: osm, protected: true },

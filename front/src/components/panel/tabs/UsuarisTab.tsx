@@ -12,6 +12,7 @@ import {
   secondaryButtonClass,
 } from "../../../styles/uiStyles";
 import { adfLabel } from "../../../utils/adfLabel";
+import { useAppConfig } from "../../../hooks/useAppConfig";
 
 interface ManagedUser {
   id: string;
@@ -27,8 +28,10 @@ type Draft = {
   numero: string;
   gi: boolean;
   role: string;
-  password: string;
 };
+
+/** Enllaç d'accés acabat de generar: només es mostra un cop i no es pot recuperar. */
+type AccessLink = { username: string; url: string; expires_at: string };
 
 const pad3 = (n: number) => String(n).padStart(3, "0");
 const prefixFor = (adfId: number, gi: boolean) => `${pad3(adfId)}/${gi ? "GI/" : ""}`;
@@ -49,6 +52,8 @@ function NumberField({ value, onChange }: { value: string; onChange: (v: string)
 }
 
 export function UsuarisTab() {
+  // Longitud mínima de contrasenya definida al backend (GET /api/config).
+  const { minPasswordLength } = useAppConfig();
   const { user, logout, actualRole, viewRole, setViewRole } = useAuth();
   const { adfs } = useAdf();
   const isAdmin = user?.role === "admin";
@@ -62,8 +67,8 @@ export function UsuarisTab() {
     numero: "",
     gi: false,
     role: "voluntari",
-    password: "",
   });
+  const [accessLink, setAccessLink] = useState<AccessLink | null>(null);
   const [editDraft, setEditDraft] = useState<(Draft & { username: string; adfId: number }) | null>(
     null,
   );
@@ -119,7 +124,8 @@ export function UsuarisTab() {
 
   function startCreate(adfId: number) {
     setCreateAdf(adfId);
-    setCreateDraft({ numero: "", gi: false, role: "voluntari", password: "" });
+    setCreateDraft({ numero: "", gi: false, role: "voluntari" });
+    setAccessLink(null);
     setEditDraft(null);
     setPwDraft(null);
   }
@@ -132,7 +138,6 @@ export function UsuarisTab() {
       numero: m ? m[2] : "",
       gi: u.username.includes("/GI/"),
       role: u.role,
-      password: "",
     });
     setCreateAdf(null);
     setPwDraft(null);
@@ -145,7 +150,7 @@ export function UsuarisTab() {
     setPwDraft({ current: "", next: "", repeat: "" });
   }
 
-  async function doRequest(url: string, method: string, body: unknown) {
+  async function doRequest<T = unknown>(url: string, method: string, body: unknown): Promise<T> {
     const r = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -156,6 +161,7 @@ export function UsuarisTab() {
     if (!r.ok) {
       throw new Error(data.error || `API ${r.status}`);
     }
+    return data as T;
   }
 
   async function submitCreate(e: React.FormEvent) {
@@ -166,12 +172,15 @@ export function UsuarisTab() {
     setSubmitting(true);
     const username = `${prefixFor(createAdf, createDraft.gi)}${pad3(Math.min(Math.max(Number(createDraft.numero) || 0, 1), 999))}`;
     try {
-      await doRequest("/api/users", "POST", {
-        username,
-        role: createDraft.role,
-        password: createDraft.password,
-      });
+      const created = await doRequest<{ access_url?: string; access_expires_at?: string }>(
+        "/api/users",
+        "POST",
+        { username, role: createDraft.role },
+      );
       toast.success(`Usuari ${username} creat`);
+      if (created?.access_url && created.access_expires_at) {
+        setAccessLink({ username, url: created.access_url, expires_at: created.access_expires_at });
+      }
       setCreateAdf(null);
       await load();
     } catch (err) {
@@ -189,15 +198,8 @@ export function UsuarisTab() {
     setSubmitting(true);
     const username = `${prefixFor(editDraft.adfId, editDraft.gi)}${pad3(Math.min(Math.max(Number(editDraft.numero) || 0, 1), 999))}`;
     try {
-      const body: { username: string; role: string; password?: string } = {
-        username,
-        role: editDraft.role,
-      };
-      if (editDraft.password) {
-        body.password = editDraft.password;
-      }
       const target = rows.find((rr) => rr.username === editDraft.username)!;
-      await doRequest(`/api/users/${target.id}`, "PUT", body);
+      await doRequest(`/api/users/${target.id}`, "PUT", { username, role: editDraft.role });
       toast.success("Usuari actualitzat");
       setEditDraft(null);
       await load();
@@ -229,6 +231,33 @@ export function UsuarisTab() {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setPwSubmitting(false);
+    }
+  }
+
+  /** Genera un enllaç d'un sol ús (invalida l'anterior) perquè l'usuari triï contrasenya. */
+  async function generateAccessLink(u: ManagedUser) {
+    try {
+      const data = await doRequest<{
+        username: string;
+        access_url: string;
+        access_expires_at: string;
+      }>(`/api/users/${u.id}/access-link`, "POST", {});
+      setAccessLink({
+        username: data.username,
+        url: data.access_url,
+        expires_at: data.access_expires_at,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    }
+  }
+
+  async function copyLink(url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Enllaç copiat");
+    } catch {
+      toast.error("No s'ha pogut copiar; selecciona'l a mà");
     }
   }
 
@@ -293,6 +322,42 @@ export function UsuarisTab() {
         <div className="mt-4">
           <h4 className="m-0 mb-2 text-[0.9rem] font-semibold">Gestió d'usuaris</h4>
 
+          {accessLink && (
+            <div className="border border-primary rounded p-3 mb-3 bg-soft">
+              <div className="text-[0.8rem] font-semibold mb-1">
+                Enllaç d'accés · {accessLink.username}
+              </div>
+              <p className="m-0 mb-2 text-[0.75rem] text-muted">
+                Envia'l per un canal privat (WhatsApp, Telegram o en mà). Caduca el{" "}
+                {new Date(accessLink.expires_at).toLocaleString()} i només es pot fer servir un cop.
+              </p>
+              <input
+                readOnly
+                value={accessLink.url}
+                onFocus={(e) => e.currentTarget.select()}
+                className={`${inputClass} bg-white`}
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void copyLink(accessLink.url);
+                  }}
+                  className={`${primaryButtonClass} flex-1 p-2 text-[0.8rem]`}
+                >
+                  Copiar enllaç
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccessLink(null)}
+                  className={`${secondaryButtonClass} flex-1 p-2 text-[0.8rem]`}
+                >
+                  Tanca
+                </button>
+              </div>
+            </div>
+          )}
+
           {createAdf !== null && (
             <form
               onSubmit={(e) => {
@@ -337,15 +402,10 @@ export function UsuarisTab() {
                   ))}
                 </select>
               </label>
-              <label className="block text-[0.8rem] italic mb-2">
-                Contrasenya:
-                <PasswordInput
-                  value={createDraft.password}
-                  onChange={(e) => setCreateDraft((d) => ({ ...d, password: e.target.value }))}
-                  className={`${inputClass} bg-white`}
-                  required
-                />
-              </label>
+              <p className="m-0 mb-2 text-[0.75rem] text-muted">
+                En crear-lo es genera un enllaç d'accés i el voluntari hi tria la seva contrasenya:
+                no cal escriure'n cap.
+              </p>
               <div className="flex gap-2 mt-1">
                 <button
                   type="submit"
@@ -404,6 +464,18 @@ export function UsuarisTab() {
                             <div className="text-muted text-xs capitalize">{u.role}</div>
                           </div>
                           <div className="flex gap-1 shrink-0">
+                            {u.id !== user.id && (
+                              <button
+                                onClick={() => {
+                                  void generateAccessLink(u);
+                                }}
+                                title="Generar enllaç d'accés"
+                                aria-label="Generar enllaç d'accés"
+                                className="bg-transparent border border-border rounded px-2 py-1 cursor-pointer text-[0.8rem]"
+                              >
+                                🔗
+                              </button>
+                            )}
                             {(u.id === user.id || u.adf_id !== null) && (
                               <button
                                 onClick={() => (u.id === user.id ? startSelfEdit() : startEdit(u))}
@@ -474,16 +546,6 @@ export function UsuarisTab() {
                                 ))}
                               </select>
                             </label>
-                            <label className="block text-[0.8rem] italic mb-2">
-                              Nova contrasenya (opcional):
-                              <PasswordInput
-                                value={editDraft.password}
-                                onChange={(e) =>
-                                  setEditDraft((d) => (d ? { ...d, password: e.target.value } : d))
-                                }
-                                className={`${inputClass} bg-white`}
-                              />
-                            </label>
                             <div className="flex gap-2 mt-1">
                               <button
                                 type="submit"
@@ -528,7 +590,7 @@ export function UsuarisTab() {
                               Nova contrasenya:
                               <PasswordInput
                                 autoComplete="new-password"
-                                minLength={6}
+                                minLength={minPasswordLength}
                                 value={pwDraft.next}
                                 onChange={(e) =>
                                   setPwDraft((d) => (d ? { ...d, next: e.target.value } : d))
@@ -541,7 +603,7 @@ export function UsuarisTab() {
                               Repeteix la nova contrasenya:
                               <PasswordInput
                                 autoComplete="new-password"
-                                minLength={6}
+                                minLength={minPasswordLength}
                                 value={pwDraft.repeat}
                                 onChange={(e) =>
                                   setPwDraft((d) => (d ? { ...d, repeat: e.target.value } : d))

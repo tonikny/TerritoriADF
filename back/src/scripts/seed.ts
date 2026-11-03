@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
@@ -34,8 +35,11 @@ const USERS_INICIALS: { username: string; role: 'coordinador' | 'voluntari' }[] 
 async function run() {
   log.info('🌱 Iniciant seed de dades (ADF i Usuaris)...');
 
-  const DEFAULT_PASSWORD = 'anoia';
-  const hash = bcrypt.hashSync(DEFAULT_PASSWORD, 10);
+  // Contrasenya inicial aleatòria (no fixa al codi): es mostra un sol cop al log i només
+  // s'aplica als usuaris que es creen ara. Després del primer accés, canvia-la.
+  // Si ja existeixen, `onConflictDoNothing` conserva la contrasenya actual.
+  const initialPassword = randomBytes(9).toString('base64url');
+  const hash = bcrypt.hashSync(initialPassword, 10);
 
   try {
     // 1. Inserir ADFs
@@ -62,7 +66,11 @@ async function run() {
       })
       .onConflictDoNothing()
       .run();
-    log.info('👤 Usuari admin global creat (admin/anoia)');
+    log.info('👤 Usuari admin global creat (admin)');
+    log.warn(
+      { initial_password: initialPassword },
+      '🔑 Contrasenya inicial dels usuaris nous del seed (canvia-la després del primer accés)',
+    );
 
     // 3. Usuaris operatius definits a USERS_INICIALS (valida format i es deriva l'ADF del prefix)
     for (const u of USERS_INICIALS) {
