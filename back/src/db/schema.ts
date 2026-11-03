@@ -68,6 +68,25 @@ export const users = sqliteTable(
   }),
 );
 
+/** Enllaços d'accés d'un sol ús (/acces/<token>): només es desa el hash del token. */
+export const accessTokens = sqliteTable(
+  "access_tokens",
+  {
+    id: text("id").primaryKey(), // UUID
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    code_hash: text("code_hash").notNull(), // SHA-256 del token
+    expires_at: text("expires_at").notNull(), // ISO
+    used_at: text("used_at"), // ISO un cop consumit
+    created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => ({
+    codeUnq: unique().on(t.code_hash), // un sol ús
+    userIdIdx: index("idx_access_tokens_user_id").on(t.user_id),
+  }),
+);
+
 export const mqttUsers = sqliteTable(
   "mqtt_users",
   {

@@ -395,12 +395,14 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 
 ### 10.1 Auth / Config
 
-| Endpoint           | Mètode | Auth                        | Descripció                                                                                                                                                                            |
-| ------------------ | ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/auth/login`  | POST   | no                          | `{ username, password }` → cookie `auth_token` + `{ user }` amb `permissions[]` i `mqtt_enabled` (`back/src/routes/auth.ts:43`)                                                       |
-| `/api/auth/logout` | POST   | no                          | Esborra cookie                                                                                                                                                                        |
-| `/api/auth/me`     | GET    | no (401 si no hi ha sessió) | Usuari actual + `mqtt_enabled` + `permissions[]`                                                                                                                                      |
-| `/api/config`      | GET    | no                          | `{ max_hydrant_move_meters, role_permissions }` límit de desplaçament i matriu rol → permisos (`back/src/routes/appConfig.ts:11`, `back/src/utils/geo.ts`, `back/src/permissions.ts`) |
+| Endpoint                  | Mètode | Auth                        | Descripció                                                                                                                                                                            |
+| ------------------------- | ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/auth/login`         | POST   | no                          | `{ username, password }` → cookie `auth_token` + `{ user }` amb `permissions[]` i `mqtt_enabled` (`back/src/routes/auth.ts:43`)                                                       |
+| `/api/auth/logout`        | POST   | no                          | Esborra cookie                                                                                                                                                                        |
+| `/api/auth/me`            | GET    | no (401 si no hi ha sessió) | Usuari actual + `mqtt_enabled` + `permissions[]`                                                                                                                                      |
+| `/api/auth/access/:token` | GET    | no                          | Enllaç d'accés d'un sol ús: `{ username }` (404/410 si no existeix, ja s'ha fet servir o ha caducat)                                                                                  |
+| `/api/auth/access/:token` | POST   | no                          | `{ password }` → desa la contrasenya triada per l'usuari, marca el token com a gastat i obre sessió (`{ user }`)                                                                      |
+| `/api/config`             | GET    | no                          | `{ max_hydrant_move_meters, role_permissions }` límit de desplaçament i matriu rol → permisos (`back/src/routes/appConfig.ts:11`, `back/src/utils/geo.ts`, `back/src/permissions.ts`) |
 
 ### 10.2 ADFs / Boundaries
 
@@ -435,12 +437,15 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 
 Username `XXX/YYY` o `XXX/GI/YYY` (3 dígits, `back/src/routes/users.ts:12`), rols `admin|coordinador|voluntari`. Admin veu/toca tot; coordinador només la seva ADF i mai a si mateix.
 
-| Endpoint         | Mètode | Auth | Descripció                                                                                          |
-| ---------------- | ------ | ---- | --------------------------------------------------------------------------------------------------- |
-| `/api/users`     | GET    | sí   | Llista (abast per rol: admin tots, coordinador ADF pròpia)                                          |
-| `/api/users`     | POST   | sí   | Crea `{ username, role, password }` (coordinador no pot crear `admin` ni d'altra ADF)               |
-| `/api/users/:id` | PUT    | sí   | Edita `{ username?, role?, password? }` — re-alinia identitat MQTT si cal (`propagateMqttRename()`) |
-| `/api/users/:id` | DELETE | sí   | Elimina (neteja `mqtt_users`, `incidencia_events.usuari_id→null`, `deleteMqttUser`)                 |
+**Contrasenyes:** ningú no en tria per un altre. En crear un usuari o en demanar un enllaç, el backend guarda el `sha256` del token a `access_tokens` i retorna **una sola vegada** `access_url` (`/acces/<token>`, TTL 7 dies en alta i 24 h en restabliment). L'usuari obre l'enllaç, hi tria la seva contrasenya i queda amb la sessió oberta. Un sol enllaç viu per usuari (`back/src/services/accessTokens.ts`).
+
+| Endpoint                     | Mètode | Auth | Descripció                                                                                                             |
+| ---------------------------- | ------ | ---- | ---------------------------------------------------------------------------------------------------------------------- |
+| `/api/users`                 | GET    | sí   | Llista (abast per rol: admin tots, coordinador ADF pròpia)                                                             |
+| `/api/users`                 | POST   | sí   | Crea `{ username, role }` + retorna `access_url`/`access_expires_at` (coordinador no pot crear `admin` ni d'altra ADF) |
+| `/api/users/:id`             | PUT    | sí   | Edita `{ username?, role? }` — re-alinia identitat MQTT si cal (`propagateMqttRename()`)                               |
+| `/api/users/:id`             | DELETE | sí   | Elimina (neteja `access_tokens`, `mqtt_users`, `incidencia_events.usuari_id→null`, `deleteMqttUser`)                   |
+| `/api/users/:id/access-link` | POST   | sí   | Genera un enllaç d'accés nou (24 h) i invalida l'anterior                                                              |
 
 ### 10.6 Tracking / MQTT (OwnTracks)
 

@@ -5,11 +5,14 @@ import { eq, and } from "drizzle-orm";
 import type { ApiHandler } from "../types.js";
 import { permissionsFor } from "../permissions.js";
 
+/** Longitud mínima de contrasenya (changePassword i enllaç d'accés). */
+export const MIN_PASSWORD_LENGTH = 6;
+
 /**
  * Usuari exposat al client. Mateix shape per a /login i /me: els permisos es deriven
  * del rol aquí (única font de veritat: back/src/permissions.ts), mai no vénen de la BD.
  */
-function toPublicUser(user: {
+export function toPublicUser(user: {
   id: string;
   username: string;
   adf_id: number | null;
@@ -91,10 +94,10 @@ export const changePassword: ApiHandler = async (req, res) => {
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: "Cal indicar la contrasenya actual i la nova" });
   }
-  if (typeof newPassword !== "string" || newPassword.length < 6) {
-    return res
-      .status(400)
-      .json({ error: "La contrasenya nova ha de tenir com a mínim 6 caràcters" });
+  if (typeof newPassword !== "string" || newPassword.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({
+      error: `La contrasenya nova ha de tenir com a mínim ${MIN_PASSWORD_LENGTH} caràcters`,
+    });
   }
 
   const user = db.select().from(users).where(eq(users.id, userId)).get();

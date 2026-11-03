@@ -14,7 +14,8 @@ import boundary from "./routes/boundary.js";
 import hidrants from "./routes/hidrants.js";
 import incidencies from "./routes/incidencies.js";
 import { login, me, logout, changePassword } from "./routes/auth.js";
-import users from "./routes/users.js";
+import access from "./routes/access.js";
+import users, { accessLink as userAccessLink } from "./routes/users.js";
 import tracking from "./routes/tracking.js";
 import trackingSharing from "./routes/trackingSharing.js";
 import telegram from "./routes/telegram.js";
@@ -242,6 +243,7 @@ const routes = [
   { path: "/api/auth/logout", handler: logout },
   { path: "/api/auth/me", handler: me },
   { path: "/api/auth/password", handler: changePassword, protected: true },
+  { path: "/api/auth/access/:token", handler: access },
   { path: "/api/config", handler: appConfig },
   { path: "/api/overpass", handler: overpass },
   { path: "/api/hidrants/sync", handler: hidrants, protected: true },
@@ -269,6 +271,7 @@ const routes = [
   { path: "/api/telegram/webhook/:secret", handler: telegramWebhook },
   { path: "/api/users", handler: users, protected: true },
   { path: "/api/users/:id", handler: users, protected: true },
+  { path: "/api/users/:id/access-link", handler: userAccessLink, protected: true },
   { path: "/api/osm/status", handler: osm, protected: true },
   { path: "/api/osm/pending", handler: osm, protected: true },
   { path: "/api/osm/push-sync", handler: osm, protected: true },
