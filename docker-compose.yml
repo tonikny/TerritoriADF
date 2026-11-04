@@ -1,7 +1,11 @@
+# El nom del projecte no depèn del nom del directori: així es pot moure la
+# carpeta de desplegament sense recrear la xarxa ni els contenidors.
+name: territoriadf
+
 services:
   mosquitto:
     image: eclipse-mosquitto:2
-    container_name: hidrants-mosquitto
+    container_name: territoriadf-mosquitto
     restart: unless-stopped
     ports:
       - "127.0.0.1:1883:1883"
@@ -14,7 +18,7 @@ services:
       - ./mosquitto/certs:/mosquitto/certs:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
-      - hidrants-net
+      - territoriadf-net
     healthcheck:
       test: ["CMD", "pidof", "mosquitto"]
       interval: 60s
@@ -23,13 +27,13 @@ services:
       start_period: 10s
 
   backend:
-    image: hidrants-backend:latest
+    image: territoriadf-backend:latest
     build:
       # Context a l'arrel perquè la imatge s'instal·li amb el package-lock.json únic
       # del monorepo (workspaces); vegeu .dockerignore de l'arrel.
       context: .
       dockerfile: back/Dockerfile
-    container_name: hidrants-back
+    container_name: territoriadf-backend
     restart: unless-stopped
     ports:
       - "127.0.0.1:3034:3033"
@@ -38,7 +42,7 @@ services:
     volumes:
       - ./back/data:/app/data
     networks:
-      - hidrants-net
+      - territoriadf-net
     logging:
       driver: "json-file"
       options:
@@ -52,11 +56,11 @@ services:
       start_period: 40s
 
   frontend:
-    image: hidrants-frontend:latest
+    image: territoriadf-frontend:latest
     build:
       context: .
       dockerfile: front/Dockerfile
-    container_name: hidrants-front
+    container_name: territoriadf-frontend
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"
@@ -64,7 +68,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - hidrants-net
+      - territoriadf-net
     logging:
       driver: "json-file"
       options:
@@ -72,5 +76,5 @@ services:
         max-file: "3"
 
 networks:
-  hidrants-net:
+  territoriadf-net:
     driver: bridge

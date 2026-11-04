@@ -4,15 +4,16 @@ Aquesta guia cobreix **desenvolupament local**. Per a altres entorns i temes esp
 
 ## Mapa de documentació
 
-| Document              | Contingut                                                                                                        | Quan usar-lo                          |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `README.md`           | Visió general, característiques, stack i resum OSM                                                               | Presentació ràpida del projecte       |
-| `docs/DEV.md`         | **Aquest fitxer**: setup local, execució, variables, MQTT dev, Telegram dev, OSM quickref, API i troubleshooting | Desenvolupar en local                 |
-| `docs/DEPLOY.md`      | Deploy producció amb Docker, backups, Telegram prod i MQTT prod resum                                            | Pujar a servidor                      |
-| `docs/OSM_SYNC.md`    | Sincronització bidireccional OSM completa (fluxos, UI, conflictes, validació, API)                               | Treballar amb OSM a fons              |
-| `docs/MQTT_DEPLOY.md` | MQTT producció: TLS, certs, Dynamic Security, `init-dynsec.py`, permisos `mosquitto/data`                        | Configurar Mosquitto en prod          |
-| `AGENTS.md`           | Arquitectura, model ADF-centric, rols/permisos i convencions per agents                                          | Context ràpid per a IA/col·laboradors |
-| `back/.env.example`   | Referència canònica de totes les variables d'entorn del backend                                                  | Consultar valors per defecte          |
+| Document                | Contingut                                                                                                        | Quan usar-lo                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `README.md`             | Visió general, característiques, stack i resum OSM                                                               | Presentació ràpida del projecte       |
+| `docs/DEV.md`           | **Aquest fitxer**: setup local, execució, variables, MQTT dev, Telegram dev, OSM quickref, API i troubleshooting | Desenvolupar en local                 |
+| `docs/DEPLOY.md`        | Deploy producció amb Docker, backups, Telegram prod i MQTT prod resum                                            | Pujar a servidor                      |
+| `docs/OSM_SYNC.md`      | Sincronització bidireccional OSM completa (fluxos, UI, conflictes, validació, API)                               | Treballar amb OSM a fons              |
+| `docs/MQTT_DEPLOY.md`   | MQTT producció: TLS, certs, Dynamic Security, `init-dynsec.py`, permisos `mosquitto/data`                        | Configurar Mosquitto en prod          |
+| `docs/DOMAIN_CHANGE.md` | Canviar domini, ubicació o nom; renombrar backups i fases pendents                                               | Moure o renombrar el desplegament     |
+| `AGENTS.md`             | Arquitectura, model ADF-centric, rols/permisos i convencions per agents                                          | Context ràpid per a IA/col·laboradors |
+| `back/.env.example`     | Referència canònica de totes les variables d'entorn del backend                                                  | Consultar valors per defecte          |
 
 ---
 
@@ -57,11 +58,13 @@ Tant `front/` com `back/` requereixen `.env`. La referència canònica és `back
 | `MQTT_ADMIN_USERNAME`   | no               | `admin`                                                          | Username admin DynSec                                                                                                                                                                                |
 | `MQTT_BACKEND_USERNAME` | no               | `backend`                                                        | Username backend DynSec                                                                                                                                                                              |
 | `MQTT_TOPIC_PREFIX`     | no               | `owntracks/hidrants`                                             | Prefix OwnTracks; backend escolta `${MQTT_TOPIC_PREFIX}/#`                                                                                                                                           |
-| `OTRC_HOST`             | no               | —                                                                | Host públic al `.otrc` OwnTracks (domini prod o IP LAN dev)                                                                                                                                          |
+| `BASE_DOMAIN_URL`       | no               | `localhost`                                                      | Domini públic sense `https://`. És l'única font per a nginx (`npm run nginx:render`) i per als certificats de Mosquitto; també és el host per defecte del `.otrc`                                    |
+| `OTRC_HOST`             | no               | `BASE_DOMAIN_URL`                                                | Només per al `.otrc` d'OwnTracks quan el broker és en un host diferent de `BASE_DOMAIN_URL`. No és obligatòria                                                                                       |
 | `OTRC_PORT`             | no               | `51823`                                                          | Port públic MQTT                                                                                                                                                                                     |
 | `OTRC_TLS`              | no               | `true` (prod)                                                    | `true` amb TLS (prod) / `false` pla (dev)                                                                                                                                                            |
 | `WEBHOOK_PUBLIC_URL`    | dev sí / prod no | —                                                                | URL https pública on Telegram arriba a `/api/telegram/webhook/:secret`. En dev cal túnel (vegeu §8). En prod es deriva del `Host` si no es defineix                                                  |
 | `OVERPASS_URL`          | no               | `https://overpass-api.de/api/interpreter`                        | Overpass per pull sync                                                                                                                                                                               |
+| `OVERPASS_CONTACT`      | recomanat        | — (només `TerritoriADF/1.0`)                                     | Correu o URL que s'envia al `User-Agent` d'Overpass; la seva política d'ús en demana un de vàlid                                                                                                     |
 | `OSM_ACCESS_TOKEN`      | només push       | —                                                                | Token OAuth 2.0 OSM `write_api` (registrar a https://www.openstreetmap.org/oauth2/applications, no expira)                                                                                           |
 | `OSM_API_URL`           | no               | `https://api.openstreetmap.org/api/0.6`                          | API OSM per push                                                                                                                                                                                     |
 | `TELEGRAM_BOT_TOKEN`    | no               | —                                                                | Bot global admin (backups/notificacions sistema)                                                                                                                                                     |
@@ -96,14 +99,14 @@ npm run docker:down  # atura contenidors
 
 ### 4.3 URLs
 
-| Servei                     | URL                                                             |
-| -------------------------- | --------------------------------------------------------------- |
-| Frontend local (Vite)      | `http://localhost:3003`                                         |
-| Backend local              | `http://localhost:3033`                                         |
-| Frontend Docker (Nginx)    | `http://localhost:8080`                                         |
-| Backend Docker             | `http://localhost:3034` (mapejat a 3033 intern)                 |
-| Mosquitto intern/dev       | `mqtt://localhost:1883`                                         |
-| Mosquitto OwnTracks públic | `mqtt://<OTRC_HOST>:51823` (`OTRC_TLS=true` prod / `false` dev) |
+| Servei                     | URL                                                                   |
+| -------------------------- | --------------------------------------------------------------------- |
+| Frontend local (Vite)      | `http://localhost:3003`                                               |
+| Backend local              | `http://localhost:3033`                                               |
+| Frontend Docker (Nginx)    | `http://localhost:8080`                                               |
+| Backend Docker             | `http://localhost:3034` (mapejat a 3033 intern)                       |
+| Mosquitto intern/dev       | `mqtt://localhost:1883`                                               |
+| Mosquitto OwnTracks públic | `mqtt://<BASE_DOMAIN_URL>:51823` (`OTRC_TLS=true` prod / `false` dev) |
 
 ---
 
@@ -128,6 +131,7 @@ Font canònica: `package.json:5` i `back/package.json`. Agrupats per tema.
 | `npm run docker:build`            | `docker compose build`                                                                                                                                                                                                                               |
 | `npm run docker:logs`             | `docker compose logs -f`                                                                                                                                                                                                                             |
 | `npm run docker:clean`            | `docker image prune -f`                                                                                                                                                                                                                              |
+| `npm run nginx:render`            | Genera `config/site-docker.nginx` a partir de la plantilla i de `BASE_DOMAIN_URL` (`back/.env`). No el cridis a prod sense revisar el resultat                                                                                                       |
 | `npm run docker:deploy`           | Actualització en producció: executa `scripts/deploy/update.sh` (còpia prèvia de la BD, `git pull --ff-only`, `npm ci`, `docker compose build` + `up -d`, healthchecks i `update:boundaries` best-effort). Detall i opcions a `docs/DEPLOY.md` §7     |
 | `npm run db:reset`                | Buida BD (`back/data/hidrants.db`)                                                                                                                                                                                                                   |
 | `npm run db:seed`                 | Crea ADFs i usuaris inicials (admin global + coordinador per ADF); la contrasenya inicial és aleatòria i es mostra un sol cop al log                                                                                                                 |
@@ -173,17 +177,18 @@ L'ACL DynSec no admet `/` als usernames. La identitat OwnTracks (client DynSec `
 **Producció** (TLS):
 
 ```env
-OTRC_HOST=<DOMINI>
+BASE_DOMAIN_URL=<DOMINI>
 OTRC_PORT=51823
 OTRC_TLS=true
+#OTRC_HOST=<ALTRE_HOST>   # només si el broker MQTT no és al mateix domini
 ```
 
-El listener `51823` usa certs Let's Encrypt (`mosquitto/certs/fullchain.pem`/`privkey.pem`). Vegeu `docs/MQTT_DEPLOY.md` per certs, `docker-compose.yml` i `scripts/copy-mosquitto-certs.sh` (hook renovació que llegeix `OTRC_HOST`).
+El listener `51823` usa certs Let's Encrypt (`mosquitto/certs/fullchain.pem`/`privkey.pem`). Vegeu `docs/MQTT_DEPLOY.md` per certs, `docker-compose.yml` i `scripts/copy-mosquitto-certs.sh` (hook renovació que llegeix `BASE_DOMAIN_URL`).
 
 **Desenvolupament** (pla, sense TLS, mateix port publicat a `0.0.0.0` a `docker-compose.yml`):
 
 ```env
-OTRC_HOST=<IP_LAN_DEV>
+BASE_DOMAIN_URL=<IP_LAN_DEV>
 OTRC_PORT=51823
 OTRC_TLS=false
 ```

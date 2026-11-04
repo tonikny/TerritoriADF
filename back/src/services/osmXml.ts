@@ -1,4 +1,5 @@
 import * as xml from "xmlbuilder2";
+import { APP_NAME } from "../utils/appInfo.js";
 
 /**
  * Escapar caràcters XML especials.
@@ -25,7 +26,7 @@ export function buildChangesetXml(comment: string): string {
     .ele("changeset")
     .ele("tag", { k: "comment", v: comment })
     .up()
-    .ele("tag", { k: "created_by", v: "HidrantsADF/1.0" })
+    .ele("tag", { k: "created_by", v: `${APP_NAME}/1.0` })
     .up()
     .ele("tag", { k: "source", v: "survey" })
     .up()
@@ -130,7 +131,7 @@ export function buildOscXml(
 ): string {
   const doc = xml
     .create({ version: "1.0", encoding: "UTF-8" })
-    .ele("osmChange", { version: "0.6", generator: "HidrantsADF" });
+    .ele("osmChange", { version: "0.6", generator: APP_NAME });
 
   for (const op of operations) {
     const actionEle = doc.ele(

@@ -77,7 +77,7 @@ sudo chown 1883:1883 mosquitto/certs/privkey.pem
 
 ### Deploy hook (renovació automàtica)
 
-`scripts/copy-mosquitto-certs.sh` (versionat) copia i reinicia Mosquitto quan certbot renova. Llegeix el domini de `OTRC_HOST` a `back/.env` (no hi ha hostname hardcodejat al repo).
+`scripts/copy-mosquitto-certs.sh` (versionat) copia i reinicia Mosquitto quan certbot renova. Llegeix el domini de `BASE_DOMAIN_URL` a `back/.env` (no hi ha hostname hardcodejat al repo).
 
 Instal·lar (un sol cop). El `chmod` el pot fer l'usuari de desplegament, que és el propietari del repo; l'enllaç a `/etc/letsencrypt` i `certbot` requereixen root:
 
@@ -95,9 +95,9 @@ sudo ln -sf "$(pwd)/scripts/copy-mosquitto-certs.sh" \
 
 Conseqüència pràctica: per provar el hook manualment, fes-ho amb l'usuari amb sudo (`sudo /etc/letsencrypt/renewal-hooks/deploy/copy-mosquitto-certs.sh`). Executat com a `deployuser` fallaria al `chown` i al `docker compose restart`.
 
-Única excepció: si Docker és **rootless** per a `deployuser`, el `docker` de root no veu els contenidors i el `restart` del hook falla (`no such service: mosquitto`) tot i haver copiat els certs. Comprova-ho amb `sudo docker ps` (ha de llistar `hidrants-mosquitto`).
+Única excepció: si Docker és **rootless** per a `deployuser`, el `docker` de root no veu els contenidors i el `restart` del hook falla (`no such service: mosquitto`) tot i haver copiat els certs. Comprova-ho amb `sudo docker ps` (ha de llistar `territoriadf-mosquitto`).
 
-L'script resol l'enllaç simbòlic abans de calcular la ruta del projecte: certbot l'executa amb `$0` apuntant a `/etc/letsencrypt/renewal-hooks/deploy/`, i sense `readlink` buscaria `back/.env` allà i sortiria amb `ERROR: no trobo OTRC_HOST a back/.env` (el hook falla, però certbot no ho fa visible i el broker es queda amb el certificat vell).
+L'script resol l'enllaç simbòlic abans de calcular la ruta del projecte: certbot l'executa amb `$0` apuntant a `/etc/letsencrypt/renewal-hooks/deploy/`, i sense `readlink` buscaria `back/.env` allà i sortiria amb `ERROR: no trobo BASE_DOMAIN_URL a back/.env` (el hook falla, però certbot no ho fa visible i el broker es queda amb el certificat vell).
 
 Provar-lo tal com l'executa certbot, des de fora del repo:
 
@@ -106,7 +106,7 @@ cd / && sudo RENEWED_LINEAGE=/etc/letsencrypt/live/<DOMINI> \
   /etc/letsencrypt/renewal-hooks/deploy/copy-mosquitto-certs.sh
 ```
 
-Ha d'imprimir `Hook: certificat de <DOMINI> copiat...` i reiniciar el contenidor. Si surt l'error d'`OTRC_HOST`, l'enllaç apunta a un script vell sense la resolució de `readlink`.
+Ha d'imprimir `Hook: certificat de <DOMINI> copiat...` i reiniciar el contenidor. Si surt l'error de `BASE_DOMAIN_URL`, l'enllaç apunta a un script vell sense la resolució de `readlink`.
 
 Com que copia sempre de `/etc/letsencrypt/live/<DOMINI>` (no de `$RENEWED_LINEAGE`), executar-lo amb `certbot renew --dry-run` no instal·la mai un certificat d'staging: com a molt reescriu el mateix.
 
@@ -206,8 +206,8 @@ npm run mqtt:cleanup -- --apply
 
 ```bash
 docker compose exec mosquitto sh -c "cat /mosquitto/data/dynamic-security.json" \
-  > "/var/backups/hidrants/mosquitto/dynamic-security.$(date +%Y%m%d).json"
-cp mosquitto/data/mosquitto.db "/var/backups/hidrants/mosquitto/mosquitto.$(date +%Y%m%d).db"
+  > "/var/backups/territoriadf/mosquitto/dynamic-security.$(date +%Y%m%d).json"
+cp mosquitto/data/mosquitto.db "/var/backups/territoriadf/mosquitto/mosquitto.$(date +%Y%m%d).db"
 ```
 
 ---

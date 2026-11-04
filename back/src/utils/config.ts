@@ -7,6 +7,8 @@ const log = logger.child({ module: "config", operation: "load" });
 dotenv.config();
 
 const configSchema = z.object({
+  // Domini públic de l'aplicació, sense protocol. És l'única font per a
+  // nginx/certs i el host per defecte del fitxer .otrc.
   BASE_DOMAIN_URL: z.string().default("localhost"),
   PORT: z.coerce.number().default(3033),
   // Si hi ha un proxy invers al davant (nginx, Caddy), activa-ho perquè `request.ip`
@@ -17,6 +19,10 @@ const configSchema = z.object({
     .default("false")
     .transform((v) => v === "true" || v === "1"),
   OVERPASS_URL: z.string().default("https://overpass-api.de/api/interpreter"),
+  // Contacte (normalment un correu) que s'afegeix al User-Agent de les consultes
+  // a Overpass. La política d'ús d'Overpass demana un contacte vàlid; és opcional
+  // perquè no és cap secret i cada desplegament hi posa el seu.
+  OVERPASS_CONTACT: z.string().optional(),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_CHAT_ID: z.string().optional(),
   GRAPHHOPPER_API_KEY: z.string().optional(),
@@ -34,7 +40,9 @@ const configSchema = z.object({
   MQTT_BACKEND_PASSWORD: z.string().min(1, "MQTT_BACKEND_PASSWORD requerit"),
   MQTT_TOPIC_PREFIX: z.string().default("owntracks/hidrants"),
 
-  OTRC_HOST: z.string().default("hidrants.hopto.org"),
+  // Opcional: només per al .otrc d'OwnTracks quan el broker és en un host
+  // diferent de BASE_DOMAIN_URL. No és obligatòria.
+  OTRC_HOST: z.string().optional(),
   OTRC_PORT: z.coerce.number().default(51823),
   OTRC_TLS: z
     .string()

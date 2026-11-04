@@ -1,6 +1,6 @@
 # Guia de Deploy en Producció (DEPLOY.md)
 
-Aquesta guia detalla el procés per fer el deploy de la Xarxa d'Hidrants ADF en un entorn de producció utilitzant Docker.
+Aquesta guia detalla el procés per fer el deploy de TerritoriADF en un entorn de producció utilitzant Docker.
 
 Si és el primer desplegament (o el primer després d'un canvi de seguretat), segueix la **checklist de §10** abans i després de pujar la versió.
 
@@ -25,11 +25,17 @@ Si utilitzes un servidor Debian 13 net, pots fer servir els scripts preparats:
 
 ## 3. Configuració del Projecte
 
+`PROJECT_DIR` és la carpeta on viu el repo. No està hardcodejada enlloc del codi: els scripts la calculen a partir de la seva posició. Defineix-la una vegada al shell per a les comandes d'aquesta guia:
+
+```bash
+export PROJECT_DIR=/ruta/al/repo   # la carpeta on clonaràs el repositori
+```
+
 1.  Clona el repositori al servidor:
 
     ```bash
-    git clone <url-del-repositori> /opt/hidrants
-    cd /opt/hidrants
+    git clone <url-del-repositori> "$PROJECT_DIR"
+    cd "$PROJECT_DIR"
     ```
 
 2.  Configura les variables d'entorn del backend:
@@ -41,6 +47,7 @@ Si utilitzes un servidor Debian 13 net, pots fer servir els scripts preparats:
 
     **IMPORTANT:**
     - Canvia `JWT_SECRET` per una clau realment segura.
+    - Defineix `BASE_DOMAIN_URL` amb el domini públic (sense `https://`).
     - Revisa els ports (per defecte el backend escolta al 3033 internament).
     - Configura les claus de Telegram i GraphHopper si les tens.
     - Per a la sincronització push a OSM, configura `OSM_ACCESS_TOKEN` (token OAuth 2.0, veure secció OSM a continuació).
@@ -97,7 +104,7 @@ Ports del broker:
 
 Configuració: copiar `mosquitto/config/mosquitto.conf.example` → `mosquitto.conf` (amb certs `fullchain.pem`/`privkey.pem` dins el contenidor). Per a desenvolupament local, usa `mosquitto.dev.conf.example` (sense TLS).
 
-Backend: per defecte connecta a `mqtt://mosquitto:1883`. El fitxer `.otrc` que genera la UI apunta a `OTRC_HOST`, `OTRC_PORT=51823`, `OTRC_TLS=true`.
+Backend: per defecte connecta a `mqtt://mosquitto:1883`. El fitxer `.otrc` que genera la UI apunta a `OTRC_HOST` si està definit i, si no, a `BASE_DOMAIN_URL`, amb `OTRC_PORT=51823`, `OTRC_TLS=true`. `BASE_DOMAIN_URL` és l'única font del domini per a nginx (`npm run nginx:render`) i per als certificats de Mosquitto.
 
 Guia completa de MQTT (certs + renovació automàtica, Dynamic Security, `npm run mqtt:sync-dynsec`/`mqtt:regen-dynsec`, accés compartit a `mosquitto/data`, backup i troubleshooting): `docs/MQTT_DEPLOY.md`.
 
@@ -107,7 +114,11 @@ Per publicar canvislocals cap a OpenStreetMap, cal configurar el token OAuth 2.0
 
 1. Registra una aplicació a https://www.openstreetmap.org/oauth2/applications
 2. Scope necessari: `write_api`
-3. Afegeix a `back/.env`:
+3. **URI de redirecció**: el formulari d'OSM l'exigeix. Posa-hi una URL del teu
+   desplegament (per exemple `https://<domini>/`). L'aplicació només fa servir el
+   token al backend, així que no hi ha cap flux de callback, però si canvies de
+   domini torna-la a actualitzar al registre d'OSM.
+4. Afegeix a `back/.env`:
 
 ```env
 OSM_ACCESS_TOKEN=el_teu_token_oauth2_aqui
@@ -178,7 +189,7 @@ El projecte inclou un sistema complet de backups automàtics amb rotació. Els b
 1. **Instal·lar els cron jobs** (només cal fer-ho una vegada):
 
    ```bash
-   cd /opt/hidrants
+   cd "$PROJECT_DIR"
    ./scripts/backup/setup-cron.sh install
    ```
 
@@ -288,6 +299,10 @@ Per veure què està passant als contenidors:
 npm run docker:logs
 ```
 
+## 7b. Canviar de domini o d'ubicació
+
+El domini viu només a `BASE_DOMAIN_URL` (`back/.env`); `OTRC_HOST` només cal si el broker OwnTracks és en un altre host. La ubicació no està hardcodejada: els scripts calculen `PROJECT_DIR` a partir de la seva posició i `docker-compose.yml` fixa `name: territoriadf`. Els passos complets, amb els efectes sobre certificats, Telegram, OSM, MQTT, backups i el nom del repositori de git, són a **[docs/DOMAIN_CHANGE.md](DOMAIN_CHANGE.md)**.
+
 ## 8. Publicació a Internet
 
 Per defecte, l'aplicació està configurada per escoltar a `127.0.0.1` per seguretat. Per publicar-la:
@@ -342,7 +357,7 @@ Resum del que demana cada canvi d'aquesta versió:
 - [ ] Si la BD ja tenia dades, canviar `ENCRYPTION_SECRET` **invalida** els secrets xifrats (`mqtt_users.mqtt_password_enc`, `telegramBots.token_enc`): caldrà tornar a activar el tracking de cada usuari i tornar a registrar el bot de cada ADF. En un desplegament nou no afecta res.
 - [ ] Si canvies `JWT_SECRET`, tots els tokens de 30 dies deixen de valer: tothom haurà de tornar a entrar (no perden la contrasenya, només la sessió). Fes-ho a posta i avisa.
 - [ ] Les contrasenyes creades abans d'aquesta versió **no es revaliden**: un compte amb `12345678` continua entrant fins que la canviï. Si vols tancar-ho, genera enllaços d'accés nous per als comptes febles des de Configuració → Usuaris.
-- [ ] `OTRC_HOST=<domini>`, `OTRC_PORT=51823`, `OTRC_TLS=true` per al `.otrc` d'OwnTracks.
+- [ ] `BASE_DOMAIN_URL=<domini>` (sense `https://`). `OTRC_PORT=51823`, `OTRC_TLS=true`; `OTRC_HOST` només si el broker OwnTracks és en un altre host.
 
 ### 10.2 Proxy, HTTPS i xarxa
 

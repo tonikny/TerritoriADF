@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Actualització segura del desplegament (Hidrants ADF)
+# Actualització segura del desplegament (TerritoriADF)
 # ====================================================
 #
 # Ús: npm run docker:deploy -- [opcions]
@@ -35,8 +35,8 @@ set -Eeuo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_DIR"
 
-BACKEND_CONTAINER="hidrants-back"
-FRONTEND_CONTAINER="hidrants-front"
+BACKEND_CONTAINER="territoriadf-backend"
+FRONTEND_CONTAINER="territoriadf-frontend"
 DATA_DIR="$PROJECT_DIR/back/data"
 BACKUP_DIR="$PROJECT_DIR/backups/pre-deploy"
 KEEP_BACKUPS=5
@@ -191,7 +191,7 @@ create_predeploy_backup() {
 
   local stamp file rc=0 was_running=0
   stamp=$(date +%Y%m%d_%H%M%S)
-  file="$BACKUP_DIR/hidrants_predeploy_${stamp}.tar.gz"
+  file="$BACKUP_DIR/territoriadf_predeploy_${stamp}.tar.gz"
   BACKUP_FILE="$file"
 
   run mkdir -p "$BACKUP_DIR"
@@ -230,7 +230,7 @@ create_predeploy_backup() {
   else
     log_ok "Còpia prèvia creada ($(du -h "$file" | cut -f1))"
     # Rotació: es conserven les KEEP_BACKUPS més recents.
-    find "$BACKUP_DIR" -name 'hidrants_predeploy_*.tar.gz' -type f -printf '%T@ %p\n' \
+    find "$BACKUP_DIR" -name 'territoriadf_predeploy_*.tar.gz' -type f -printf '%T@ %p\n' \
       | sort -rn | tail -n +$((KEEP_BACKUPS + 1)) | cut -d' ' -f2- \
       | while read -r old; do
           log_info "Eliminant còpia antiga: $(basename "$old")"

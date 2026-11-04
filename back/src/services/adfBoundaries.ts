@@ -3,6 +3,7 @@ import { adfs } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { logger } from "../utils/logger.js";
 import { AppError } from "../errors.js";
+import { APP_NAME } from "../utils/appInfo.js";
 
 const log = logger.child({ module: "adf", operation: "boundaries" });
 
@@ -33,7 +34,7 @@ async function fetchPlace(osmRelation: string): Promise<NominatimPlace> {
     });
 
   const response = await fetch(url, {
-    headers: { "User-Agent": "HidrantsApp/1.0" },
+    headers: { "User-Agent": `${APP_NAME}/1.0` },
     signal: AbortSignal.timeout(NOMINATIM_TIMEOUT_MS),
   });
 

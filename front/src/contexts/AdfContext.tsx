@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { useAuth } from "./AuthContext";
 import { adfLabel } from "../utils/adfLabel";
 import { getQueryParam, setAdfUrlParam, setNodeUrlParam } from "../utils/urlParams";
+import { APP_NAME } from "../utils/appInfo";
 
 export interface AdfData {
   id: number;
@@ -38,11 +39,11 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setActiveAdfState(adf);
       if (adf) {
         localStorage.setItem("active_adf_id", adf.id.toString());
-        document.title = `Hidrants - ${adfLabel(adf.id, adf.nom)}`;
+        document.title = `${APP_NAME} - ${adfLabel(adf.id, adf.nom)}`;
         setAdfUrlParam(adf.id);
       } else {
         localStorage.removeItem("active_adf_id");
-        document.title = "Mapa d'hidrants";
+        document.title = `${APP_NAME} - Mapa d'hidrants`;
         setAdfUrlParam(null);
         setNodeUrlParam(null);
       }

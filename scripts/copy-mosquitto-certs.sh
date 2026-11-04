@@ -16,11 +16,11 @@ SCRIPT_DIR=$(cd "$(dirname "$SELF")" && pwd)
 PROJECT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 CERTS_DIR="$PROJECT_DIR/mosquitto/certs"
 
-# Tolerant a espais al voltant del '=' i a cometes (`OTRC_HOST = "domini"`).
-DOMAIN=$(sed -n 's/^[[:space:]]*OTRC_HOST[[:space:]]*=[[:space:]]*//p' "$PROJECT_DIR/back/.env" \
+# Tolerant a espais al voltant del '=' i a cometes (`BASE_DOMAIN_URL = "domini"`).
+DOMAIN=$(sed -n 's/^[[:space:]]*BASE_DOMAIN_URL[[:space:]]*=[[:space:]]*//p' "$PROJECT_DIR/back/.env" \
     | tr -d '"\r' | sed 's/[[:space:]]*$//' | tail -n 1)
 if [ -z "$DOMAIN" ]; then
-    echo "ERROR: no trobo OTRC_HOST a back/.env" >&2
+    echo "ERROR: no trobo BASE_DOMAIN_URL a back/.env" >&2
     exit 1
 fi
 
@@ -36,8 +36,8 @@ esac
 
 LIVE_DIR="/etc/letsencrypt/live/$DOMAIN"
 if [ ! -f "$LIVE_DIR/fullchain.pem" ]; then
-    echo "ERROR: no existeix $LIVE_DIR/fullchain.pem (OTRC_HOST=$DOMAIN)." >&2
-    echo "       OTRC_HOST ha de ser el domini del certificat, no una IP." >&2
+    echo "ERROR: no existeix $LIVE_DIR/fullchain.pem (BASE_DOMAIN_URL=$DOMAIN)." >&2
+    echo "       BASE_DOMAIN_URL ha de ser el domini del certificat, no una IP." >&2
     exit 1
 fi
 

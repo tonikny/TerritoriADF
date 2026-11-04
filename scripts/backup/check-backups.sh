@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Script de Verificació de Backups per Hidrants ADF
+# Script de Verificació de Backups per TerritoriADF
 # ==================================================
 # Autor: OpenCode
 # Data: 2026-06-29
@@ -22,7 +22,7 @@ set -e  # Sortir si hi ha errors
 # Directori base del projecte (assumeix que l'script està a scripts/backup/)
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKUP_BASE_DIR="$PROJECT_DIR/backups"
-CONTAINER_NAME="hidrants-back"
+CONTAINER_NAME="territoriadf-backend"
 
 # Carregar variables d'entorn per Telegram (opcional)
 ENV_FILE="$PROJECT_DIR/back/.env"
@@ -95,7 +95,7 @@ check_backup_type() {
     fi
     
     # Comptar backups
-    local BACKUP_FILES=($(find "$BACKUP_DIR" -name "hidrants_${BACKUP_TYPE}_*.tar.gz" -type f 2>/dev/null))
+    local BACKUP_FILES=($(find "$BACKUP_DIR" -name "territoriadf_${BACKUP_TYPE}_*.tar.gz" -type f 2>/dev/null))
     local BACKUP_COUNT=${#BACKUP_FILES[@]}
     
     if [ $BACKUP_COUNT -eq 0 ]; then
@@ -202,12 +202,12 @@ check_cron_jobs() {
     log_header "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     
-    if crontab -l 2>/dev/null | grep -q "Hidrants ADF Backups"; then
+    if crontab -l 2>/dev/null | grep -q "TerritoriADF Backups"; then
         log_success "Cron jobs instal·lats"
         
         echo ""
         echo "  Programació activa:"
-        crontab -l 2>/dev/null | grep -A 10 "Hidrants ADF Backups" | grep -v "^$" | sed 's/^/  /'
+        crontab -l 2>/dev/null | grep -A 10 "TerritoriADF Backups" | grep -v "^$" | sed 's/^/  /'
         
         return 0
     else

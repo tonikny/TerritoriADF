@@ -1,5 +1,5 @@
 {
-  "name": "hidrants-front",
+  "name": "territoriadf-frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",

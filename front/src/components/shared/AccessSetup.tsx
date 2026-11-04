@@ -3,6 +3,7 @@ import { inputClass, primaryButtonClass } from "../../styles/uiStyles";
 import { PasswordInput } from "./PasswordInput";
 import { enterApp } from "../../utils/route";
 import { useAppConfig } from "../../hooks/useAppConfig";
+import { APP_NAME } from "../../utils/appInfo";
 
 /**
  * Pantalla d'un enllaç d'accés (/acces/<token>): l'usuari hi tria la seva contrasenya.
@@ -83,7 +84,7 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
         }}
         className="w-full max-w-[340px] bg-white border border-border rounded-lg p-4 shadow-[0_4px_15px_rgba(0,0,0,0.2)]"
       >
-        <h1 className="m-0 mb-1 text-[1.1rem] text-center">Xarxa d'Hidrants ADF</h1>
+        <h1 className="m-0 mb-1 text-[1.1rem] text-center">{APP_NAME}</h1>
         <p className="m-0 mb-3 text-center text-muted text-[0.85rem]">
           {username ? `Tria la contrasenya per a ${username}` : "Enllaç d'accés"}
         </p>

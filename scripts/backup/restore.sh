@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Script de Restauració de Backups per Hidrants ADF
+# Script de Restauració de Backups per TerritoriADF
 # ==================================================
 # Autor: OpenCode
 # Data: 2026-06-29
@@ -24,7 +24,7 @@ set -e  # Sortir si hi ha errors
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKUP_BASE_DIR="$PROJECT_DIR/backups"
 DATA_DIR="$PROJECT_DIR/back/data"
-CONTAINER_NAME="hidrants-back"
+CONTAINER_NAME="territoriadf-backend"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
 # Colors per output
@@ -82,7 +82,7 @@ list_backups() {
         return 1
     fi
     
-    local BACKUPS=($(find "$BACKUP_DIR" -name "hidrants_${BACKUP_TYPE}_*.tar.gz" -type f | sort -r))
+    local BACKUPS=($(find "$BACKUP_DIR" -name "territoriadf_${BACKUP_TYPE}_*.tar.gz" -type f | sort -r))
     
     if [ ${#BACKUPS[@]} -eq 0 ]; then
         log_error "No s'han trobat backups del tipus $BACKUP_TYPE"
@@ -121,7 +121,7 @@ select_backup() {
     local i=1
     for BACKUP in "${BACKUPS[@]}"; do
         local SIZE=$(du -h "$BACKUP" | cut -f1)
-        local DATE=$(basename "$BACKUP" | sed -E 's/hidrants_.*_([0-9]{8}_[0-9]{6})\.tar\.gz/\1/' | sed 's/_/ /')
+        local DATE=$(basename "$BACKUP" | sed -E 's/territoriadf_.*_([0-9]{8}_[0-9]{6})\.tar\.gz/\1/' | sed 's/_/ /')
         echo "  [$i] $(basename "$BACKUP")"
         echo "      Mida: $SIZE | Data: $DATE"
         echo ""

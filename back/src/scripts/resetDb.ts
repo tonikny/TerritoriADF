@@ -19,7 +19,7 @@ async function makeBackup() {
   const backupsDir = path.resolve(import.meta.dirname, '../../data/backups');
   fs.mkdirSync(backupsDir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const dest = path.join(backupsDir, `hidrants-${stamp}.db`);
+  const dest = path.join(backupsDir, `territoriadf-${stamp}.db`);
   await sqlite.backup(dest);
   return dest;
 }

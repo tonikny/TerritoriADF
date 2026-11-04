@@ -22,7 +22,7 @@ set -e  # Sortir si hi ha errors
 # Directori base del projecte (assumeix que l'script està a scripts/backup/)
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKUP_SCRIPT="$PROJECT_DIR/scripts/backup/backup.sh"
-CRON_MARKER="# Hidrants ADF Backups"
+CRON_MARKER="# TerritoriADF Backups"
 
 # Colors per output
 RED='\033[0;31m'
