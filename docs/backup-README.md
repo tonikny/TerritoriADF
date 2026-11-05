@@ -1,17 +1,23 @@
-# Sistema de Backups Automàtics - Hidrants ADF
+# Sistema de Backups Automàtics - TerritoriADF
 
-Sistema complet de còpies de seguretat amb rotació automàtica per al projecte Hidrants ADF.
+Sistema complet de còpies de seguretat amb rotació automàtica per al projecte TerritoriADF.
 
 ## 📋 Visió General
 
 El sistema de backups està dissenyat per mantenir múltiples punts de restauració amb diferents períodes de retenció:
 
 - **Diari**: Backup del dia anterior
-- **Setmanal**: Backup de fa una setmana  
+- **Setmanal**: Backup de fa una setmana
 - **Mensual**: Backup de fa un mes
 - **Semestral**: Backup de fa sis mesos
 
 Tots els backups es guarden comprimits (tar.gz) al directori `backups/` del projecte.
+
+> **Convenció:** `PROJECT_DIR` és la carpeta on viu el repo. Exporta-la una vegada al shell per a les comandes d'aquest document. Els scripts la calculen sols, així que no depèn d'aquesta variable.
+>
+> ```bash
+> export PROJECT_DIR=/ruta/al/repo   # la carpeta on viu el repo
+> ```
 
 ## 🛠 Scripts Disponibles
 
@@ -20,11 +26,13 @@ Tots els backups es guarden comprimits (tar.gz) al directori `backups/` del proj
 Script principal per crear backups amb gestió automàtica de rotació.
 
 **Ús:**
+
 ```bash
 ./scripts/backup/backup.sh [daily|weekly|monthly|semester]
 ```
 
 **Funcionalitat:**
+
 - Atura temporalment el contenidor Docker
 - Fa checkpoint de SQLite per consolidar el WAL
 - Comprimeix tot el directori `back/data/`
@@ -33,6 +41,7 @@ Script principal per crear backups amb gestió automàtica de rotació.
 - Envia notificació per Telegram (si està configurat)
 
 **Exemple:**
+
 ```bash
 # Crear un backup diari
 ./scripts/backup/backup.sh daily
@@ -43,11 +52,13 @@ Script principal per crear backups amb gestió automàtica de rotació.
 Script per restaurar backups existents.
 
 **Ús:**
+
 ```bash
 ./scripts/backup/restore.sh [daily|weekly|monthly|semester] [fitxer_opcional]
 ```
 
 **Funcionalitat:**
+
 - Llista els backups disponibles
 - Permet seleccionar quin restaurar
 - Fa una còpia de seguretat de les dades actuals
@@ -55,12 +66,13 @@ Script per restaurar backups existents.
 - Reinicia el contenidor
 
 **Exemple:**
+
 ```bash
 # Restaurar l'últim backup setmanal
 ./scripts/backup/restore.sh weekly
 
 # Restaurar un backup específic
-./scripts/backup/restore.sh daily /opt/hidrants/backups/daily/hidrants_daily_20260629_030000.tar.gz
+./scripts/backup/restore.sh daily "$PROJECT_DIR/backups/daily/territoriadf_daily_20260629_030000.tar.gz"
 ```
 
 **IMPORTANT**: Aquest script és destructiu. Demanarà confirmació abans de procedir.
@@ -70,11 +82,13 @@ Script per restaurar backups existents.
 Script per gestionar la configuració dels cron jobs al servidor.
 
 **Ús:**
+
 ```bash
 ./scripts/backup/setup-cron.sh [install|uninstall|status|test|help]
 ```
 
 **Comandos:**
+
 - `install`: Instal·la els cron jobs per backups automàtics
 - `uninstall`: Desinstal·la els cron jobs
 - `status`: Mostra l'estat dels cron jobs i backups existents
@@ -82,6 +96,7 @@ Script per gestionar la configuració dels cron jobs al servidor.
 - `help`: Mostra l'ajuda
 
 **Programació de backups:**
+
 ```
 Daily:     Cada dia a les 3:00 AM
 Weekly:    Cada diumenge a les 3:30 AM
@@ -90,6 +105,7 @@ Semester:  1 de gener i 1 de juliol a les 4:30 AM
 ```
 
 **Exemple:**
+
 ```bash
 # Instal·lar backups automàtics
 ./scripts/backup/setup-cron.sh install
@@ -106,11 +122,13 @@ Semester:  1 de gener i 1 de juliol a les 4:30 AM
 Script per verificar l'estat i integritat dels backups.
 
 **Ús:**
+
 ```bash
 ./scripts/backup/check-backups.sh
 ```
 
 **Funcionalitat:**
+
 - Verifica l'estat de cada tipus de backup
 - Comprova la integritat dels fitxers (tar.gz)
 - Mostra informació detallada (mida, data, antiguitat)
@@ -121,6 +139,7 @@ Script per verificar l'estat i integritat dels backups.
 - Envia notificació per Telegram si hi ha problemes
 
 **Exemple:**
+
 ```bash
 ./scripts/backup/check-backups.sh
 ```
@@ -132,7 +151,7 @@ El script retorna un codi de sortida diferent de 0 si detecta problemes.
 ### Pas 1: Instal·lar Backups Automàtics
 
 ```bash
-cd /opt/hidrants
+cd "$PROJECT_DIR"
 ./scripts/backup/setup-cron.sh install
 ```
 
@@ -161,16 +180,16 @@ Això executarà un backup diari immediatament per verificar que tot funciona co
 ## 📁 Estructura de Directoris
 
 ```
-/opt/hidrants/
+$PROJECT_DIR/
 ├── backups/
 │   ├── daily/
-│   │   └── hidrants_daily_20260629_030000.tar.gz
+│   │   └── territoriadf_daily_20260629_030000.tar.gz
 │   ├── weekly/
-│   │   └── hidrants_weekly_20260622_033000.tar.gz
+│   │   └── territoriadf_weekly_20260622_033000.tar.gz
 │   ├── monthly/
-│   │   └── hidrants_monthly_20260601_040000.tar.gz
+│   │   └── territoriadf_monthly_20260601_040000.tar.gz
 │   ├── semester/
-│   │   └── hidrants_semester_20260101_043000.tar.gz
+│   │   └── territoriadf_semester_20260101_043000.tar.gz
 │   └── backup.log
 ├── back/
 │   └── data/
@@ -196,6 +215,7 @@ TELEGRAM_CHAT_ID=el_teu_chat_id
 ```
 
 Rebràs notificacions quan:
+
 - Un backup es completa correctament ✅
 - Un backup falla ❌
 - El sistema de verificació detecta problemes ⚠️
@@ -203,13 +223,15 @@ Rebràs notificacions quan:
 ## 📊 Logs
 
 Tots els backups automàtics guarden els seus logs a:
+
 ```
-/opt/hidrants/backups/backup.log
+$PROJECT_DIR/backups/backup.log
 ```
 
 Per veure els logs en temps real:
+
 ```bash
-tail -f /opt/hidrants/backups/backup.log
+tail -f "$PROJECT_DIR/backups/backup.log"
 ```
 
 ## 🔧 Manteniment
@@ -222,11 +244,16 @@ Es recomana executar el script de verificació setmanalment de forma manual:
 ./scripts/backup/check-backups.sh
 ```
 
-O afegir-lo com a cron job addicional per monitorització automàtica:
+O afegir-lo com a cron job addicional per monitorització automàtica. Cron no expandeix variables, així que hi ha d'anar la ruta absoluta; la pots obtenir amb:
 
 ```bash
-# Afegir al crontab (cada dilluns a les 9:00)
-0 9 * * 1 /opt/hidrants/scripts/backup/check-backups.sh >> /opt/hidrants/backups/check.log 2>&1
+(cd "$PROJECT_DIR" && pwd)/scripts/backup/check-backups.sh
+```
+
+I afegir-la a `crontab -e` (cada dilluns a les 9:00):
+
+```
+0 9 * * 1 <ruta-absoluta>/scripts/backup/check-backups.sh >> <ruta-absoluta>/backups/check.log 2>&1
 ```
 
 ### Espai en Disc
@@ -234,6 +261,7 @@ O afegir-lo com a cron job addicional per monitorització automàtica:
 Cada backup complet ocupa aproximadament 5-10MB comprimits. Amb 4 punts de restauració, l'espai total necessari és d'uns 20-40MB.
 
 Si l'espai és limitat, pots:
+
 1. Modificar la política de retenció als scripts
 2. Eliminar backups antics manualment
 3. Configurar backups remots (rsync, cloud storage)
@@ -244,13 +272,13 @@ En cas d'emergència, per restaurar ràpidament:
 
 ```bash
 # 1. Aturar el contenidor
-docker stop hidrants-back
+docker stop territoriadf-backend
 
 # 2. Restaurar el backup
 ./scripts/backup/restore.sh daily
 
 # 3. Verificar que el contenidor està operatiu
-docker ps | grep hidrants-back
+docker ps | grep territoriadf-backend
 ```
 
 ## ⚠️ Consideracions Importants
@@ -271,26 +299,26 @@ docker ps | grep hidrants-back
 
 ```bash
 # Verificar que estan instal·lats
-crontab -l | grep "Hidrants ADF"
+crontab -l | grep "TerritoriADF Backups"
 
 # Verificar logs del sistema
-grep CRON /var/log/syslog | grep hidrants
+grep CRON /var/log/syslog | grep territoriadf
 
 # Verificar permisos dels scripts
-ls -la /opt/hidrants/scripts/backup/
+ls -la "$PROJECT_DIR/scripts/backup/"
 ```
 
 ### El backup falla
 
 ```bash
 # Verificar logs
-tail -n 50 /opt/hidrants/backups/backup.log
+tail -n 50 "$PROJECT_DIR/backups/backup.log"
 
 # Verificar que Docker està operatiu
 docker ps
 
 # Verificar espai en disc
-df -h /opt/hidrants
+df -h "$PROJECT_DIR"
 
 # Executar en mode manual per veure errors
 ./scripts/backup/backup.sh daily
@@ -300,13 +328,13 @@ df -h /opt/hidrants
 
 ```bash
 # Reiniciar manualment
-docker start hidrants-back
+docker start territoriadf-backend
 
 # Verificar logs del contenidor
-docker logs hidrants-back
+docker logs territoriadf-backend
 
 # Verificar que la base de dades no està corrupta
-sqlite3 /opt/hidrants/back/data/hidrants.db "PRAGMA integrity_check;"
+sqlite3 $PROJECT_DIR/back/data/hidrants.db "PRAGMA integrity_check;"
 ```
 
 ## 📚 Referències

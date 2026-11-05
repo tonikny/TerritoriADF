@@ -17,6 +17,8 @@ La sincronització respecta les dades locals i evita pèrdua d'informació, ofer
 
 Per poder pujar canvis a OSM, cal registrar una aplicació a [OpenStreetMap OAuth2](https://www.openstreetmap.org/oauth2/applications) i obtenir un token. El token necessita el permís `write_api`.
 
+Al formulari de registre, l'**URI de redirecció** és obligatòria: poseu-hi una URL del vostre desplegament (per exemple `https://<domini>/`). Aquí no hi ha flux de callback (el backend fa servir el token directament), però si canvieu de domini actualitzeu-la al registre perquè segueixi coincidint amb l'aplicació.
+
 Afegeu aquesta variable al fitxer `back/.env`:
 
 ```bash
@@ -25,12 +27,15 @@ OSM_ACCESS_TOKEN=el_teu_token_oauth2_aqui
 
 **Nota:** El token no expira i és obligatori per les operacions de push sync (exportació). La importació (pull sync) funciona sense token.
 
+La política d'ús d'Overpass demana un contacte vàlid a la capçalera `User-Agent`. Configura'l amb `OVERPASS_CONTACT` (correu o URL); si no hi és, s'envia només `TerritoriADF/1.0` i Overpass et pot limitar o bloquejar les consultes.
+
 ### 2.2. Variables d'entorn opcionals
 
-| Variable       | Descripció              | Valor per defecte                         |
-| -------------- | ----------------------- | ----------------------------------------- |
-| `OSM_API_URL`  | URL de l'API d'OSM      | `https://api.openstreetmap.org/api/0.6`   |
-| `OVERPASS_URL` | URL de l'API d'Overpass | `https://overpass-api.de/api/interpreter` |
+| Variable           | Descripció                                       | Valor per defecte                         |
+| ------------------ | ------------------------------------------------ | ----------------------------------------- |
+| `OSM_API_URL`      | URL de l'API d'OSM                               | `https://api.openstreetmap.org/api/0.6`   |
+| `OVERPASS_URL`     | URL de l'API d'Overpass                          | `https://overpass-api.de/api/interpreter` |
+| `OVERPASS_CONTACT` | Contacte (correu o URL) al User-Agent d'Overpass | — (només `TerritoriADF/1.0`)              |
 
 ## 3. Flux de treball principal (prioritzat UI)
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Script de Backup Automàtic per Hidrants ADF
+# Script de Backup Automàtic per TerritoriADF
 # ============================================
 # Autor: OpenCode
 # Data: 2026-06-29
@@ -25,7 +25,7 @@ set -e  # Sortir si hi ha errors
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKUP_BASE_DIR="$PROJECT_DIR/backups"
 DATA_DIR="$PROJECT_DIR/back/data"
-CONTAINER_NAME="hidrants-back"
+CONTAINER_NAME="territoriadf-backend"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
 # Carregar variables d'entorn per Telegram (opcional)
@@ -138,7 +138,7 @@ sqlite_checkpoint() {
 create_backup() {
     local BACKUP_TYPE="$1"
     local BACKUP_DIR="$BACKUP_BASE_DIR/$BACKUP_TYPE"
-    CREATED_BACKUP_FILE="$BACKUP_DIR/hidrants_${BACKUP_TYPE}_${TIMESTAMP}.tar.gz"
+    CREATED_BACKUP_FILE="$BACKUP_DIR/territoriadf_${BACKUP_TYPE}_${TIMESTAMP}.tar.gz"
     
     # Crear directori si no existeix
     mkdir -p "$BACKUP_DIR"
@@ -166,7 +166,7 @@ rotate_backups() {
     log_info "Gestionant rotació de backups $BACKUP_TYPE (es mantenen $KEEP_COUNT)..."
     
     # Comptar backups existents
-    local BACKUP_COUNT=$(find "$BACKUP_DIR" -name "hidrants_${BACKUP_TYPE}_*.tar.gz" 2>/dev/null | wc -l)
+    local BACKUP_COUNT=$(find "$BACKUP_DIR" -name "territoriadf_${BACKUP_TYPE}_*.tar.gz" 2>/dev/null | wc -l)
     
     if [ "$BACKUP_COUNT" -le "$KEEP_COUNT" ]; then
         log_info "Hi ha $BACKUP_COUNT backup(s), no cal rotar"
@@ -174,7 +174,7 @@ rotate_backups() {
     fi
     
     # Eliminar backups antics (mantenir només el més recent)
-    find "$BACKUP_DIR" -name "hidrants_${BACKUP_TYPE}_*.tar.gz" -type f -printf '%T@ %p\n' | \
+    find "$BACKUP_DIR" -name "territoriadf_${BACKUP_TYPE}_*.tar.gz" -type f -printf '%T@ %p\n' | \
         sort -rn | \
         tail -n +$(($KEEP_COUNT + 1)) | \
         cut -d' ' -f2- | \
@@ -258,7 +258,7 @@ main() {
             log_success "El contenidor està operatiu"
         else
             log_error "El contenidor no s'ha pogut reiniciar correctament!"
-            send_telegram "⚠️ <b>Hidrants Backup ERROR</b>: El contenidor no s'ha reiniciat després del backup $BACKUP_TYPE"
+            send_telegram "⚠️ <b>TerritoriADF Backup ERROR</b>: El contenidor no s'ha reiniciat després del backup $BACKUP_TYPE"
         fi
     fi
     
@@ -271,7 +271,7 @@ main() {
         log_info "=========================================="
         
         # Notificació Telegram
-        send_telegram "✅ <b>Hidrants Backup OK</b>
+        send_telegram "✅ <b>TerritoriADF Backup OK</b>
 Tipus: $BACKUP_TYPE
 📁 $(basename "$BACKUP_FILE")
 📊 $(du -h "$BACKUP_FILE" | cut -f1)
@@ -280,7 +280,7 @@ Tipus: $BACKUP_TYPE
         exit 0
     else
         log_error "El backup ha fallat"
-        send_telegram "❌ <b>Hidrants Backup ERROR</b>: El backup $BACKUP_TYPE ha fallat!"
+        send_telegram "❌ <b>TerritoriADF Backup ERROR</b>: El backup $BACKUP_TYPE ha fallat!"
         exit 1
     fi
 }

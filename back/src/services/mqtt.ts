@@ -3,6 +3,7 @@
 import mqtt from "mqtt";
 import { z } from "zod";
 import { config } from "../utils/config.js";
+import { APP_ID } from "../utils/appInfo.js";
 import { dynsecConnect, dynsecCommand, ensureRole, ensureClient } from "./dynsec.js";
 import { logger } from "../utils/logger.js";
 
@@ -175,7 +176,10 @@ class MqttService {
   }
 
   private getReconnectDelay(): number {
-    return Math.min(RECONNECT_BASE * Math.pow(RECONNECT_FACTOR, this.reconnectAttempts), RECONNECT_MAX);
+    return Math.min(
+      RECONNECT_BASE * Math.pow(RECONNECT_FACTOR, this.reconnectAttempts),
+      RECONNECT_MAX,
+    );
   }
 
   private scheduleReconnect(): void {
@@ -210,7 +214,7 @@ class MqttService {
         }
       }
       this.client = mqtt.connect(config.MQTT_BROKER_URL, {
-        clientId: "hidrants-backend",
+        clientId: `${APP_ID}-backend`,
         username: config.MQTT_BACKEND_USERNAME,
         password: config.MQTT_BACKEND_PASSWORD,
         reconnectPeriod: 0,

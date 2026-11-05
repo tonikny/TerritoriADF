@@ -1,4 +1,13 @@
-# 1. Definició de les zones de cache (Host)
+# Plantilla del lloc nginx del host.
+#
+# NO editis `config/site-docker.nginx` a mà: es genera amb
+#   npm run nginx:render
+# i es **sobreescriu** a partir d'aquest fitxer i del valor `BASE_DOMAIN_URL`
+# de `back/.env`. La font de veritat és aquesta plantilla; el domini, una sola
+# variable. Així el domini només s'ha de canviar en un lloc.
+
+# 1. Definició de les zones de cache
+# Aquestes zones es guarden a /var/cache/nginx/ al host
 proxy_cache_path /var/cache/nginx/overpass levels=1:2 keys_zone=overpass_cache:10m max_size=1g inactive=7d use_temp_path=off;
 proxy_cache_path /var/cache/nginx/tiles levels=1:2 keys_zone=tiles_cache:10m max_size=5g inactive=30d use_temp_path=off;
 
@@ -6,8 +15,9 @@ proxy_cache_path /var/cache/nginx/tiles levels=1:2 keys_zone=tiles_cache:10m max
 server {
     listen 80;
     listen [::]:80;
-    server_name EL_TEU_DOMINI.com;
-    
+    server_name __APP_DOMAIN__;
+
+    # Necessari per a les renovacions de Certbot
     location /.well-known/acme-challenge/ {
         root /var/www/html;
     }
@@ -17,37 +27,40 @@ server {
     }
 }
 
-# 3. BLOC SSL (Docker Proxy Mode)
+# 3. BLOC SSL UNIFICAT (Docker Proxy Mode)
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name EL_TEU_DOMINI.com;
+    server_name __APP_DOMAIN__;
 
-    # Certificats SSL (Gestionats pel Host)
-    ssl_certificate /etc/letsencrypt/live/EL_TEU_DOMINI.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/EL_TEU_DOMINI.com/privkey.pem;
+    # Certificats SSL (Gestionats pel Host amb Certbot)
+    ssl_certificate /etc/letsencrypt/live/__APP_DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__APP_DOMAIN__/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
-    # CAPÇALERES DE SEGURETAT
+    # --- CAPÇALERES DE SEGURETAT ---
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    
-    # CSP: Permetem scripts propis, estils, imatges de tiles de diversos proveïdors i Panoramax
+
+    # CSP: Permetem scripts propis, estils d'unpkg (leaflet), imatges de tiles, Panoramax i connexió a l'API Overpass
     add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://*.openstreetmap.org https://*.opentopomap.org https://*.idee.es https://maps.effis.emergency.copernicus.eu https://api.panoramax.xyz https://panoramax.mapcomplete.org https://geoserveis.icgc.cat; connect-src 'self' https://overpass-api.de;" always;
 
-    # FRONTEND (Docker)
+    # FRONTEND (Proxy al contenidor Docker)
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeout per a aplicacions React
+        proxy_read_timeout 90;
     }
 
-    # API / BACKEND (Docker)
+    # API / BACKEND (Proxy al contenidor Docker port 3034)
     location /api/ {
         proxy_pass http://127.0.0.1:3034;
         proxy_set_header Host $host;
@@ -56,22 +69,53 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # CACHE OVERPASS
+    # CACHE OVERPASS (Proxy al contenidor Backend amb cache al host)
     location /api/overpass {
         proxy_pass http://127.0.0.1:3034/api/overpass;
+
         proxy_cache overpass_cache;
         proxy_cache_methods POST;
         proxy_cache_key "$host$request_uri|$request_body";
         proxy_cache_valid 200 7d;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+
         add_header X-Cache-Status $upstream_cache_status;
+
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
-    # EXEMPLE PROXY TILES AMB SNI (IGN)
+    # PROXY TILES AMB CACHE (Gestionat pel host)
+    location /tiles/osm/ {
+        proxy_pass https://tile.openstreetmap.org/;
+        proxy_cache tiles_cache;
+        proxy_cache_valid 200 30d;
+        proxy_cache_use_stale error timeout updating;
+        add_header X-Cache-Status $upstream_cache_status;
+        proxy_set_header User-Agent "TerritoriADF/1.0";
+    }
+
+    location /tiles/opentopo/ {
+        proxy_pass https://tile.opentopomap.org/;
+        proxy_cache tiles_cache;
+        proxy_cache_valid 200 30d;
+        proxy_cache_use_stale error timeout updating;
+        add_header X-Cache-Status $upstream_cache_status;
+    }
+
     location /tiles/ign-raster/ {
         proxy_pass https://tms-mapa-raster.ign.es/1.0.0/mapa-raster/;
         proxy_ssl_server_name on;
-        proxy_set_header User-Agent "LaTevaApp/1.0";
+        proxy_set_header User-Agent "TerritoriADF/1.0";
+        proxy_cache tiles_cache;
+        proxy_cache_valid 200 30d;
+        add_header X-Cache-Status $upstream_cache_status;
+    }
+
+    location /tiles/ign-orto/ {
+        proxy_pass https://tms-pnoa-ma.idee.es/1.0.0/pnoa-ma/;
+        proxy_ssl_server_name on;
+        proxy_set_header User-Agent "TerritoriADF/1.0";
         proxy_cache tiles_cache;
         proxy_cache_valid 200 30d;
         add_header X-Cache-Status $upstream_cache_status;

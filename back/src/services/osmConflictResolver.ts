@@ -3,6 +3,7 @@ import * as osmApi from "./osmApi.js";
 import { buildOscXml } from "./osmXml.js";
 import { parseOsmTags } from "./osmPushSync.js";
 import { computeDiffStrings } from "./osmDiff.js";
+import { APP_NAME } from "../utils/appInfo.js";
 
 export type ConflictDetail = {
   hidrant: HidrantData;
@@ -97,7 +98,7 @@ export async function tryAutoResolve(h: HidrantData): Promise<boolean> {
 
   // Publicar el merge
   const changesetId = await osmApi.createChangeset(
-    `HidrantsADF — Resolució automàtica conflicte ${h.osm_id}`,
+    `${APP_NAME} — Resolució automàtica conflicte ${h.osm_id}`,
   );
 
   const r = await osmApi.updateNode(

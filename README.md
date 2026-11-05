@@ -1,4 +1,4 @@
-# Xarxa d'Hidrants ADF
+# TerritoriADF
 
 _Gestió d'hidrants d'incendis per a les ADF (Agrupacions de Defensa Forestal)_
 

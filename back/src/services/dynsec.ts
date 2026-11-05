@@ -3,6 +3,7 @@
 import mqtt from "mqtt";
 import { randomUUID } from "node:crypto";
 import { config } from "../utils/config.js";
+import { APP_ID } from "../utils/appInfo.js";
 
 const DYNSEC_TOPIC = "$CONTROL/dynamic-security/v1";
 const DYNSEC_RESP_TOPIC = "$CONTROL/dynamic-security/v1/response";
@@ -15,7 +16,7 @@ export function dynsecConnect(
 ): Promise<mqtt.MqttClient> {
   return new Promise((resolve, reject) => {
     const c = mqtt.connect(config.MQTT_BROKER_URL, {
-      clientId: `hidrants-${username || "anon"}-${randomUUID().slice(0, 8)}`,
+      clientId: `${APP_ID}-${username || "anon"}-${randomUUID().slice(0, 8)}`,
       username,
       password,
       reconnectPeriod: 0,

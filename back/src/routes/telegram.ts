@@ -7,6 +7,7 @@ import type { ApiHandler } from "../types.js";
 import { permissionsFor } from "../permissions.js";
 import { appBaseUrl } from "../utils/appUrl.js";
 import { config } from "../utils/config.js";
+import { APP_NAME } from "../utils/appInfo.js";
 import { encrypt, decrypt } from "../utils/crypto.js";
 import {
   getMe,
@@ -248,7 +249,7 @@ const test: ApiHandler = async (req, res) => {
       await sendMessage(
         token,
         bot.chat_id,
-        "🔔 <b>Notificació de prova</b> — Aquest grup rep els avisos de l'aplicació Hidrants. Funciona!",
+        `🔔 <b>Notificació de prova</b> — Aquest grup rep els avisos de l'aplicació ${APP_NAME}. Funciona!`,
       );
     }
   } catch (err) {

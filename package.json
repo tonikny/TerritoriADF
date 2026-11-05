@@ -1,5 +1,5 @@
 {
-  "name": "hidrants",
+  "name": "territoriadf",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -28,6 +28,7 @@
     "docker:logs": "docker compose logs -f",
     "docker:clean": "docker image prune -f",
     "docker:deploy": "bash scripts/deploy/update.sh",
+    "nginx:render": "bash scripts/render-nginx.sh",
     "prepare": "husky"
   },
   "devDependencies": {

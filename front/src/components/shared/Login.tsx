@@ -3,6 +3,7 @@ import { useAuth, type LoginResponse } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
 import { inputClass, primaryButtonClass } from "../../styles/uiStyles";
 import { PasswordInput } from "./PasswordInput";
+import { APP_NAME } from "../../utils/appInfo";
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -44,7 +45,7 @@ export const Login: React.FC = () => {
         }}
         className="flex flex-col gap-3.75"
       >
-        <h2 className="text-center m-0 mb-2.5 text-[1.2rem]">Accés Hidrants</h2>
+        <h2 className="text-center m-0 mb-2.5 text-[1.2rem]">Accés a {APP_NAME}</h2>
 
         <div className="flex flex-col gap-1.25">
           <label htmlFor="username" className="text-[0.9rem] font-semibold">

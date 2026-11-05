@@ -1,5 +1,5 @@
 {
-  "name": "hidrants-back",
+  "name": "territoriadf-backend",
   "type": "module",
   "scripts": {
     "db:generate": "drizzle-kit generate",

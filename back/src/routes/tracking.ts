@@ -174,7 +174,7 @@ function buildOtrc(username: string, password: string) {
     auth: true,
     username,
     password,
-    host: config.OTRC_HOST,
+    host: config.OTRC_HOST ?? config.BASE_DOMAIN_URL,
     port: config.OTRC_PORT,
     tls: config.OTRC_TLS,
     mqttProtocolLevel: 4,

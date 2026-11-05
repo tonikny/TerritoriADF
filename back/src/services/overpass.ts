@@ -1,6 +1,12 @@
 import { config } from "../utils/config.js";
+import { APP_NAME } from "../utils/appInfo.js";
 
 const OVERPASS_API_URL = config.OVERPASS_URL;
+// La política d'Overpass demana un contacte vàlid al User-Agent. Si no està
+// configurat, enviem només el nom de l'aplicació.
+const OVERPASS_USER_AGENT = config.OVERPASS_CONTACT
+  ? `${APP_NAME}/1.0 (${config.OVERPASS_CONTACT})`
+  : `${APP_NAME}/1.0`;
 
 export interface OsmElement {
   type?: string;
@@ -24,7 +30,7 @@ export async function queryOverpass(query: string): Promise<OverpassResult> {
     method: "POST",
     headers: {
       Accept: "*/*",
-      "User-Agent": "HidrantsADF/1.0 (dalecanya@gmail.com)",
+      "User-Agent": OVERPASS_USER_AGENT,
       "Accept-Encoding": "gzip, deflate, br",
       "Accept-Language": "en-US,en;q=0.9",
     },
