@@ -52,3 +52,7 @@ opencode.json
 mosquitto/data/
 mosquitto/certs/
 mosquitto/config/mosquitto.conf
+
+# Expedient d'una migració (dominis, dates, commits, decisions).
+# Viu només al servidor; no entra al repositori.
+docs/migracio/

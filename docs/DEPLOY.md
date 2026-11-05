@@ -303,7 +303,7 @@ npm run docker:logs
 
 El domini viu només a `BASE_DOMAIN_URL` (`back/.env`); `OTRC_HOST` només cal si el broker OwnTracks és en un altre host. La ubicació no està hardcodejada: els scripts calculen `PROJECT_DIR` a partir de la seva posició i `docker-compose.yml` fixa `name: territoriadf`. Els passos complets, amb els efectes sobre certificats, Telegram, OSM, MQTT, backups i el nom del repositori de git, són a **[docs/DOMAIN_CHANGE.md](DOMAIN_CHANGE.md)**.
 
-Els passos complets per migrar la pila d'una instància (renombrar contenidors i, després, canviar de domini) són a **[docs/MIGRATION.md](MIGRATION.md)**: ordre d'execució, verificacions, rollback i criteris de sortida. Les dades concretes de cada migració no es guarden a la documentació permanent: es porten en un expedient temporal a `docs/migracio/`, que s'esborra abans de fusionar la branca.
+Els passos complets per migrar la pila d'una instància (renombrar contenidors i, després, canviar de domini) són a **[docs/MIGRATION.md](MIGRATION.md)**: ordre d'execució, verificacions, rollback i criteris de sortida. Les dades concretes de cada migració no es guarden a la documentació permanent: es porten en un expedient a `docs/migracio/`, que no es versiona (és al `.gitignore`).
 
 ## 8. Publicació a Internet
 

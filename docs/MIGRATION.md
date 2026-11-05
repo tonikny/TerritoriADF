@@ -21,8 +21,9 @@ verificacions i rollback.
 
 L'expedient (`docs/migracio/`) és el que permet que aquest document segueixi
 sent genèric: allà s'apunta el domini antic i el nou, el commit de partida, el
-fitxer de backup i les decisions preses. **S'esborra abans de fusionar la branca
-a `main`**; si cal conservar-ne alguna cosa, es generalitza aquí primer.
+fitxer de backup i les decisions preses. **No es versiona**: `docs/migracio/` és
+al `.gitignore`, així que no arriba al PR ni a `main` i no cal esborrar-lo. Si cal
+conservar-ne alguna cosa, es generalitza aquí primer.
 
 ## Convencions de noms
 
@@ -344,7 +345,13 @@ i les URLs derivades segueixen amb el valor vell.
 
 ### 2.6 Certificats del broker
 
+**Root.** El certificat viu a `/etc/letsencrypt/live/<domini>/`, que només pot
+llegir root, i el hook fa `chown 1883:1883`. Executat amb l'usuari de deploy
+falla amb `ERROR: no existeix …/fullchain.pem` encara que el certificat hi sigui:
+és un problema de permisos, no de domini.
+
 ```bash
+cd "$PROJECT_DIR"
 bash scripts/copy-mosquitto-certs.sh
 ```
 
@@ -356,7 +363,21 @@ fallen amb error de certificat.
 
 - **Telegram:** la URL del webhook queda registrada amb el domini del moment de
   crear el bot; canviar de domini **no** l'actualitza. Re-registra el bot de cada
-  ADF des de la UI i comprova'l amb `getWebhookInfo`.
+  ADF des de la UI **entrant pel domini nou** (la URL es deriva del `Host` de la
+  petició, o de `WEBHOOK_PUBLIC_URL` si està definida) i comprova'l amb
+  `getWebhookInfo`. Amb el bot ja configurat la UI no ofereix camp per al token:
+  primer «Desconnectar Telegram» i després tornar a fer l'alta. Re-registrar
+  buida el grup vinculat: cal tornar a enllaçar-lo amb l'enllaç d'un sol ús. Els
+  avisos sortints segueixen funcionant mentre el webhook és vell, així que el
+  símptoma no és «no arriben» sinó «el bot no rep res» (`"url":""` vol dir que
+  no n'hi ha cap).
+- **Bot global de l'admin:** `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` a
+  `back/.env` no són de cap ADF i **no tenen webhook**: només fan `sendMessage`
+  cap a `api.telegram.org`, així que el canvi de domini no els afecta i no hi ha
+  res a re-registrar (`"url":""` és el seu estat normal). Si canvies el token,
+  edita `back/.env` i recrea el backend: el contenidor el rep per `env_file` i
+  només el llegeix en arrencar. Els scripts de backup el rellegeixen sols a cada
+  execució.
 - **OSM:** actualitza l'URI de redirecció al registre de l'aplicació a
   <https://www.openstreetmap.org/oauth2/applications>. El token no caduca.
 
@@ -409,7 +430,10 @@ només una variable.
 ## Tancament
 
 1. Verificacions de la fase 2 completes.
-2. **Esborrar l'expedient** (`docs/migracio/`) o generalitzar-ne el que calgui.
+2. **L'expedient no entra al repositori**: `docs/migracio/` és al `.gitignore`,
+   així que no cal esborrar-lo. Generalitza aquí el que hagi de sobreviure i
+   comprova que queda fora: `git ls-files docs/migracio` buit i
+   `git check-ignore -v docs/migracio/README.md` amb la línia del `.gitignore`.
 3. Treure el PR de draft, revisar el diff i fusionar a `main`.
 4. Posar el servidor a `main` i desplegar-hi:
    ```bash

@@ -64,14 +64,26 @@ no apareix al codi ni a aquesta documentació. No editis
    ```bash
    docker compose up -d --force-recreate backend
    ```
-6. **Certificats de Mosquitto** (el hook llegeix `BASE_DOMAIN_URL`):
+6. **Certificats de Mosquitto** (el hook llegeix `BASE_DOMAIN_URL`). Com a
+   **root**: `/etc/letsencrypt/live/` només el pot llegir root i el script fa
+   `chown 1883:1883`, així que amb l'usuari de deploy falla amb
+   `no existeix …/fullchain.pem`:
    ```bash
+   cd "$PROJECT_DIR"
    bash scripts/copy-mosquitto-certs.sh
    ```
 7. **Telegram**: la URL del webhook queda registrada a Telegram en crear el bot.
    Canviar de domini **no** l'actualitza: torna a registrar el bot de cada ADF
    des de _Configuració → Notificacions de Telegram_ (o `setWebhook` per API).
-   Comprova amb `getWebhookInfo` que apunta al domini nou.
+   Comprova amb `getWebhookInfo` que apunta al domini nou (`"url":""` vol dir
+   que el bot no té cap webhook i no rep res). Amb el bot ja configurat el panell
+   no dona camp per al token: primer «⛔ Desconnectar Telegram» i tornar a fer
+   l'alta (token → _Validar bot_ → _Vincular grup_). Re-registrar buida el grup
+   vinculat, així que cal tornar a enllaçar-lo abans de provar les notificacions.
+   El bot global de l'admin (`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` a
+   `back/.env`) no té ADF ni webhook: només envia avisos, no cal tocar-lo. Si
+   canvies el token, edita `back/.env` i `docker compose up -d --force-recreate
+backend` (es llegeix a l'arrencada).
 8. **Aplicació OAuth d'OSM**: si fas push sync, actualitza l'**URI de
    redirecció** al registre de l'aplicació a
    <https://www.openstreetmap.org/oauth2/applications> perquè apunti al domini
@@ -140,8 +152,7 @@ export PROJECT_DIR=/ruta/al/repo-nou          # destí
 > Per a una migració completa (primer la identitat de la pila, després el domini)
 > segueix **[docs/MIGRATION.md](MIGRATION.md)**. Les dades concretes de cada
 > migració (noms antics, dominis, dates, commits) no es guarden en aquesta
-> documentació: van a l'expedient temporal `docs/migracio/`, que s'esborra abans
-> de fusionar.
+> documentació: van a l'expedient `docs/migracio/`, que no es versiona.
 
 ## 3. Canviar el nom de l'aplicació
 
