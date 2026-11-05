@@ -20,11 +20,15 @@ El domini és només el valor de `BASE_DOMAIN_URL` a `back/.env` i **no és fix*
 no apareix al codi ni a aquesta documentació. No editis
 `config/site-docker.nginx` a mà: es genera i es sobreescriu.
 
+> Si el canvi de domini forma part d'una migració més gran, la seqüència completa
+> (DNS primer, certificat, nginx, backend, Mosquitto, Telegram, OSM i `.otrc`)
+> és a **[docs/MIGRATION.md](MIGRATION.md)**.
+
 1. **DNS / DDNS**: crea o apunta el nou nom a la IP del servidor. Si és un
    subdomini DDNS, espera que propagui.
-2. **Certificat**:
+2. **Certificat** (com a **root**: l'usuari de deploy no té sudo):
    ```bash
-   sudo certbot --nginx -d nou.domini.org
+   certbot --nginx -d nou.domini.org
    ```
 3. **Variable única** a `back/.env`:
    ```env
@@ -34,13 +38,28 @@ no apareix al codi ni a aquesta documentació. No editis
    # Si el domini públic difereix del Host que rep el backend:
    #WEBHOOK_PUBLIC_URL=https://nou.domini.org
    ```
-4. **Nginx** (genera `config/site-docker.nginx` amb el domini nou):
+4. **Nginx** — genera `config/site-docker.nginx` amb el domini nou com a usuari
+   de deploy:
+
    ```bash
    npm run nginx:render
-   sudo cp config/site-docker.nginx /etc/nginx/sites-available/territoriadf
-   sudo ln -sf /etc/nginx/sites-available/territoriadf /etc/nginx/sites-enabled/territoriadf
-   sudo nginx -t && sudo systemctl reload nginx
    ```
+
+   I instal·la'l com a **root** (a `$PROJECT_DIR`, que la sessió de root també
+   ha de tenir exportat):
+
+   ```bash
+   cp config/site-docker.nginx /etc/nginx/sites-available/territoriadf
+   ln -sfn /etc/nginx/sites-available/territoriadf /etc/nginx/sites-enabled/territoriadf
+   ls -l /etc/nginx/sites-enabled/   # territoriadf ha de ser un enllaç
+   nginx -t && systemctl reload nginx
+   ```
+
+   Abans de sobreescriure'l, desa el lloc que hi hagi enllaçat a `sites-enabled`
+   (`ls -l`): pot no dir-se `territoriadf` si ve d'una etapa anterior, i és el que
+   cal per tornar enrere. Si l'enllaç vell queda actiu, nginx segueix servint el
+   `server_name` i el certificat antics.
+
 5. **Backend** (perquè rellegeixi `BASE_DOMAIN_URL`):
    ```bash
    docker compose up -d --force-recreate backend
@@ -84,9 +103,9 @@ export PROJECT_DIR=/ruta/al/repo-nou          # destí
    cd "$OLD_PROJECT_DIR"
    docker compose down
    ```
-2. **Mou la carpeta**:
+2. **Mou la carpeta** (com a **root**):
    ```bash
-   sudo mv "$OLD_PROJECT_DIR" "$PROJECT_DIR"
+   mv "$OLD_PROJECT_DIR" "$PROJECT_DIR"
    cd "$PROJECT_DIR"
    ```
 3. **Aixeca-la**:
@@ -105,14 +124,24 @@ export PROJECT_DIR=/ruta/al/repo-nou          # destí
 7. **Comprovacions**: `docker compose ps`, `curl http://127.0.0.1:3034/api/adfs`,
    `./scripts/backup/check-backups.sh`.
 
-> **Primera migració des de la pila antiga**: el `docker-compose.yml` anterior no
-> tenia `name:` i el projecte es deia `hidrants`. Atura'l explícitament abans de
-> pujar el nou perquè no quedin contenidors i ports ocupats:
-> `docker compose -p hidrants down`.
+> **Vindre d'una pila amb un altre nom**: si el `docker-compose.yml` anterior no
+> tenia `name:`, el projecte Compose prenia el nom de la carpeta. Atura'l
+> explícitament abans de pujar el nou perquè no quedin contenidors ni ports
+> ocupats:
 >
-> Els contenidors nous són `territoriadf-backend`, `territoriadf-frontend` i
+> ```bash
+> docker compose -p <projecte-anterior> down
+> ```
+>
+> Els contenidors actuals són `territoriadf-backend`, `territoriadf-frontend` i
 > `territoriadf-mosquitto`; les imatges, `territoriadf-backend:latest` i
 > `territoriadf-frontend:latest`.
+>
+> Per a una migració completa (primer la identitat de la pila, després el domini)
+> segueix **[docs/MIGRATION.md](MIGRATION.md)**. Les dades concretes de cada
+> migració (noms antics, dominis, dates, commits) no es guarden en aquesta
+> documentació: van a l'expedient temporal `docs/migracio/`, que s'esborra abans
+> de fusionar.
 
 ## 3. Canviar el nom de l'aplicació
 
@@ -129,21 +158,23 @@ el domini ni la carpeta. Si algun dia canvia:
 
 ## 4. Renombrar els backups existents
 
-Els scripts nous generen `territoriadf_<tipus>_<data>.tar.gz`. Perquè els
-backups antics segueixin sent visibles per la rotació i la restauració:
+Els scripts nous generen `territoriadf_<tipus>_<data>.tar.gz`. Si els backups
+antics portaven un altre prefix, cal renombrar-los perquè segueixin sent
+visibles per a la rotació i la restauració:
 
 ```bash
 cd "$PROJECT_DIR/backups"
-for f in daily/*.tar.gz weekly/*.tar.gz monthly/*.tar.gz semester/*.tar.gz; do
+OLD_PREFIX=<prefix-antic>      # el que portessin els fitxers existents
+NEW_PREFIX=territoriadf
+
+for f in */*.tar.gz; do
   [ -e "$f" ] || continue
-  mv "$f" "$(dirname "$f")/$(basename "$f" | sed 's/^hidrants_/territoriadf_/')"
-done
-# Còpies prèvies de desplegament
-for f in pre-deploy/hidrants_predeploy_*.tar.gz; do
-  [ -e "$f" ] || continue
-  mv "$f" "$(dirname "$f")/$(basename "$f" | sed 's/^hidrants_/territoriadf_/')"
+  mv "$f" "$(dirname "$f")/$(basename "$f" | sed "s/^${OLD_PREFIX}_/${NEW_PREFIX}_/")"
 done
 ```
+
+El `*/*.tar.gz` cobreix els quatre períodes i també `pre-deploy/`. El contingut
+dels fitxers no depèn del nom, així que renombrar-los no afecta la restauració.
 
 ## 5. Canviar el nom del repositori de git
 
@@ -152,11 +183,9 @@ contenidor o imatge, ni el domini en depenen. Però si el repo encara porta un
 nom antic (per exemple, el del projecte abans del canvi de marca), canvia'l per
 no arrossegar-lo a les URL i als clons:
 
-1. **Renombra'l al remot** (GitHub redirigeix les URL antigues, però no
-   actualitza els remots dels clons):
-   ```bash
-   gh repo rename <nou-nom>     # o Settings → Repository name
-   ```
+1. **Renombra'l al remot**: _Settings → Repository name_ al GitHub (o
+   `gh repo rename <nou-nom>` si hi tens `gh`). GitHub redirigeix les URL
+   antigues, però no actualitza els remots dels clons.
 2. **Actualitza els remots** de cada clon, també el del servidor:
    ```bash
    git remote set-url origin <url-nova-del-repositori>

@@ -6,10 +6,11 @@
 # Ús: npm run nginx:render
 #      APP_DOMAIN=exemple.org bash scripts/render-nginx.sh
 #
-# Genera config/site-docker.nginx (ignorat per git). Després, al servidor:
-#   sudo cp config/site-docker.nginx /etc/nginx/sites-available/territoriadf
-#   sudo ln -sf /etc/nginx/sites-available/territoriadf /etc/nginx/sites-enabled/territoriadf
-#   sudo nginx -t && sudo systemctl reload nginx
+# Genera config/site-docker.nginx (ignorat per git). Després, al servidor, com a
+# root (l'usuari que desplega no té sudo):
+#   cp config/site-docker.nginx /etc/nginx/sites-available/territoriadf
+#   ln -sfn /etc/nginx/sites-available/territoriadf /etc/nginx/sites-enabled/territoriadf
+#   nginx -t && systemctl reload nginx
 
 set -Eeuo pipefail
 
@@ -43,7 +44,7 @@ sed "s|__APP_DOMAIN__|$DOMAIN|g" "$TEMPLATE" > "$OUTPUT"
 echo "Plantilla renderitzada: $OUTPUT"
 echo "Domini: $DOMAIN"
 echo ""
-echo "Al servidor, per aplicar-la:"
-echo "  sudo cp \"$OUTPUT\" /etc/nginx/sites-available/territoriadf"
-echo "  sudo ln -sf /etc/nginx/sites-available/territoriadf /etc/nginx/sites-enabled/territoriadf"
-echo "  sudo nginx -t && sudo systemctl reload nginx"
+echo "Al servidor, com a root (l'usuari que desplega no té sudo):"
+echo "  cp \"$OUTPUT\" /etc/nginx/sites-available/territoriadf"
+echo "  ln -sfn /etc/nginx/sites-available/territoriadf /etc/nginx/sites-enabled/territoriadf"
+echo "  nginx -t && systemctl reload nginx"
