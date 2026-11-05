@@ -73,7 +73,7 @@ Per tal que el volum de Docker ja tingui les dades carregades, farem el setup in
     npm run db:setup
     npm run update:boundaries
     ```
-    Això crearà el fitxer `back/data/hidrants.db` amb tota la informació inicial.
+    Això crearà el fitxer `back/data/territoriadf.db` amb tota la informació inicial.
 
 ## 5. Deploy amb Docker Compose
 

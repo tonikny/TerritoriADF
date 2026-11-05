@@ -1,5 +1,6 @@
 // Hook que polla GET /api/tracking/positions cada intervalMs i retorna les posicions.
 import { useState, useEffect, useRef } from "react";
+import { storageKey } from "../utils/storageKeys";
 
 export interface Position {
   lat: number;
@@ -12,7 +13,7 @@ export interface Position {
 
 export const POSITIONS_POLL_ACTIVE_MS = 15_000;
 export const POSITIONS_POLL_IDLE_MS = 5 * 60 * 1000;
-export const TRACKING_STORAGE_KEY = "hidrants_tracking_visible";
+export const TRACKING_STORAGE_KEY = storageKey("tracking_visible");
 
 /** Hook reutilizable per obtenir posicions OwnTracks amb polling automàtic. */
 export function usePositionPolling(

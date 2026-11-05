@@ -4,15 +4,16 @@ Aquest document recull els passos per canviar coses que, per disseny, viuen en
 **un sol lloc**. L'objectiu és que cap canvi de domini ni de carpeta obligui a
 tocar codi.
 
-| Què                       | On viu                                                        | Com es canvia                      |
-| ------------------------- | ------------------------------------------------------------- | ---------------------------------- |
-| Nom de l'aplicació        | `back/src/utils/appInfo.ts` i `front/src/utils/appInfo.ts`    | Editar `APP_NAME` (estable)        |
-| Domini                    | `BASE_DOMAIN_URL` a `back/.env`                               | Una línia + `npm run nginx:render` |
-| Host MQTT (opcional)      | `OTRC_HOST` a `back/.env`                                     | Només si difereix del domini       |
-| Ubicació al disc          | La carpeta on és el repo (els scripts calculen `PROJECT_DIR`) | `mv` + reiniciar la pila           |
-| Repositori de git         | Nom del repo al remot i als clons                             | Renombrar + `git remote set-url`   |
-| URI de redirecció OSM     | Registre de l'aplicació a openstreetmap.org                   | Editar-la al formulari d'OSM       |
-| Prefix MQTT / claus local | `MQTT_TOPIC_PREFIX` / codi del front                          | Pendent (vegeu «Pendent» al final) |
+| Què                     | On viu                                                        | Com es canvia                      |
+| ----------------------- | ------------------------------------------------------------- | ---------------------------------- |
+| Nom de l'aplicació      | `back/src/utils/appInfo.ts` i `front/src/utils/appInfo.ts`    | Editar `APP_NAME` (estable)        |
+| Domini                  | `BASE_DOMAIN_URL` a `back/.env`                               | Una línia + `npm run nginx:render` |
+| Host MQTT (opcional)    | `OTRC_HOST` a `back/.env`                                     | Només si difereix del domini       |
+| Ubicació al disc        | La carpeta on és el repo (els scripts calculen `PROJECT_DIR`) | `mv` + reiniciar la pila           |
+| Repositori de git       | Nom del repo al remot i als clons                             | Renombrar + `git remote set-url`   |
+| URI de redirecció OSM   | Registre de l'aplicació a openstreetmap.org                   | Editar-la al formulari d'OSM       |
+| Prefix MQTT             | `MQTT_TOPIC_PREFIX` a `back/.env`                             | Pendent (vegeu «Pendent» al final) |
+| Claus de `localStorage` | `front/src/utils/storageKeys.ts`                              | Prefix nou; les velles s'ignoren   |
 
 ## 1. Canviar el domini
 
@@ -219,5 +220,11 @@ Aquests canvis toquen estat o dispositius i es fan en una finestra a part:
   clients i redistribuir els `.otrc` als dispositius.
 - **Claus de `localStorage`**: canviar-les (o migrar-les amb un helper que
   llegeixi l'antiga i escrigui la nova) per no perdre preferències de la UI.
-- **Fitxer `hidrants.db`** i prefix `db:reset-hidrants`: renombrar la BD i els
-  scripts de backup/restore alhora, amb una còpia prèvia.
+- **Fitxer de la BD**: ja es diu `territoriadf.db` i el fitxer antic es renombra
+  sol a l'arrencada del backend (vegeu `back/src/db/index.ts`), amb els scripts de
+  backup/restore preparats per trobar l'un o l'altre.
+- **Claus de `localStorage`**: ja porten el prefix `territoriadf_`. No es
+  migren: les velles (`hidrants_*`) es descarten, així que qui tenia preferències
+  desades les veurà una vegada als valors per defecte.
+- `db:reset-hidrants` **no** és un nom de marca: buida la taula d'hidrants i la
+  torna a importar d'OSM, així que es queda com és.
