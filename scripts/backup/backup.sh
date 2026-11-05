@@ -118,7 +118,13 @@ start_container() {
 }
 
 sqlite_checkpoint() {
-    local DB_FILE="$DATA_DIR/hidrants.db"
+    local DB_FILE="$DATA_DIR/territoriadf.db"
+
+    # Compatibilitat: si el backend encara no s'ha reiniciat des del canvi de nom,
+    # el fitxer de la BD es diu com abans.
+    if [ ! -f "$DB_FILE" ]; then
+        DB_FILE="$DATA_DIR/hidrants.db"
+    fi
     
     if [ ! -f "$DB_FILE" ]; then
         log_warning "La base de dades no existeix a $DB_FILE"

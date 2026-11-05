@@ -193,9 +193,9 @@ $PROJECT_DIR/
 │   └── backup.log
 ├── back/
 │   └── data/
-│       ├── hidrants.db
-│       ├── hidrants.db-shm
-│       ├── hidrants.db-wal
+│       ├── territoriadf.db
+│       ├── territoriadf.db-shm
+│       ├── territoriadf.db-wal
 │       └── ...
 └── scripts/
     └── backup/
@@ -334,7 +334,7 @@ docker start territoriadf-backend
 docker logs territoriadf-backend
 
 # Verificar que la base de dades no està corrupta
-sqlite3 $PROJECT_DIR/back/data/hidrants.db "PRAGMA integrity_check;"
+sqlite3 $PROJECT_DIR/back/data/territoriadf.db "PRAGMA integrity_check;"
 ```
 
 ## 📚 Referències

@@ -15,6 +15,7 @@ import { MapViewPersist } from "./MapViewPersist";
 import { MapUIOverlays } from "../controls/MapUIOverlays";
 import { LocationMarker } from "./LocationMarker";
 import { useLocalStorage } from "../../utils/useLocalStorage";
+import { storageKey } from "../../utils/storageKeys";
 
 import { IncidenciaMarkerList } from "./markers/IncidenciaMarkerList";
 import type { HidrantFeature } from "../../hooks/useHidrantData";
@@ -159,18 +160,21 @@ export function LeafletMap({
   const { activeAdf, isLoading } = useAdf();
   const { user } = useAuth();
   const [activeTechnicalLayer, setActiveTechnicalLayer] = useLocalStorage<string | null>(
-    "hidrants_technical_layer",
+    storageKey("technical_layer"),
     null,
   );
   const [hydrantsVisible, setHydrantsVisible] = useLocalStorage<boolean>(
-    "hidrants_hydrants_visible",
+    storageKey("hydrants_visible"),
     true,
   );
   const [incidenciesVisible, setIncidenciesVisible] = useLocalStorage<boolean>(
-    "hidrants_incidencies_visible",
+    storageKey("incidencies_visible"),
     true,
   );
-  const [baseLayer, setBaseLayer] = useLocalStorage<string>("hidrants_base_layer", "OpenStreetMap");
+  const [baseLayer, setBaseLayer] = useLocalStorage<string>(
+    storageKey("base_layer"),
+    "OpenStreetMap",
+  );
 
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const [poi, setPoi] = useState<LatLng | null>(null);

@@ -203,8 +203,11 @@ create_predeploy_backup() {
     (( DRY_RUN )) || sleep 2
   fi
 
-  if command -v sqlite3 >/dev/null && [[ -f "$DATA_DIR/hidrants.db" ]]; then
-    run sqlite3 "$DATA_DIR/hidrants.db" "PRAGMA wal_checkpoint(TRUNCATE);" >/dev/null 2>&1 || true
+  local db_file="$DATA_DIR/territoriadf.db"
+  # Compatibilitat: un servidor on el backend encara no s'ha reiniciat conserva el nom vell.
+  [[ -f "$db_file" ]] || db_file="$DATA_DIR/hidrants.db"
+  if command -v sqlite3 >/dev/null && [[ -f "$db_file" ]]; then
+    run sqlite3 "$db_file" "PRAGMA wal_checkpoint(TRUNCATE);" >/dev/null 2>&1 || true
   fi
 
   log_info "Creant còpia prèvia a $file"

@@ -1,6 +1,7 @@
 // Context d'autenticació: gestor de sessió via cookie httpOnly, exposa user/login/logout.
 // Permet a un admin "veure com" un altre rol (coordinador/voluntari) sense canviar la sessió.
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { storageKey } from "../utils/storageKeys";
 
 export interface User {
   id: string;
@@ -23,7 +24,7 @@ export interface LoginResponse extends SessionResponse {
 
 type ViewRole = "admin" | "coordinador" | "voluntari";
 
-const VIEW_ROLE_KEY = "hidrants_view_role";
+const VIEW_ROLE_KEY = storageKey("view_role");
 
 // Matriu rol → permisos publicada pel backend (GET /api/config, que la treu de
 // back/src/permissions.ts). Es demana una sola vegada per sessió; mentre no ha arribat

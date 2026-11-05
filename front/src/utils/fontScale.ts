@@ -1,10 +1,12 @@
-const KEY = 'hidrants_font_scale';
+import { storageKey } from "./storageKeys";
+
+const KEY = storageKey("font_scale");
 
 export const FONT_SCALES = [
-  { label: 'Petita', value: 0.9 },
-  { label: 'Normal', value: 1 },
-  { label: 'Gran', value: 1.15 },
-  { label: 'Molt gran', value: 1.3 },
+  { label: "Petita", value: 0.9 },
+  { label: "Normal", value: 1 },
+  { label: "Gran", value: 1.15 },
+  { label: "Molt gran", value: 1.3 },
 ];
 
 export function getFontScale(): number {
