@@ -3,12 +3,13 @@ import L from "leaflet";
 import { useMap } from "react-leaflet";
 import { toast } from "react-toastify";
 import { useLocalStorage } from "../utils/useLocalStorage";
+import { storageKey } from "../utils/storageKeys";
 
 const geoAvailable = typeof navigator.geolocation?.watchPosition === "function";
 
 export function useGeolocationTracking() {
   const map = useMap();
-  const [tracking, setTracking] = useLocalStorage<boolean>("hidrants_gps_follow", false);
+  const [tracking, setTracking] = useLocalStorage<boolean>(storageKey("gps_follow"), false);
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const watchIdRef = useRef<number | null>(null);

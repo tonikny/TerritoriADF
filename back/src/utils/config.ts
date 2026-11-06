@@ -38,7 +38,7 @@ const configSchema = z.object({
   MQTT_ADMIN_PASSWORD: z.string().min(1, "MQTT_ADMIN_PASSWORD requerit"),
   MQTT_BACKEND_USERNAME: z.string().default("backend"),
   MQTT_BACKEND_PASSWORD: z.string().min(1, "MQTT_BACKEND_PASSWORD requerit"),
-  MQTT_TOPIC_PREFIX: z.string().default("owntracks/hidrants"),
+  MQTT_TOPIC_PREFIX: z.string().default("owntracks/territoriadf"),
 
   // Opcional: només per al .otrc d'OwnTracks quan el broker és en un host
   // diferent de BASE_DOMAIN_URL. No és obligatòria.

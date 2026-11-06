@@ -3,11 +3,12 @@ import { TabBar } from "./TabBar";
 import { NodeHeader } from "./NodeHeader";
 import { BottomSheet } from "./BottomSheet";
 import { useLocalStorage } from "../../utils/useLocalStorage";
+import { storageKey } from "../../utils/storageKeys";
 import type { PanelTab, PanelNode, BottomSheetHandle } from "./types";
 
 export type { PanelTab, BottomSheetHandle };
 
-const ACTIVE_TAB_KEY = "hidrants_active_tab";
+const ACTIVE_TAB_KEY = storageKey("active_tab");
 
 interface PanelProps {
   map: ReactNode;

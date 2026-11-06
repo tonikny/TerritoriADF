@@ -4,15 +4,16 @@ Aquest document recull els passos per canviar coses que, per disseny, viuen en
 **un sol lloc**. L'objectiu és que cap canvi de domini ni de carpeta obligui a
 tocar codi.
 
-| Què                       | On viu                                                        | Com es canvia                      |
-| ------------------------- | ------------------------------------------------------------- | ---------------------------------- |
-| Nom de l'aplicació        | `back/src/utils/appInfo.ts` i `front/src/utils/appInfo.ts`    | Editar `APP_NAME` (estable)        |
-| Domini                    | `BASE_DOMAIN_URL` a `back/.env`                               | Una línia + `npm run nginx:render` |
-| Host MQTT (opcional)      | `OTRC_HOST` a `back/.env`                                     | Només si difereix del domini       |
-| Ubicació al disc          | La carpeta on és el repo (els scripts calculen `PROJECT_DIR`) | `mv` + reiniciar la pila           |
-| Repositori de git         | Nom del repo al remot i als clons                             | Renombrar + `git remote set-url`   |
-| URI de redirecció OSM     | Registre de l'aplicació a openstreetmap.org                   | Editar-la al formulari d'OSM       |
-| Prefix MQTT / claus local | `MQTT_TOPIC_PREFIX` / codi del front                          | Pendent (vegeu «Pendent» al final) |
+| Què                     | On viu                                                        | Com es canvia                      |
+| ----------------------- | ------------------------------------------------------------- | ---------------------------------- |
+| Nom de l'aplicació      | `back/src/utils/appInfo.ts` i `front/src/utils/appInfo.ts`    | Editar `APP_NAME` (estable)        |
+| Domini                  | `BASE_DOMAIN_URL` a `back/.env`                               | Una línia + `npm run nginx:render` |
+| Host MQTT (opcional)    | `OTRC_HOST` a `back/.env`                                     | Només si difereix del domini       |
+| Ubicació al disc        | La carpeta on és el repo (els scripts calculen `PROJECT_DIR`) | `mv` + reiniciar la pila           |
+| Repositori de git       | Nom del repo al remot i als clons                             | Renombrar + `git remote set-url`   |
+| URI de redirecció OSM   | Registre de l'aplicació a openstreetmap.org                   | Editar-la al formulari d'OSM       |
+| Prefix MQTT             | `MQTT_TOPIC_PREFIX` a `back/.env`                             | Pendent (vegeu «Pendent» al final) |
+| Claus de `localStorage` | `front/src/utils/storageKeys.ts`                              | Prefix nou; les velles s'ignoren   |
 
 ## 1. Canviar el domini
 
@@ -110,7 +111,8 @@ export OLD_PROJECT_DIR=/ruta/al/repo-actual   # origen
 export PROJECT_DIR=/ruta/al/repo-nou          # destí
 ```
 
-1. **Atura la pila** (sense `-v`, per no esborrar res):
+1. **Atura la pila** (sense `-v`, per no esborrar res). Fes-ho fora de la
+   franja dels backups (03:00–04:30):
    ```bash
    cd "$OLD_PROJECT_DIR"
    docker compose down
@@ -124,17 +126,69 @@ export PROJECT_DIR=/ruta/al/repo-nou          # destí
    ```bash
    docker compose up -d
    ```
-4. **Cron**: els camins absoluts del crontab apunten a la ubicació antiga.
-   Reinstal·la'ls des de la ubicació nova:
+4. **Crons**. N'hi ha dos jocs i tots dos guarden camins absoluts:
+
+   - **Backups** (crontab de l'usuari que els va instal·lar). Reinstal·la'ls des
+     de la ubicació nova, responent `sí` a la reinstal·lació:
+     ```bash
+     ./scripts/backup/setup-cron.sh install
+     ```
+     `setup-cron.sh` només esborra les línies que apunten al camí **actual**, de
+     manera que les entrades del camí antic sobreviuen a cada reinstal·lació i es
+     dupliquen. Treu-les abans, conservant una còpia del crontab:
+     ```bash
+     crontab -l > ~/crontab.abans.txt
+     crontab -l \
+       | grep -vE 'scripts/backup/backup\.sh' \
+       | grep -vE '^# (TerritoriADF|Hidrants( ADF)?) Backups' \
+       | grep -vE '^# Backup (diari|setmanal|mensual|semestral)' \
+       > /tmp/crontab.net
+     crontab /tmp/crontab.net
+     ./scripts/backup/setup-cron.sh install
+     ```
+     Hauria de quedar una sola tanda de quatre línies, totes amb el camí nou.
+   - **Seguretat** (`/etc/cron.d/territoriadf-security`, instal·lat a mà). Com a
+     root, actualitza-hi el camí del script de logwatch:
+     ```bash
+     grep -n '/var/www/' /etc/cron.d/territoriadf-security
+     sed -i 's|/var/www/hidrants|/var/www/territoriadf|g' \
+       /etc/cron.d/territoriadf-security
+     ```
+     Si encara té el nom antic, reanomena'l: cron ignora els fitxers amb punt al
+     nom, i `mv` conserva el `mtime`, així que cal `touch` perquè el rellegeixi.
+     ```bash
+     mv /etc/cron.d/hidrants-security /etc/cron.d/territoriadf-security
+     touch /etc/cron.d/territoriadf-security
+     grep -rn 'hidrants-security' /etc 2>/dev/null
+     ```
+     Ajusta els camins del `sed` als d'aquesta migració. Si el fitxer no
+     existeix, no hi ha res a fer.
+
+5. **Hook de certbot**. Si és un enllaç simbòlic al repo, queda penjant amb el
+   `mv`. Torna'l a crear:
    ```bash
-   ./scripts/backup/setup-cron.sh install
+   ls -l /etc/letsencrypt/renewal-hooks/deploy/
+   ln -sfn "$PROJECT_DIR/scripts/copy-mosquitto-certs.sh" \
+     /etc/letsencrypt/renewal-hooks/deploy/copy-mosquitto-certs.sh
    ```
-5. **Hook de certbot**: si és un enllaç simbòlic al repo, torna'l a crear
-   apuntant a la ubicació nova.
-6. **Nginx**: no depèn de la ruta del repo, però torna a renderitzar-lo si has
+   Prova'l sense `RENEWED_LINEAGE` (buit vol dir «executa igualment»): copia els
+   certificats i reinicia Mosquitto.
+   ```bash
+   cd / && /etc/letsencrypt/renewal-hooks/deploy/copy-mosquitto-certs.sh
+   ```
+6. **Reste de camins absoluts**. Nginx i `back/.env` no haurien de contenir la
+   ruta del repo, però comprova-ho (com a root, per a `/etc`):
+   ```bash
+   grep -rn '/var/www/hidrants' /etc/cron* /etc/nginx /etc/systemd/system \
+     /etc/letsencrypt/renewal-hooks 2>/dev/null
+   grep -n '/var/www' back/.env
+   ```
+   Nginx no depèn de la ruta del repo; només cal tornar a renderitzar-lo si has
    canviat també el domini.
-7. **Comprovacions**: `docker compose ps`, `curl http://127.0.0.1:3034/api/adfs`,
-   `./scripts/backup/check-backups.sh`.
+7. **Sessions obertes**: reexporta `PROJECT_DIR` i torna a entrar a la carpeta
+   nova; les shells que ja hi eren dins conserven el `cwd` antic.
+8. **Comprovacions**: `docker compose ps`, `curl http://127.0.0.1:3034/api/adfs`,
+   `./scripts/backup/check-backups.sh` i `./scripts/backup/setup-cron.sh status`.
 
 > **Vindre d'una pila amb un altre nom**: si el `docker-compose.yml` anterior no
 > tenia `name:`, el projecte Compose prenia el nom de la carpeta. Atura'l
@@ -219,5 +273,11 @@ Aquests canvis toquen estat o dispositius i es fan en una finestra a part:
   clients i redistribuir els `.otrc` als dispositius.
 - **Claus de `localStorage`**: canviar-les (o migrar-les amb un helper que
   llegeixi l'antiga i escrigui la nova) per no perdre preferències de la UI.
-- **Fitxer `hidrants.db`** i prefix `db:reset-hidrants`: renombrar la BD i els
-  scripts de backup/restore alhora, amb una còpia prèvia.
+- **Fitxer de la BD**: ja es diu `territoriadf.db` i el fitxer antic es renombra
+  sol a l'arrencada del backend (vegeu `back/src/db/index.ts`), amb els scripts de
+  backup/restore preparats per trobar l'un o l'altre.
+- **Claus de `localStorage`**: ja porten el prefix `territoriadf_`. No es
+  migren: les velles (`hidrants_*`) es descarten, així que qui tenia preferències
+  desades les veurà una vegada als valors per defecte.
+- `db:reset-hidrants` **no** és un nom de marca: buida la taula d'hidrants i la
+  torna a importar d'OSM, així que es queda com és.

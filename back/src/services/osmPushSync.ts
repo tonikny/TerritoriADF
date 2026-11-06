@@ -88,7 +88,7 @@ export function buildChangesetComment(pending: HidrantData[]): string {
   const adfNames = affectedAdfNames(pending);
   const scope = adfNames.length > 0 ? ` (${adfNames.join(", ")})` : "";
 
-  return `Hidrants d'incendis${scope}: ${actions.join(", ")}`;
+  return `TerritoriADF: Hidrants d'incendis${scope}: ${actions.join(", ")}`;
 }
 
 /**

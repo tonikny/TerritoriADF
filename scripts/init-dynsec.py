@@ -48,7 +48,7 @@ def creds():
     if not admin_pass or not backend_pass:
         print("ERROR: cal MQTT_ADMIN_PASSWORD i MQTT_BACKEND_PASSWORD a back/.env", file=sys.stderr)
         sys.exit(1)
-    return admin_user, admin_pass, backend_user, backend_pass, os.environ.get("MQTT_TOPIC_PREFIX", "owntracks/hidrants")
+    return admin_user, admin_pass, backend_user, backend_pass, os.environ.get("MQTT_TOPIC_PREFIX", "owntracks/territoriadf")
 
 def base_config():
     admin_user, admin_pass, backend_user, backend_pass, prefix = creds()
