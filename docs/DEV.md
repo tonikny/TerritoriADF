@@ -57,7 +57,7 @@ Tant `front/` com `back/` requereixen `.env`. La referència canònica és `back
 | `MQTT_BACKEND_PASSWORD` | dev/prod         | —                                                                | Password client `backend` Dynamic Security                                                                                                                                                           |
 | `MQTT_ADMIN_USERNAME`   | no               | `admin`                                                          | Username admin DynSec                                                                                                                                                                                |
 | `MQTT_BACKEND_USERNAME` | no               | `backend`                                                        | Username backend DynSec                                                                                                                                                                              |
-| `MQTT_TOPIC_PREFIX`     | no               | `owntracks/hidrants`                                             | Prefix OwnTracks; backend escolta `${MQTT_TOPIC_PREFIX}/#`                                                                                                                                           |
+| `MQTT_TOPIC_PREFIX`     | no               | `owntracks/territoriadf`                                         | Prefix OwnTracks; backend escolta `${MQTT_TOPIC_PREFIX}/#`                                                                                                                                           |
 | `BASE_DOMAIN_URL`       | no               | `localhost`                                                      | Domini públic sense `https://`. És l'única font per a nginx (`npm run nginx:render`) i per als certificats de Mosquitto; també és el host per defecte del `.otrc`                                    |
 | `OTRC_HOST`             | no               | `BASE_DOMAIN_URL`                                                | Només per al `.otrc` d'OwnTracks quan el broker és en un host diferent de `BASE_DOMAIN_URL`. No és obligatòria                                                                                       |
 | `OTRC_PORT`             | no               | `51823`                                                          | Port públic MQTT                                                                                                                                                                                     |
@@ -166,7 +166,7 @@ Per paquet: `front/` (`dev`, `build`), `back/` (`db:migrate`, `dev`, `build`, `m
 
 ## 7. MQTT / OwnTracks
 
-El backend escolta `${MQTT_TOPIC_PREFIX}/#` (per defecte `owntracks/hidrants/#`) i valida payloads amb Zod (`back/src/services/mqtt.ts`).
+El backend escolta `${MQTT_TOPIC_PREFIX}/#` (per defecte `owntracks/territoriadf/#`) i valida payloads amb Zod (`back/src/services/mqtt.ts`).
 
 ### 7.1 Identitat MQTT aplanada
 
