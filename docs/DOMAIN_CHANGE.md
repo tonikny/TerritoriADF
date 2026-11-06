@@ -111,7 +111,8 @@ export OLD_PROJECT_DIR=/ruta/al/repo-actual   # origen
 export PROJECT_DIR=/ruta/al/repo-nou          # destí
 ```
 
-1. **Atura la pila** (sense `-v`, per no esborrar res):
+1. **Atura la pila** (sense `-v`, per no esborrar res). Fes-ho fora de la
+   franja dels backups (03:00–04:30):
    ```bash
    cd "$OLD_PROJECT_DIR"
    docker compose down
@@ -125,17 +126,69 @@ export PROJECT_DIR=/ruta/al/repo-nou          # destí
    ```bash
    docker compose up -d
    ```
-4. **Cron**: els camins absoluts del crontab apunten a la ubicació antiga.
-   Reinstal·la'ls des de la ubicació nova:
+4. **Crons**. N'hi ha dos jocs i tots dos guarden camins absoluts:
+
+   - **Backups** (crontab de l'usuari que els va instal·lar). Reinstal·la'ls des
+     de la ubicació nova, responent `sí` a la reinstal·lació:
+     ```bash
+     ./scripts/backup/setup-cron.sh install
+     ```
+     `setup-cron.sh` només esborra les línies que apunten al camí **actual**, de
+     manera que les entrades del camí antic sobreviuen a cada reinstal·lació i es
+     dupliquen. Treu-les abans, conservant una còpia del crontab:
+     ```bash
+     crontab -l > ~/crontab.abans.txt
+     crontab -l \
+       | grep -vE 'scripts/backup/backup\.sh' \
+       | grep -vE '^# (TerritoriADF|Hidrants( ADF)?) Backups' \
+       | grep -vE '^# Backup (diari|setmanal|mensual|semestral)' \
+       > /tmp/crontab.net
+     crontab /tmp/crontab.net
+     ./scripts/backup/setup-cron.sh install
+     ```
+     Hauria de quedar una sola tanda de quatre línies, totes amb el camí nou.
+   - **Seguretat** (`/etc/cron.d/territoriadf-security`, instal·lat a mà). Com a
+     root, actualitza-hi el camí del script de logwatch:
+     ```bash
+     grep -n '/var/www/' /etc/cron.d/territoriadf-security
+     sed -i 's|/var/www/hidrants|/var/www/territoriadf|g' \
+       /etc/cron.d/territoriadf-security
+     ```
+     Si encara té el nom antic, reanomena'l: cron ignora els fitxers amb punt al
+     nom, i `mv` conserva el `mtime`, així que cal `touch` perquè el rellegeixi.
+     ```bash
+     mv /etc/cron.d/hidrants-security /etc/cron.d/territoriadf-security
+     touch /etc/cron.d/territoriadf-security
+     grep -rn 'hidrants-security' /etc 2>/dev/null
+     ```
+     Ajusta els camins del `sed` als d'aquesta migració. Si el fitxer no
+     existeix, no hi ha res a fer.
+
+5. **Hook de certbot**. Si és un enllaç simbòlic al repo, queda penjant amb el
+   `mv`. Torna'l a crear:
    ```bash
-   ./scripts/backup/setup-cron.sh install
+   ls -l /etc/letsencrypt/renewal-hooks/deploy/
+   ln -sfn "$PROJECT_DIR/scripts/copy-mosquitto-certs.sh" \
+     /etc/letsencrypt/renewal-hooks/deploy/copy-mosquitto-certs.sh
    ```
-5. **Hook de certbot**: si és un enllaç simbòlic al repo, torna'l a crear
-   apuntant a la ubicació nova.
-6. **Nginx**: no depèn de la ruta del repo, però torna a renderitzar-lo si has
+   Prova'l sense `RENEWED_LINEAGE` (buit vol dir «executa igualment»): copia els
+   certificats i reinicia Mosquitto.
+   ```bash
+   cd / && /etc/letsencrypt/renewal-hooks/deploy/copy-mosquitto-certs.sh
+   ```
+6. **Reste de camins absoluts**. Nginx i `back/.env` no haurien de contenir la
+   ruta del repo, però comprova-ho (com a root, per a `/etc`):
+   ```bash
+   grep -rn '/var/www/hidrants' /etc/cron* /etc/nginx /etc/systemd/system \
+     /etc/letsencrypt/renewal-hooks 2>/dev/null
+   grep -n '/var/www' back/.env
+   ```
+   Nginx no depèn de la ruta del repo; només cal tornar a renderitzar-lo si has
    canviat també el domini.
-7. **Comprovacions**: `docker compose ps`, `curl http://127.0.0.1:3034/api/adfs`,
-   `./scripts/backup/check-backups.sh`.
+7. **Sessions obertes**: reexporta `PROJECT_DIR` i torna a entrar a la carpeta
+   nova; les shells que ja hi eren dins conserven el `cwd` antic.
+8. **Comprovacions**: `docker compose ps`, `curl http://127.0.0.1:3034/api/adfs`,
+   `./scripts/backup/check-backups.sh` i `./scripts/backup/setup-cron.sh status`.
 
 > **Vindre d'una pila amb un altre nom**: si el `docker-compose.yml` anterior no
 > tenia `name:`, el projecte Compose prenia el nom de la carpeta. Atura'l
