@@ -12,7 +12,7 @@ Si és el primer desplegament (o el primer després d'un canvi de seguretat), se
 
 ## 2. Preparació del Servidor
 
-Si utilitzes un servidor Debian 13 net, pots fer servir els scripts preparats:
+Si utilitzes un servidor Debian 13 net i tens els scripts preparats, pots fer-los servir. Aquests scripts (`scripts/docker_setup_debian13.sh`, `scripts/security/`) són locals del servidor i **no es versionen**, així que un clon net no els inclou: si no els tens, instal·la Docker i el proxy/seguretat amb la documentació de cada eina; la resta d'aquesta guia no en depèn.
 
 1.  **Instal·lar Docker:**
     ```bash
@@ -71,8 +71,8 @@ Per tal que el volum de Docker ja tingui les dades carregades, farem el setup in
 2.  Executa el setup de la base de dades i importació d'OSM:
     ```bash
     npm run db:setup
-    npm run update:boundaries
     ```
+    (`db:setup` encadena `db:reset`, `db:seed`, `db:import-osm` i `update:boundaries`.)
     Això crearà el fitxer `back/data/territoriadf.db` amb tota la informació inicial.
 
 ## 5. Deploy amb Docker Compose
@@ -110,7 +110,7 @@ Guia completa de MQTT (certs + renovació automàtica, Dynamic Security, `npm ru
 
 ## 6b. Sincronització amb OSM (push sync)
 
-Per publicar canvislocals cap a OpenStreetMap, cal configurar el token OAuth 2.0:
+Per publicar canvis locals cap a OpenStreetMap, cal configurar el token OAuth 2.0:
 
 1. Registra una aplicació a https://www.openstreetmap.org/oauth2/applications
 2. Scope necessari: `write_api`
@@ -125,7 +125,7 @@ OSM_ACCESS_TOKEN=el_teu_token_oauth2_aqui
 #OSM_API_URL=https://api.openstreetmap.org/api/0.6
 ```
 
-El token OAuth 2.0 d'OSM no expira. Sense aquesta variable, el push sync (`POST /api/osm/push-sync`) retornarà error. La pull sync (`GET /api/osm/sync`) funciona sense token (usa Overpass API pública).
+El token OAuth 2.0 d'OSM no expira. Sense aquesta variable, el push sync (`POST /api/osm/push-sync`) retornarà error. La pull sync (`POST /api/hidrants/sync?adf=<ID>`) funciona sense token (usa Overpass API pública).
 
 ## 7. Manteniment i Actualitzacions
 

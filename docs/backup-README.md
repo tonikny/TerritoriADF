@@ -342,9 +342,3 @@ sqlite3 $PROJECT_DIR/back/data/territoriadf.db "PRAGMA integrity_check;"
 - Documentació SQLite WAL: https://www.sqlite.org/wal.html
 - Documentació Docker: https://docs.docker.com/
 - Guia de Cron: https://crontab.guru/
-
----
-
-**Data de creació**: 2026-06-29  
-**Autor**: OpenCode  
-**Versió**: 1.0

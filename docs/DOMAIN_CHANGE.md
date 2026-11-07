@@ -12,7 +12,7 @@ tocar codi.
 | Ubicació al disc        | La carpeta on és el repo (els scripts calculen `PROJECT_DIR`) | `mv` + reiniciar la pila           |
 | Repositori de git       | Nom del repo al remot i als clons                             | Renombrar + `git remote set-url`   |
 | URI de redirecció OSM   | Registre de l'aplicació a openstreetmap.org                   | Editar-la al formulari d'OSM       |
-| Prefix MQTT             | `MQTT_TOPIC_PREFIX` a `back/.env`                             | Pendent (vegeu «Pendent» al final) |
+| Prefix MQTT             | `MQTT_TOPIC_PREFIX` a `back/.env`                             | Coordinat: DynSec + `.otrc` (§6.1) |
 | Claus de `localStorage` | `front/src/utils/storageKeys.ts`                              | Prefix nou; les velles s'ignoren   |
 
 ## 1. Canviar el domini
@@ -150,19 +150,20 @@ export PROJECT_DIR=/ruta/al/repo-nou          # destí
    - **Seguretat** (`/etc/cron.d/territoriadf-security`, instal·lat a mà). Com a
      root, actualitza-hi el camí del script de logwatch:
      ```bash
-     grep -n '/var/www/' /etc/cron.d/territoriadf-security
-     sed -i 's|/var/www/hidrants|/var/www/territoriadf|g' \
-       /etc/cron.d/territoriadf-security
+     # <ruta-antiga> = camí absolut que encara hi apareix (per exemple l'antic PROJECT_DIR)
+     # <ruta-nova>   = camí absolut nou; <fitxer-security> = nom actual del fitxer de cron
+     grep -n '<ruta-antiga>' /etc/cron.d/<fitxer-security>
+     sed -i 's|<ruta-antiga>|<ruta-nova>|g' /etc/cron.d/<fitxer-security>
      ```
-     Si encara té el nom antic, reanomena'l: cron ignora els fitxers amb punt al
-     nom, i `mv` conserva el `mtime`, així que cal `touch` perquè el rellegeixi.
+     Si el fitxer encara té un nom d'etapa anterior, reanomena'l: cron ignora els
+     fitxers amb punt al nom, i `mv` conserva el `mtime`, així que cal `touch`
+     perquè el rellegeixi.
      ```bash
-     mv /etc/cron.d/hidrants-security /etc/cron.d/territoriadf-security
-     touch /etc/cron.d/territoriadf-security
-     grep -rn 'hidrants-security' /etc 2>/dev/null
+     mv /etc/cron.d/<fitxer-security-antic> /etc/cron.d/<fitxer-security>
+     touch /etc/cron.d/<fitxer-security>
+     grep -rn '<fitxer-security-antic>' /etc 2>/dev/null
      ```
-     Ajusta els camins del `sed` als d'aquesta migració. Si el fitxer no
-     existeix, no hi ha res a fer.
+     Si el fitxer no existeix, no hi ha res a fer.
 
 5. **Hook de certbot**. Si és un enllaç simbòlic al repo, queda penjant amb el
    `mv`. Torna'l a crear:
@@ -179,9 +180,9 @@ export PROJECT_DIR=/ruta/al/repo-nou          # destí
 6. **Reste de camins absoluts**. Nginx i `back/.env` no haurien de contenir la
    ruta del repo, però comprova-ho (com a root, per a `/etc`):
    ```bash
-   grep -rn '/var/www/hidrants' /etc/cron* /etc/nginx /etc/systemd/system \
+   grep -rn '<ruta-antiga>' /etc/cron* /etc/nginx /etc/systemd/system \
      /etc/letsencrypt/renewal-hooks 2>/dev/null
-   grep -n '/var/www' back/.env
+   grep -n '<ruta-antiga>\|<ruta-nova>' back/.env
    ```
    Nginx no depèn de la ruta del repo; només cal tornar a renderitzar-lo si has
    canviat també el domini.
@@ -264,20 +265,43 @@ no arrossegar-lo a les URL i als clons:
    `npm run docker:deploy -- --dry-run` (l'actualització real fa
    `git pull --ff-only`, que falla si el remot no respon).
 
-## Pendent (fases posteriors)
+## 6. Canvis que toquen dispositius o estat
 
-Aquests canvis toquen estat o dispositius i es fan en una finestra a part:
+Aquests canvis no es resolen amb una línia a `back/.env`: afecten clients o
+dades ja existents, així que es fan en una finestra a part i amb els dos extrems
+coordinats.
 
-- **`MQTT_TOPIC_PREFIX`**: passar a `owntracks/territoriadf` obliga a regenerar
-  les ACL de DynSec (`npm run mqtt:regen-dynsec` o `sync-dynsec`), recrear els
-  clients i redistribuir els `.otrc` als dispositius.
-- **Claus de `localStorage`**: canviar-les (o migrar-les amb un helper que
-  llegeixi l'antiga i escrigui la nova) per no perdre preferències de la UI.
-- **Fitxer de la BD**: ja es diu `territoriadf.db` i el fitxer antic es renombra
-  sol a l'arrencada del backend (vegeu `back/src/db/index.ts`), amb els scripts de
-  backup/restore preparats per trobar l'un o l'altre.
-- **Claus de `localStorage`**: ja porten el prefix `territoriadf_`. No es
-  migren: les velles (`hidrants_*`) es descarten, així que qui tenia preferències
-  desades les veurà una vegada als valors per defecte.
-- `db:reset-hidrants` **no** és un nom de marca: buida la taula d'hidrants i la
-  torna a importar d'OSM, així que es queda com és.
+### 6.1 `MQTT_TOPIC_PREFIX`
+
+El prefix per defecte és `owntracks/territoriadf` i el backend només escolta
+`${MQTT_TOPIC_PREFIX}/#`. Canviar-lo invalida les ACL de DynSec i els `.otrc` ja
+distribuïts, per tant la seqüència és:
+
+1. Edita `MQTT_TOPIC_PREFIX` a `back/.env`.
+2. Regenera la seguretat del broker: `npm run mqtt:regen-dynsec` (recrea els
+   clients d'usuari) o `npm run mqtt:sync-dynsec` (conserva els clients i només
+   actualitza `admin`, `backend` i els rols).
+3. Reinicia els serveis: `docker compose up -d mosquitto backend`.
+4. Torna a descarregar el `.otrc` de cada dispositiu des de la seva fitxa
+   d'usuari i reinstal·la'l a OwnTracks; el fitxer ja surt amb el topic nou i la
+   identitat aplanada (`123/GI/007` → `123_GI_007`).
+5. Comprova que arriben posicions (`GET /api/tracking/positions`): mentre un
+   dispositiu conservi el topic vell, les seves dades no es reben.
+
+### 6.2 Claus de `localStorage`
+
+Les claus porten un prefix definit a `front/src/utils/storageKeys.ts`. Si el
+canvies, o bé migres les velles amb un helper que llegeixi l'antiga i escrigui la
+nova, o bé acceptes que els usuaris perdin les preferències desades i tornin als
+valors per defecte. No hi ha migració automàtica.
+
+### 6.3 Fitxer de la base de dades
+
+El fitxer es diu `territoriadf.db`. Un nom anterior es renombra sol a l'arrencada
+del backend (`back/src/db/index.ts`) i els scripts de backup/restore troben l'un
+o l'altre, així que no cal fer res a mà.
+
+### 6.4 `db:reset-hidrants`
+
+No és un nom de marca: buida la taula d'hidrants i la torna a importar d'OSM. Es
+queda igual a qualsevol desplegament.

@@ -40,15 +40,16 @@ La sincronització OSM és una funcionalitat accessible únicament per **adminis
 
 ### Estats de Sincronització 📊
 
-| Estat                 | Emoji | Descripció                  | Accions                       |
-| --------------------- | ----- | --------------------------- | ----------------------------- |
-| ✅ **SYNCED**         | ✅    | Sincronitzat amb OSM        | Edició normal, pujar canvis   |
-| 🟡 **PENDING_CREATE** | 🟡    | Nou hidrant per crear a OSM | Push sync, pujar manual       |
-| 🔶 **PENDING_UPDATE** | 🔶    | Canvi local per pujar a OSM | Push sync, pujar manual       |
-| 🔴 **PENDING_DELETE** | 🔴    | Marcat per esborrar de OSM  | Push sync, esborrar manual    |
-| ⚠️ **CONFLICT**       | ⚠️    | Conflicte de versió amb OSM | Resoldre, descartar, pujar    |
-| ❌ **ERROR**          | ❌    | Error en la sincronització  | Repetir, netejar errors       |
-| 🔍 **REVIEW**         | 🔍    | Revisió manual necessària   | Acceptar, corregir, descartar |
+| Estat                 | Emoji | Descripció                        | Accions                         |
+| --------------------- | ----- | --------------------------------- | ------------------------------- |
+| ✅ **SYNCED**         | ✅    | Sincronitzat amb OSM              | Edició normal, pujar canvis     |
+| ⚪ **MISSING_IN_OSM** | ⚪    | Ja no és a OSM, es conserva local | Purga manual des del panell OSM |
+| 🟡 **PENDING_CREATE** | 🟡    | Nou hidrant per crear a OSM       | Push sync, pujar manual         |
+| 🔶 **PENDING_UPDATE** | 🔶    | Canvi local per pujar a OSM       | Push sync, pujar manual         |
+| 🔴 **PENDING_DELETE** | 🔴    | Marcat per esborrar de OSM        | Push sync, esborrar manual      |
+| ⚠️ **CONFLICT**       | ⚠️    | Conflicte de versió amb OSM       | Resoldre, descartar, pujar      |
+| ❌ **ERROR**          | ❌    | Error en la sincronització        | Repetir, netejar errors         |
+| 🔍 **REVIEW**         | 🔍    | Revisió manual necessària         | Acceptar, corregir, descartar   |
 
 ### Fluxos d'Operacions
 

@@ -85,7 +85,7 @@ Després de les edicions locals, els hidrants modificats apareixen al panell org
 
 ### 3.4. Exportació canvis a OSM (Push Sync)
 
-Per exportar canvers pendents:
+Per exportar canvis pendents:
 
 1. Selecciona els hidrants que vols exportar (individualment o massivament)
 2. Fes clic a **"Pujar seleccionats"** o **"Pujar tots"**
@@ -111,7 +111,7 @@ Per exportar canvers pendents:
 **Seccions de contingut:**
 Cada estat té la seva pròpia secció amb:
 
-- **Capçera amb icona i comptador**
+- **Capçalera amb icona i comptador**
 - **Llista d'hidrants** amb informació contextual
 - **Controls massius** (seleccionar tot, acció per seleccionats)
 
@@ -140,7 +140,7 @@ A nivell individual, cada hidrant mostra:
 - Enllaç directe a OSM per veure el node original
 - Botó per veure diferències detallades (vs OSM)
 
-**Botons d'acció contextuales:**
+**Botons d'acció contextuals:**
 
 - **Estat PENDING**: Botó "Pujar" per exportar
 - **Estat CONFLICT**: Botons "Resoldre", "Reintentar", "Descartar"
@@ -214,13 +214,13 @@ REVIEW → SYNCED (revertit) o modificat
 
 **Escenari:** Sistema nou sense dades locals, s'importen hidrants existents d'OSM
 
-**Pasos:**
+**Passos:**
 
 1. Administrador accedeix a panell OSM
 2. Fes clic **"Baixar d'OSM"**
 3. Sistema descarrega hidrants d'OSM per l'àrea de l'ADF
 4. Hidrants es marquen com `SYNCED`
-5. Sistema netja hidrants eliminats a OSM (si estaven en `SYNCED`)
+5. Els hidrants que ja no són a OSM es marquen `MISSING_IN_OSM` i es conserven localment (la purga és manual)
 
 **Resultat:** Sistema carregat amb hidrants d'OSM, tots en estat `SYNCED`
 
@@ -228,7 +228,7 @@ REVIEW → SYNCED (revertit) o modificat
 
 **Escenari:** Edició local d'un hidrant existent
 
-**Pasos:**
+**Passos:**
 
 1. Editor modifica dades d'un hidrant (ex: tipus, diàmetre)
 2. Sistema automàticament marca hidrant com `PENDING_UPDATE`
@@ -242,7 +242,7 @@ REVIEW → SYNCED (revertit) o modificat
 
 **Escenari:** OSM té versions més noves que les dades locals
 
-**Pasos:**
+**Passos:**
 
 1. Sistema detecta conflicte durant pull sync
 2. Hidrant marcat com `CONFLICT`
@@ -259,7 +259,7 @@ REVIEW → SYNCED (revertit) o modificat
 
 **Escenari:** Exportació de múltiples canvis pendents
 
-**Pasos:**
+**Passos:**
 
 1. Editor selecciona múltiples hidrants amb estats `PENDING_*`
 2. Fes clic **"Pujar seleccionats"**
@@ -281,7 +281,7 @@ REVIEW → SYNCED (revertit) o modificat
 
 **Conflicte de dades:**
 
-- Tags invàlids detected per validació
+- Tags invàlids detectats per la validació
 - Resolució: modificar les dades locals per complir amb els estàndards
 
 **Conflicte de permisos:**
@@ -315,8 +315,8 @@ REVIEW → SYNCED (revertit) o modificat
 2. Descarrega fitxer .osc al teu sistema
 3. Obre fitxer a JOSM
 4. Resol discrepàncies visualment
-5. Exporta les canvis a OSM directament des de JOSM
-6. Marca l'hidrant com `SYNCED a la interfíci
+5. Exporta els canvis a OSM directament des de JOSM
+6. Marca l'hidrant com `SYNCED` a la interfície
 
 ## 8. Validació de dades
 
@@ -327,7 +327,7 @@ REVIEW → SYNCED (revertit) o modificat
 | `fire_hydrant:type`     | `pillar`, `underground`     | Tipus de hidrant                        |
 | `fire_hydrant:position` | `lane`, `sidewalk`, `green` | Ubicació relativa                       |
 | `couplings`             | `1`, `2`, `3`, `4`          | Nombre d'acoblaments                    |
-| `couplings:diameters`   | Qualsevol                   | Diàmetres (warnings per 45, 70, 100 mm) |
+| `couplings:diameters`   | `45`, `70`, `100`           | Altres valors → warning                 |
 | `fire_hydrant:pressure` | Qualsevol (número o text)   | Pressió (bar o `yes`, `low`, `high`...) |
 | `survey:date`           | Format ISO (YYYY-MM-DD)     | Data de revisió                         |
 
@@ -431,7 +431,7 @@ REVIEW → SYNCED (revertit) o modificat
 
 Els següents logs són útils per depurar problemes OSM:
 
-**Logs al backend (`back/logs/`):**
+**Logs del backend** (stdout del contenidor: `docker compose logs -f backend`):
 
 - Logs d'OSM sync: `[OSM] Pull sync completed` / `[OSM] Push sync failed`
 - Logs de conflictes: `[OSM] Conflict detected for hydrant X`

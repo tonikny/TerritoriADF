@@ -11,7 +11,9 @@ Aquesta guia cobreix **desenvolupament local**. Per a altres entorns i temes esp
 | `docs/DEPLOY.md`        | Deploy producció amb Docker, backups, Telegram prod i MQTT prod resum                                            | Pujar a servidor                      |
 | `docs/OSM_SYNC.md`      | Sincronització bidireccional OSM completa (fluxos, UI, conflictes, validació, API)                               | Treballar amb OSM a fons              |
 | `docs/MQTT_DEPLOY.md`   | MQTT producció: TLS, certs, Dynamic Security, `init-dynsec.py`, permisos `mosquitto/data`                        | Configurar Mosquitto en prod          |
-| `docs/DOMAIN_CHANGE.md` | Canviar domini, ubicació o nom; renombrar backups i fases pendents                                               | Moure o renombrar el desplegament     |
+| `docs/MIGRATION.md`     | Migrar una instància: identitat de la pila i canvi de domini, amb rollback                                       | Canviar de servidor o d'instància     |
+| `docs/backup-README.md` | Backups automàtics: scripts, cron, rotació, restauració i verificació                                            | Configurar o recuperar còpies         |
+| `docs/DOMAIN_CHANGE.md` | Canviar domini, ubicació o nom; renombrar backups i canvis de MQTT/estat                                         | Moure o renombrar el desplegament     |
 | `AGENTS.md`             | Arquitectura, model ADF-centric, rols/permisos i convencions per agents                                          | Context ràpid per a IA/col·laboradors |
 | `back/.env.example`     | Referència canònica de totes les variables d'entorn del backend                                                  | Consultar valors per defecte          |
 
@@ -19,7 +21,7 @@ Aquesta guia cobreix **desenvolupament local**. Per a altres entorns i temes esp
 
 ## 1. Requisits
 
-- **Node.js >=26** i **npm** (vegeu `package.json:60`, `.nvmrc`)
+- **Node.js >=26** i **npm** (vegeu `engines` de `package.json` i `.nvmrc`)
 - **Docker** i **Docker Compose** (per `mqtt:up` i `docker:up`)
 - **Python 3** (per `scripts/init-dynsec.py` → `mqtt:sync-dynsec` / `mqtt:regen-dynsec`)
 - **Git**
@@ -42,7 +44,7 @@ npm run mqtt:sync-dynsec
 
 ## 3. Variables d'entorn
 
-Tant `front/` com `back/` requereixen `.env`. La referència canònica és `back/.env.example` (79 línies).
+Tant `front/` com `back/` requereixen `.env`. La referència canònica és `back/.env.example`.
 
 ### 3.1 Backend (`back/.env`)
 
@@ -140,11 +142,11 @@ Font canònica: `package.json:5` i `back/package.json`. Agrupats per tema.
 | `npm run db:reset-hidrants`       | Neteja només hidrants i re-importa OSM                                                                                                                                                                                                               |
 | `npm run db:setup`                | `db:reset && db:seed && db:import-osm && update:boundaries`                                                                                                                                                                                          |
 | `npm run update:boundaries`       | Actualitza `adfs.bbox`/`center`/`boundary_geojson` des d'Overpass                                                                                                                                                                                    |
-| `npm run create:user`             | `npm run create:user <usuari> <contrasenya> [rol] [adf_id]` — crea usuari directe a BD (`admin`/`coordinador`/`voluntari`)                                                                                                                           |
+| `npm run create:user`             | `npm run create:user -w back -- <usuari> <contrasenya> [rol] [adf_id]` — crea usuari directe a BD (`admin`/`coordinador`/`voluntari`)                                                                                                                |
 | `npm run telegram:selftest`       | Self-test lògica vinculació Telegram sense xarxa                                                                                                                                                                                                     |
 | `npm run prepare`                 | Husky hooks (`prepare: husky`)                                                                                                                                                                                                                       |
 
-Per paquet: `front/` (`dev`, `build`), `back/` (`db:migrate`, `dev`, `build`, `mqtt:cleanup`).
+Per paquet: `front/` (`dev`, `build`), `back/` (`db:migrate`, `db:generate`, `dev`, `build`, `mqtt:cleanup`). `create:user`, `telegram:selftest` i `db:*` només existeixen a `back/`: des de l'arrel, `npm run <script> -w back -- ...`.
 
 ---
 
@@ -170,7 +172,7 @@ El backend escolta `${MQTT_TOPIC_PREFIX}/#` (per defecte `owntracks/territoriadf
 
 ### 7.1 Identitat MQTT aplanada
 
-L'ACL DynSec no admet `/` als usernames. La identitat OwnTracks (client DynSec `owntracks-device` i topics) substitueix `/` per `_`: `278/GI/011` → `278_GI_011` (`mqttNameFor()` a `back/src/services/mqtt.ts`). `/api/tracking/positions` la reverteix per mostrar `278/GI/011` a la UI. El `.otrc` també es genera amb la identitat plana.
+L'ACL DynSec no admet `/` als usernames. La identitat OwnTracks (client DynSec `owntracks-device` i topics) substitueix `/` per `_`: `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/services/mqtt.ts`). `/api/tracking/positions` la reverteix per mostrar `123/GI/007` a la UI. El `.otrc` també es genera amb la identitat plana.
 
 ### 7.2 Configuració .otrc (OwnTracks)
 
@@ -204,7 +206,7 @@ El backend desactiva l'auto-reconnect fix (`reconnectPeriod: 0` a `back/src/serv
 Amb credencials DynSec vàlides:
 
 ```bash
-docker compose exec mosquitto mosquitto_pub -h localhost -u <usuari> -P <password> -t 'owntracks/hidrants/<usuari>/phone' -m '{"_type":"location","lat":41.5,"lon":1.8,"tst":1721667688,"acc":10,"batt":80}'
+docker compose exec mosquitto mosquitto_pub -h localhost -u <usuari> -P <password> -t 'owntracks/territoriadf/<identitat>/phone' -m '{"_type":"location","lat":41.5,"lon":1.8,"tst":1721667688,"acc":10,"batt":80}'
 ```
 
 Logs útils: `[MQTT] ✅ Connected`, `🔄 Reconnecting`, `❌ Subscribe error`.
@@ -261,7 +263,7 @@ curl https://xxx.trycloudflare.com/api/telegram/webhook/prova
 
 ### 8.2 Com es construeix la URL del webhook
 
-Si `WEBHOOK_PUBLIC_URL` definit, s'usa tal qual (`back/src/routes/telegram.ts:125` → `config.WEBHOOK_PUBLIC_URL ?? appBaseUrl(req)`). Si no, es deriva del `Host` de la petició de registre (`appBaseUrl()` a `back/src/utils/appUrl.ts`). En prod cal entrar per domini públic; en dev per `localhost:5173` sense variable es generaria URL LAN no accessible.
+Si `WEBHOOK_PUBLIC_URL` definit, s'usa tal qual (`back/src/routes/telegram.ts:125` → `config.WEBHOOK_PUBLIC_URL ?? appBaseUrl(req)`). Si no, es deriva del `Host` de la petició de registre (`appBaseUrl()` a `back/src/utils/appUrl.ts`). En prod cal entrar per domini públic; en dev per `localhost:3003` sense variable es generaria URL LAN no accessible.
 
 ### 8.3 Self-test
 
@@ -375,21 +377,22 @@ Transicions i casos d'ús detallats: `docs/OSM_SYNC.md#5-6`.
 
 ### 9.8 Endpoints OSM
 
-| Endpoint                        | Mètode | Descripció                                |
-| ------------------------------- | ------ | ----------------------------------------- |
-| `/api/osm/status`               | GET    | Estat token i comptador conflictes        |
-| `/api/osm/pending?adf=ID`       | GET    | Canvis pendents amb detalls               |
-| `/api/osm/push-sync`            | POST   | Push global                               |
-| `/api/osm/push-selected`        | POST   | Push selectiu `{ ids }`                   |
-| `/api/osm/discard-selected`     | POST   | Descarta `{ ids }`                        |
-| `/api/osm/conflicts?adf=ID`     | GET    | Conflictes amb detalls                    |
-| `/api/osm/conflicts/osc?adf=ID` | GET    | Fitxer `.osc` per JOSM                    |
-| `/api/osm/conflicts/resolve`    | POST   | Resol conflicte `{ id, changeset? }`      |
-| `/api/osm/reviews?adf=ID`       | GET    | Hidrants `REVIEW`                         |
-| `/api/osm/pull-hydrant`         | POST   | Baixa node `{ id }`                       |
-| `/api/osm/diff/:id`             | GET    | Diff local vs OSM                         |
-| `/api/hidrants/sync?adf=ID`     | POST   | Pull sync `{ force? }` (vegeu taula §9.2) |
-| `/api/hidrants/stats?adf=ID`    | GET    | Comptadors per `sync_status`              |
+| Endpoint                        | Mètode | Descripció                                      |
+| ------------------------------- | ------ | ----------------------------------------------- |
+| `/api/osm/status`               | GET    | Estat token i comptador conflictes              |
+| `/api/osm/pending?adf=ID`       | GET    | Canvis pendents amb detalls                     |
+| `/api/osm/push-sync`            | POST   | Push global                                     |
+| `/api/osm/push-selected`        | POST   | Push selectiu `{ ids }`                         |
+| `/api/osm/discard-selected`     | POST   | Descarta `{ ids }`                              |
+| `/api/osm/conflicts?adf=ID`     | GET    | Conflictes amb detalls                          |
+| `/api/osm/conflicts/osc?adf=ID` | GET    | Fitxer `.osc` per JOSM                          |
+| `/api/osm/conflicts/resolve`    | POST   | Resol conflicte `{ id, changeset? }`            |
+| `/api/osm/reviews?adf=ID`       | GET    | Hidrants `REVIEW`                               |
+| `/api/osm/missing/purge`        | POST   | Purga `MISSING_IN_OSM` `{ adf_id }` o `{ ids }` |
+| `/api/osm/pull-hydrant`         | POST   | Baixa node `{ id }`                             |
+| `/api/osm/diff/:id`             | GET    | Diff local vs OSM                               |
+| `/api/hidrants/sync?adf=ID`     | POST   | Pull sync `{ force? }` (vegeu taula §9.2)       |
+| `/api/hidrants/stats?adf=ID`    | GET    | Comptadors per `sync_status`                    |
 
 Fitxers clau: `back/src/services/osmSync.ts` (pull Overpass), `back/src/services/osmPushSync.ts` (push), `back/src/services/osmDataValidator.ts`, `back/src/services/osmConflictResolver.ts`, `back/src/routes/osm.ts`, `front/src/components/osm/OsmConflictList.tsx`, `OsmReviewList.tsx`. Detall API complet: `docs/OSM_SYNC.md#9`.
 
@@ -455,12 +458,12 @@ Username `XXX/YYY` o `XXX/GI/YYY` (3 dígits, `back/src/routes/users.ts:12`), ro
 
 ### 10.6 Tracking / MQTT (OwnTracks)
 
-Identitat aplanada `278/GI/011` → `278_GI_011` (`mqttNameFor()` a `back/src/services/mqtt.ts`).
+Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/services/mqtt.ts`).
 
 | Endpoint                  | Mètode | Auth | Descripció                                                                                                                  |
 | ------------------------- | ------ | ---- | --------------------------------------------------------------------------------------------------------------------------- |
 | `/api/tracking/status`    | GET    | sí   | `{ available, enabled }`                                                                                                    |
-| `/api/tracking/positions` | GET    | sí   | `{ positions: { "278/GI/011": LocationData } }` — filtra `view_all_positions` / `view_shared_positions` + `tracking_shared` |
+| `/api/tracking/positions` | GET    | sí   | `{ positions: { "123/GI/007": LocationData } }` — filtra `view_all_positions` / `view_shared_positions` + `tracking_shared` |
 | `/api/tracking/enable`    | POST   | sí   | Crea/rota DynSec `owntracks-device`, guarda `mqtt_password_enc`, retorna `.otrc`                                            |
 | `/api/tracking/config`    | GET    | sí   | Retorna `.otrc` existent (recrea client si cal, auto-cura username)                                                         |
 
