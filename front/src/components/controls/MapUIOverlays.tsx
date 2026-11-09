@@ -1,5 +1,6 @@
 import { FullscreenButton } from "./FullscreenButton";
 import { LocateButton } from "./LocateButton";
+import { MapLogo } from "./MapLogo";
 import { ZoomDisplay } from "./ZoomDisplay";
 import {
   floatingButtonClass,
@@ -30,6 +31,9 @@ export function MapUIOverlays({
 }: MapUIOverlaysProps) {
   return (
     <>
+      {/* Top Left: Logo de l'aplicació (inclou el desplaçament dels controls de zoom). */}
+      <MapLogo />
+
       {/* Top Right: Native Layers Control is at top: 10px, right: 10px.
           We place our controls under it with enough gap. */}
       <div className={`${controlContainerClass} top-18 right-3 items-end gap-2`}>
