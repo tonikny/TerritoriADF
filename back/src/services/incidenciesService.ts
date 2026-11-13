@@ -15,6 +15,7 @@ import type {
 } from "../types.js";
 import { NotFoundError } from "../errors.js";
 import { sendTelegramMessage } from "../utils/telegram.js";
+import { sendToAdf } from "./telegramService.js";
 
 function escapeHtml(text: string | undefined): string {
   return (text ?? "")
@@ -148,6 +149,8 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
 👤 Creat per: ${escapeHtml(nomUsuari)}
 `;
     void sendTelegramMessage(msg);
+    // Igual que als hidrants, notifiquem també el grup de Telegram de l'ADF
+    void sendToAdf(data.adf_id, msg);
 
     return incidencia;
   },
@@ -235,6 +238,10 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
 
     if (msgTelegram) {
       void sendTelegramMessage(msgTelegram);
+      // Les edicions també han d'arribar al grup de Telegram de l'ADF
+      if (incidencia.adf_id) {
+        void sendToAdf(incidencia.adf_id, msgTelegram);
+      }
     }
 
     return event;

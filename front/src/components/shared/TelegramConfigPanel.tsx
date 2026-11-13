@@ -13,7 +13,13 @@ import { CollapsibleSection } from "../panel/shared/CollapsibleSection";
 import { PasswordInput } from "./PasswordInput";
 
 type TelegramStatus =
-  "NO_CONFIGURAT" | "BOT_CONFIGURAT" | "GRUP_PENDENT" | "CONFIGURAT" | "DESACTIVAT";
+  | "NO_CONFIGURAT"
+  | "BOT_CONFIGURAT"
+  | "GRUP_PENDENT"
+  | "CONFIGURAT"
+  | "DESACTIVAT"
+  /** El token desat no es pot desxifrar: cal tornar-lo a introduir. */
+  | "TOKEN_INVALID";
 
 interface StatusResponse {
   status?: TelegramStatus;
@@ -214,6 +220,10 @@ export function TelegramConfigPanel() {
       setStatus(data.status ?? "BOT_CONFIGURAT");
       setBotUsername(data.bot_username);
       setBotName(data.bot_name);
+      if (data.group_name !== undefined) {
+        setGroupName(data.group_name);
+      }
+      setTokenInput("");
       toast.success("✅ Bot validat i connectat");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error inesperat");
@@ -320,17 +330,56 @@ export function TelegramConfigPanel() {
       >
         <div className="space-y-3 text-[0.85rem]">
           <p className="m-0 text-[0.8rem] text-muted leading-snug">
-            {canManage && !configured
-              ? "Les notificacions de l'ADF (noves incidències, altes i edicions d'hidrants) s'envien al grup de Telegram. Quatre passos i llest."
-              : configured
-                ? `Telegram està configurat per enviar notificacions de l'app${
-                    groupName ? ` al grup ${groupName}` : ""
-                  }.`
-                : "Només els coordinadors de l'ADF poden modificar la configuració de Telegram."}
+            {canManage && status === "TOKEN_INVALID"
+              ? "El bot i el grup continuen associats, però el token desat no es pot desxifrar (ha canviat la clau de xifrat del servidor). Torna a enganxar el token per reactivar les notificacions."
+              : canManage && !configured
+                ? "Les notificacions de l'ADF (noves incidències, altes i edicions d'hidrants) s'envien al grup de Telegram. Quatre passos i llest."
+                : configured
+                  ? `Telegram està configurat per enviar notificacions de l'app${
+                      groupName ? ` al grup ${groupName}` : ""
+                    }.`
+                  : "Només els coordinadors de l'ADF poden modificar la configuració de Telegram."}
           </p>
 
+          {/* Token indesxifrable: el grup ja hi és, només cal tornar a validar el bot */}
+          {canManage && status === "TOKEN_INVALID" && (
+            <div className="border border-border rounded p-3 space-y-2">
+              <p className="m-0 text-[0.8rem] text-muted leading-snug">
+                Bot: <strong>{botName ?? botUsername ?? "desconegut"}</strong>
+                {botUsername ? ` (@${botUsername})` : ""}
+                {groupName ? (
+                  <>
+                    {" · "}Grup: <strong>{groupName}</strong>
+                  </>
+                ) : null}
+              </p>
+              <p className="m-0 text-[0.8rem] text-muted leading-snug">
+                Obre <strong>@BotFather</strong>, escriu <em>/token</em> i tria aquest bot per
+                recuperar el token. Enganxa'l aquí: si és el mateix bot, el grup es manté vinculat i
+                podràs enviar missatges de seguida.
+              </p>
+              <PasswordInput
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                placeholder="123456789:AAF..."
+                className={`${inputClass} px-2`}
+                autoComplete="off"
+              />
+              <button
+                onClick={() => {
+                  void handleRegister();
+                }}
+                disabled={registering}
+                className={`${primaryButtonClass} w-full`}
+                title="Torna a validar el token del bot"
+              >
+                {registering ? "⏳ Validant..." : "🆔 Tornar a validar el bot"}
+              </button>
+            </div>
+          )}
+
           {/* Configuració en marxa: passos per al coordinador */}
-          {canManage && !botReady && !configured && (
+          {canManage && !botReady && !configured && status !== "TOKEN_INVALID" && (
             <div className="border border-border rounded p-3">
               <ol className="m-0 p-0 list-none space-y-3 leading-relaxed">
                 <li>

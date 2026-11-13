@@ -54,8 +54,23 @@ const status: ApiHandler = async (req, res) => {
   if (!bot) {
     return res.json({ status: "NO_CONFIGURAT" });
   }
+  const token = bot.token_enc ? decrypt(bot.token_enc) : null;
+  // Si el token no es pot desxifrar (p. ex. s'ha canviat ENCRYPTION_SECRET) no
+  // es pot enviar res: no podem anunciar la configuració com a correcta.
+  if (!token) {
+    return res.json({
+      status: "TOKEN_INVALID",
+      bot_username: bot.bot_username,
+      bot_name: bot.bot_name,
+      group_name: bot.group_name,
+    });
+  }
+  // Un estat CONFIGURAT sense chat_id no pot enviar missatges: el tractem com
+  // a grup pendent de vincular perquè la UI no menteixi.
+  const estat = bot.estat ?? "NO_CONFIGURAT";
+  const effectiveStatus = estat === "CONFIGURAT" && bot.chat_id === null ? "GRUP_PENDENT" : estat;
   return res.json({
-    status: bot.estat ?? "NO_CONFIGURAT",
+    status: effectiveStatus,
     bot_username: bot.bot_username,
     bot_name: bot.bot_name,
     group_name: bot.group_name,
@@ -129,11 +144,25 @@ const register: ApiHandler = async (req, res) => {
     await setWebhook(token, webhookUrl);
   } catch (err) {
     return res.status(502).json({
-      error: `No s'ha pogut connectar el webhook amb Telegram: ${err instanceof Error ? err.message : "error"}`,
+      error: `No s'ha pogut connectar el webhook amb Telegram (${webhookUrl}): ${
+        err instanceof Error ? err.message : "error"
+      }`,
     });
   }
 
+  // Si es revalida EL MATEIX bot, conservem el grup ja vinculat: així, si el
+  // token s'havia fet indesxifrable, n'hi ha prou de tornar-lo a enganxar i el
+  // grup torna a funcionar sense haver de generar un enllaç nou.
+  let newEstat: "CONFIGURAT" | "GRUP_PENDENT" | "BOT_CONFIGURAT" = "BOT_CONFIGURAT";
+  let newChatId: number | null = null;
+  let newGroupName: string | null = null;
+
   if (existing) {
+    if (existing.bot_id === botInfo.id && existing.chat_id !== null) {
+      newChatId = existing.chat_id;
+      newGroupName = existing.group_name;
+      newEstat = existing.estat === "CONFIGURAT" ? "CONFIGURAT" : "GRUP_PENDENT";
+    }
     db.update(telegramBots)
       .set({
         bot_id: botInfo.id,
@@ -141,9 +170,9 @@ const register: ApiHandler = async (req, res) => {
         bot_name: botInfo.first_name,
         token_enc: encrypt(token),
         webhook_secret: webhookSecret,
-        chat_id: null,
-        group_name: null,
-        estat: "BOT_CONFIGURAT",
+        chat_id: newChatId,
+        group_name: newGroupName,
+        estat: newEstat,
         updated_at: new Date().toISOString(),
       })
       .where(eq(telegramBots.id, existing.id))
@@ -167,9 +196,10 @@ const register: ApiHandler = async (req, res) => {
   db.delete(telegramLinks).where(eq(telegramLinks.telegram_bot_id, botId)).run();
 
   return res.json({
-    status: "BOT_CONFIGURAT",
+    status: newEstat,
     bot_username: botInfo.username,
     bot_name: botInfo.first_name,
+    group_name: newGroupName ?? undefined,
   });
 };
 
@@ -188,9 +218,15 @@ const link: ApiHandler = async (req, res) => {
       .json({ error: "No tens permisos per configurar Telegram d'aquesta ADF" });
   }
   const bot = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
-  const token = bot?.token_enc ? decrypt(bot.token_enc) : null;
-  if (!bot || !token) {
+  if (!bot) {
     return res.status(400).json({ error: "Primer configura el bot a l'apartat anterior" });
+  }
+  const token = bot.token_enc ? decrypt(bot.token_enc) : null;
+  if (!token) {
+    return res.status(400).json({
+      error:
+        "El token del bot no es pot desxifrar. Enganxa'l de nou a «Introdueix el token»: el grup es mantindrà vinculat.",
+    });
   }
 
   const code = randomBytes(24).toString("base64url");
@@ -234,8 +270,17 @@ const test: ApiHandler = async (req, res) => {
       .json({ error: "No tens permisos per configurar Telegram d'aquesta ADF" });
   }
   const bot = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
-  const token = bot?.token_enc ? decrypt(bot.token_enc) : null;
-  if (!bot || bot.estat !== "CONFIGURAT" || bot.chat_id === null || !token) {
+  if (!bot) {
+    return res.status(400).json({ error: "Primer configura el bot a l'apartat anterior" });
+  }
+  const token = bot.token_enc ? decrypt(bot.token_enc) : null;
+  if (!token) {
+    return res.status(400).json({
+      error:
+        "El token del bot no es pot desxifrar. Enganxa'l de nou a «Introdueix el token»: el grup es mantindrà vinculat.",
+    });
+  }
+  if (bot.estat !== "CONFIGURAT" || bot.chat_id === null) {
     return res.status(400).json({ error: "El grup encara no està vinculat" });
   }
 

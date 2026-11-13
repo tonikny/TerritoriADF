@@ -469,14 +469,14 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 
 ### 10.7 Telegram per ADF
 
-| Endpoint                        | Mètode | Auth                   | Descripció                                                                                                      |
-| ------------------------------- | ------ | ---------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `/api/adfs/:id/telegram/status` | GET    | sí                     | `{ status, bot_username, bot_name, group_name }` (`NO_CONFIGURAT`/`BOT_CONFIGURAT`/`GRUP_PENDENT`/`CONFIGURAT`) |
-| `/api/adfs/:id/telegram`        | POST   | sí (`manage_telegram`) | Registra bot `{ token }` → `getMe` + `setWebhook` a `${WEBHOOK_PUBLIC_URL\|Host}/api/telegram/webhook/:secret`  |
-| `/api/adfs/:id/telegram`        | DELETE | sí (`manage_telegram`) | `deleteWebhook` + esborra `telegramBots`/`telegramLinks`                                                        |
-| `/api/adfs/:id/telegram/link`   | POST   | sí (`manage_telegram`) | Genera `https://t.me/<bot>?startgroup=<code>` TTL 15 min, un sol ús (`sha256hex`)                               |
-| `/api/adfs/:id/telegram/test`   | POST   | sí (`manage_telegram`) | Envia `{ message? }` al grup vinculat                                                                           |
-| `/api/telegram/webhook/:secret` | POST   | no (secret URL)        | Webhook Telegram (vegeu §8)                                                                                     |
+| Endpoint                        | Mètode | Auth                   | Descripció                                                                                                                                                                                                              |
+| ------------------------------- | ------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/adfs/:id/telegram/status` | GET    | sí                     | `{ status, bot_username, bot_name, group_name }` (`NO_CONFIGURAT`/`BOT_CONFIGURAT`/`GRUP_PENDENT`/`CONFIGURAT`/`TOKEN_INVALID`; aquest últim indica que el token desat no es pot desxifrar i cal tornar-lo a introduir) |
+| `/api/adfs/:id/telegram`        | POST   | sí (`manage_telegram`) | Registra bot `{ token }` → `getMe` + `setWebhook` a `${WEBHOOK_PUBLIC_URL\|Host}/api/telegram/webhook/:secret`                                                                                                          |
+| `/api/adfs/:id/telegram`        | DELETE | sí (`manage_telegram`) | `deleteWebhook` + esborra `telegramBots`/`telegramLinks`                                                                                                                                                                |
+| `/api/adfs/:id/telegram/link`   | POST   | sí (`manage_telegram`) | Genera `https://t.me/<bot>?startgroup=<code>` TTL 15 min, un sol ús (`sha256hex`)                                                                                                                                       |
+| `/api/adfs/:id/telegram/test`   | POST   | sí (`manage_telegram`) | Envia `{ message? }` al grup vinculat                                                                                                                                                                                   |
+| `/api/telegram/webhook/:secret` | POST   | no (secret URL)        | Webhook Telegram (vegeu §8)                                                                                                                                                                                             |
 
 ### 10.8 Altres
 
