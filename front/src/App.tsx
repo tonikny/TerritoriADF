@@ -5,6 +5,7 @@ import { AdfProvider } from "./contexts/AdfContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { MapPanel } from "./components/layout/MapPanel";
 import { AccessSetup } from "./components/shared/AccessSetup";
+import { PwaBanner } from "./components/shared/PwaBanner";
 import { accessToken } from "./utils/route";
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
     <AuthProvider>
       <AdfProvider>
         <MapPanel />
+        <PwaBanner />
         <ToastContainer position="top-center" autoClose={3000} theme="colored" />
       </AdfProvider>
     </AuthProvider>
