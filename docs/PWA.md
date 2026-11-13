@@ -16,7 +16,8 @@ com es prova, com es desplega i quins límits té.
   (JS, CSS, HTML, icones i fonts) i aplica `CacheFirst` a les tiles de mapa.
 - **Meta tags** a `front/index.html`: `manifest`, `theme-color` i les meta
   `apple-mobile-web-app-*`.
-- **Prompt d'instal·lació** i **avís de nova versió** a
+- **Prompt d'instal·lació** (un toast blanc amb botons _Instal·la_ / _Ara no_, sense
+  tancament automàtic) i **avís d'actualització** a
   `front/src/components/shared/PwaBanner.tsx`, muntat des de `App.tsx`.
 - **Capçaleres de caché** a `front/nginx.conf`: `no-cache` per `sw.js`, manifest i
   `workbox-*.js`; `immutable` per `/assets/`.
@@ -31,7 +32,7 @@ compartit no ha de veure respostes d'un altre usuari.
 | `front/vite.config.ts`                      | Bloc `VitePWA`: manifest, `globPatterns`, `globIgnores`, `navigateFallback`, `runtimeCaching` de tiles |
 | `front/index.html`                          | `link rel="manifest"`, `theme-color`, meta d'Apple                                                     |
 | `front/src/vite-env.d.ts`                   | Tipus del mòdul virtual `virtual:pwa-register/react`                                                   |
-| `front/src/components/shared/PwaBanner.tsx` | `beforeinstallprompt`, `appinstalled`, `needRefresh`                                                   |
+| `front/src/components/shared/PwaBanner.tsx` | `beforeinstallprompt`, `appinstalled`, toast d'instal·lació i recàrrega per actualització              |
 | `front/nginx.conf`                          | Caché correcta de `sw.js`, manifest i assets versionats                                                |
 
 ### Decisions rellevants

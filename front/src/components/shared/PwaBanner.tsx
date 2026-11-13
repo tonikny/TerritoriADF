@@ -142,7 +142,9 @@ export function PwaBanner() {
       }
     };
 
-    void toast.info(
+    // Toast neutre (fons blanc de l'app): no és un avís informatiu, és una
+    // pregunta, i `theme="colored"` pintaria de blau el tipus `info`.
+    void toast(
       <ToastBody text="Instal·la el TerritoriADF per obrir-lo més ràpid i a pantalla completa.">
         <button type="button" className={PRIMARY_BUTTON} onClick={() => void install()}>
           Instal·la
@@ -155,7 +157,9 @@ export function PwaBanner() {
         toastId: INSTALL_TOAST_ID,
         autoClose: false,
         closeOnClick: false,
+        closeButton: false,
         draggable: false,
+        className: "bg-white! text-ink! border border-border",
       },
     );
   }, [promptEvent, dismissInstall]);
