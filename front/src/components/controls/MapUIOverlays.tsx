@@ -1,6 +1,7 @@
 import { FullscreenButton } from "./FullscreenButton";
 import { LocateButton } from "./LocateButton";
 import { MapLogo } from "./MapLogo";
+import { OfflineNotice } from "../shared/OfflineNotice";
 import { ZoomDisplay } from "./ZoomDisplay";
 import {
   floatingButtonClass,
@@ -89,6 +90,8 @@ export function MapUIOverlays({
           Error: {hidrantsError}
         </div>
       )}
+
+      <OfflineNotice />
     </>
   );
 }

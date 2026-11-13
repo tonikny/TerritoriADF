@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAdf } from "../contexts/AdfContext";
+import { markDataSynced } from "../utils/offlineData";
 import type { IncidenciaFeature, Incidencia, IncidenciaEvent } from "../types";
 
 export function useIncidencies() {
@@ -22,6 +23,7 @@ export function useIncidencies() {
       const data = await response.json();
       setFeatures(data.features || []);
       setError(null);
+      markDataSynced(activeAdf.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconegut");
     } finally {

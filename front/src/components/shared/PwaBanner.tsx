@@ -72,6 +72,16 @@ export function PwaBanner() {
     toast.success("Aplicació actualitzada correctament");
   }, []);
 
+  // Demana emmagatzematge persistent: el navegador pot esborrar caché i
+  // IndexedDB si va just d'espai, i aquí l'app funciona offline gràcies a això.
+  // Qui decideix és el navegador (pot dir que no), per això no es fa res si falla.
+  useEffect(() => {
+    const storage = navigator.storage;
+    if (storage?.persist) {
+      void storage.persist().catch(() => {});
+    }
+  }, []);
+
   // El SW nou pren el control de la pàgina: recarreguem perquè no convisquin
   // chunks de dues versions.
   useEffect(() => {

@@ -3,7 +3,7 @@
 Documentació de la capa PWA (Progressive Web App) del frontend: què s'ha implementat,
 com es prova, com es desplega i quins límits té.
 
-> Estat: **fase 1 completada** — aplicació instal·lable a Chromium, app shell offline i
+> Estat: **fases 1 i 2 completades** — aplicació instal·lable a Chromium, app shell offline i
 > caché de tiles del mapa. Les fases 2 i 3 (dades offline i cua d'escriptura) no estan
 > implementades; vegeu [Fases pendents](#fases-pendents).
 
@@ -153,14 +153,36 @@ Detalls de la implementació a `PwaBanner.tsx`:
   IndexedDB si falta espai. No hi guardeu mai l'única còpia de res.
 - **Push**: suportat a Chromium i a iOS 16.4+ (amb l'app a la pantalla d'inici), amb
   lliurament no garantit. No serveix per a alertes crítiques.
-- **Privadesa**: si algun dia es cachegen respostes de `/api`, cal netejar-les en tancar
-  sessió i no cachejar mai `/api/auth/me`.
+- **Privadesa**: les respostes de `/api` es cachegen per a lectura offline, així que
+  s'esborren en tancar sessió i en rebre un `401`; `/api/auth/me` no es cacheja mai.
+
+## Fase 2: lectura offline de dades
+
+- **Caché d'API** (`runtimeCaching` de `front/vite.config.ts`): `NetworkFirst` amb
+  `networkTimeoutSeconds: 3` per a `GET /api/adfs`, `/api/hidrants`, `/api/incidencies` i
+  `/api/adf/boundary`, a la caché `api-data` (60 entrades, 7 dies). Només `GET` i només
+  respostes `200`: les escriptures no s'emmagatzemen mai.
+- **Antiguitat** (`utils/offlineData.ts` i `components/shared/OfflineNotice.tsx`): cada
+  lectura feta amb xarxa desa el moment a `localStorage`
+  (`territoriadf-last-sync:<adf>`). Sense connexió, el mapa mostra
+  «Sense connexió · dades de fa X», perquè una còpia no es confongui amb l'estat real.
+- **Neteja en tancar sessió**: `logout` i qualsevol `401` a `/api/auth/me` esborren les
+  cachés `api-*` i les marques de frescor. Les tiles i el precache de l'app shell es
+  conserven.
+- **Emmagatzematge persistent**: `navigator.storage.persist()` des de `PwaBanner`. El
+  navegador decideix (pot dir que no) i aquí no es fa res si falla.
+- **Sense cache-buster**: `useHidrantData` ja no afegeix `?_t=<timestamp>`, que feia que
+  cada petició fos una URL nova i la caché no s'encertés mai. El backend ja envia
+  `no-store` per a `/api/hidrants`.
+
+### Què no funciona sense xarxa
+
+- `/api/auth/me` no es cacheja, així que offline l'app queda en mode lectura anònima: no
+  es pot editar res. És el comportament segur, no un defecte.
+- Les tiles no visitades abans no hi són i el mapa surt gris.
 
 ## Fases pendents
 
-- **Fase 2 — lectura offline de dades**: `NetworkFirst` amb temps d'espera curt per a
-  `GET /api/hidrants` i `GET /api/incidencies`, indicador d'antiguitat ("dades de fa X"),
-  neteja de caché en logout i `navigator.storage.persist()`.
 - **Fase 3 — escriptura offline**: cua a IndexedDB per als canvis fets sense cobertura,
   reintent en recuperar connexió i resolució de conflictes amb l'estat de sync d'OSM.
 

@@ -74,6 +74,24 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          {
+            // Lectura offline: dades de l'ADF i llista d'ADFs, xarxa primer. Si la
+            // xarxa no respon en 3 s (o falla), es serveix la còpia emmagatzemada i
+            // `OfflineNotice` n'indica l'antiguitat. Mai `/api/auth/*`: la sessió no
+            // s'ha de poder reprendre des de la caché.
+            urlPattern: /\/api\/(?:adfs|hidrants|incidencies|adf\/boundary)\b/,
+            handler: "NetworkFirst",
+            method: "GET",
+            options: {
+              cacheName: "api-data",
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 7,
+              },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
         ],
       },
     }),

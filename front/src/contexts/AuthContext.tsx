@@ -1,6 +1,7 @@
 // Context d'autenticació: gestor de sessió via cookie httpOnly, exposa user/login/logout.
 // Permet a un admin "veure com" un altre rol (coordinador/voluntari) sense canviar la sessió.
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { clearOfflineData } from "../utils/offlineData";
 import { storageKey } from "../utils/storageKeys";
 
 export interface User {
@@ -79,6 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setRawUser(data.user);
         } else {
           setRawUser(null);
+          if (response.status === 401) {
+            // Sessió caducada: no deixem respostes d'API al dispositiu.
+            void clearOfflineData().catch(() => {});
+          }
         }
       } catch {
         setRawUser(null);
@@ -139,6 +144,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setRawUser(null);
     setViewRole(null);
+    // Dispositiu compartit: fora les dades d'API que hagi pogut deixar el SW.
+    void clearOfflineData().catch(() => {});
   };
 
   // Usuari efectiu: si l'admin "veu com" un altre rol, s'apliquen el rol i permisos d'aquell rol

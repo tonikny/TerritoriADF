@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAdf } from "../contexts/AdfContext";
+import { markDataSynced } from "../utils/offlineData";
 import type { HydrantUiFields } from "../utils/osmConversion";
 
 export interface HidrantFeature {
@@ -66,7 +67,9 @@ export function useHydrantData() {
     const requestId = ++requestIdRef.current;
     try {
       setLoading(true);
-      const response = await fetch(`/api/hidrants?adf=${adfId}&_t=${Date.now()}`);
+      // Sense cache-buster: la URL ha de ser estable perquè el service worker
+      // pugui servir la còpia quan no hi hagi xarxa.
+      const response = await fetch(`/api/hidrants?adf=${adfId}`);
       if (!response.ok) {
         throw new Error("Error al carregar hidrants");
       }
@@ -78,6 +81,7 @@ export function useHydrantData() {
       }
       setFeatures(data.features || []);
       setError(null);
+      markDataSynced(adfId);
     } catch (err) {
       if (requestId !== requestIdRef.current) {
         return;
