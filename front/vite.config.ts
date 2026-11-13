@@ -25,15 +25,15 @@ export default defineConfig({
         "apple-touch-icon.png",
       ],
       manifest: {
-        name: "TerritoriADF",
+        name: "Territori ADF",
         short_name: "TerritoriADF",
-        description: "Hidrants i incidències de les Agrupacions de Defensa Forestal",
+        description: "Eines pels voluntaris/es de les Agrupacions de Defensa Forestal",
         lang: "ca",
         start_url: "/",
         scope: "/",
         display: "standalone",
-        background_color: "#ffffff",
-        theme_color: "#007bff",
+        background_color: "#000000",
+        theme_color: "#00552B",
         icons: [
           {
             src: "/android-chrome-192x192.png",
