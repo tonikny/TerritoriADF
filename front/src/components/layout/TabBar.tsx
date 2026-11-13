@@ -1,5 +1,6 @@
 import type { PanelTab } from "./types";
 import { ICONS_H } from "./metrics";
+import { useAdfHintVisible } from "../../hooks/useAdfHintVisible";
 
 export function TabBar({
   tabs,
@@ -12,9 +13,12 @@ export function TabBar({
   onSelect: (id: string) => void;
   showLabels: boolean;
 }) {
+  // Mentre no hi ha cap ADF triada, la icona de l'ADF es marca perquè l'avís hi pugui apuntar.
+  const showAdfHint = useAdfHintVisible();
+
   return (
     <div className="flex w-full bg-neutral-100 border-b border-soft" style={{ height: ICONS_H }}>
-      {tabs.map((t) => (
+      {tabs.map((t, index) => (
         <button
           key={t.id}
           data-tab={t.id}
@@ -23,7 +27,14 @@ export function TabBar({
             activeId === t.id ? "text-primary font-semibold" : "text-muted"
           }`}
         >
-          <span className="text-[1.15rem] leading-none">{t.icon}</span>
+          <span
+            className={`relative block text-[1.15rem] leading-none ${
+              showAdfHint && index === 0 ? "adf-hint-icon" : ""
+            }`}
+            data-adf-hint-anchor={index === 0 ? "" : undefined}
+          >
+            {t.icon}
+          </span>
           {showLabels && <span className="text-[0.7rem] leading-none">{t.label}</span>}
         </button>
       ))}
