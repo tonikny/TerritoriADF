@@ -3,9 +3,10 @@
 Documentació de la capa PWA (Progressive Web App) del frontend: què s'ha implementat,
 com es prova, com es desplega i quins límits té.
 
-> Estat: **fases 1 i 2 completades** — aplicació instal·lable a Chromium, app shell offline i
-> caché de tiles del mapa. Les fases 2 i 3 (dades offline i cua d'escriptura) no estan
-> implementades; vegeu [Fases pendents](#fases-pendents).
+> Estat: **fases 1 i 2 completades** — aplicació instal·lable a Chromium, app shell offline,
+> caché de tiles del mapa i lectura de les dades de l'ADF sense connexió. L'escriptura
+> offline no està prevista; vegeu
+> [Possibilitat futura](#possibilitat-futura-escriptura-offline).
 
 ## Què fa la fase 1
 
@@ -22,8 +23,9 @@ com es prova, com es desplega i quins límits té.
 - **Capçaleres de caché** a `front/nginx.conf`: `no-cache` per `sw.js`, manifest i
   `workbox-*.js`; `immutable` per `/assets/`.
 
-Les dades de l'API **no es cachegen**: són autenticades per cookie i un dispositiu
-compartit no ha de veure respostes d'un altre usuari.
+Les dades de l'API es cachegen només per a lectura offline (fase 2). Com que són
+autenticades per cookie, les cachés d'API s'esborren en tancar sessió i `/api/auth/me`
+no s'hi desa mai, perquè un dispositiu compartit no ha de veure respostes d'un altre usuari.
 
 ## Peces i per què
 
@@ -181,10 +183,13 @@ Detalls de la implementació a `PwaBanner.tsx`:
   es pot editar res. És el comportament segur, no un defecte.
 - Les tiles no visitades abans no hi són i el mapa surt gris.
 
-## Fases pendents
+## Possibilitat futura: escriptura offline
 
-- **Fase 3 — escriptura offline**: cua a IndexedDB per als canvis fets sense cobertura,
-  reintent en recuperar connexió i resolució de conflictes amb l'estat de sync d'OSM.
+No està planificada: no hi ha fase oberta ni feina començada en aquest sentit. Si algun
+dia es fa, seria una cua a IndexedDB amb els canvis fets sense cobertura, reintent en
+recuperar connexió i resolució de conflictes amb l'estat de sync d'OSM. Abans caldria
+resoldre la idempotència al backend (`client_uuid`) i decidir com es gestionen la sessió
+i els permisos sense xarxa, perquè avui l'app hi queda en lectura anònima.
 
 ## Diagnòstic
 
