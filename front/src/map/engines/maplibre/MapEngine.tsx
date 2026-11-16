@@ -57,9 +57,12 @@ function useFocus(map: ReturnType<typeof useMap>["current"], focus?: MapFocus | 
       });
     };
 
-    if (native.isStyleLoaded()) {
-      apply();
-    } else {
+    // La càmera no depèn de l'estil. Si esperéssim `isStyleLoaded()`, un focus
+    // que arriba amb tessel·les encara pendents (per exemple en activar el GPS)
+    // quedava registrat a `load`, que ja no es torna a disparar, i l'ordre es
+    // perdia. S'aplica de seguida i es repeteix si el mapa encara no ha carregat.
+    apply();
+    if (!native.loaded()) {
       native.once("load", apply);
     }
 
