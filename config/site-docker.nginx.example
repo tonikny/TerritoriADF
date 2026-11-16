@@ -120,4 +120,17 @@ server {
         proxy_cache_valid 200 30d;
         add_header X-Cache-Status $upstream_cache_status;
     }
+
+    # Terrain-RGB de l'ICGC (5 m). El servei només cobreix Catalunya i publica z6-z14.
+    location /tiles/icgc-terrain/ {
+        proxy_pass https://geoserveis.icgc.cat/servei/catalunya/contextmaps-terreny-5m-rgb/wmts/;
+        proxy_ssl_server_name on;
+        proxy_set_header Host geoserveis.icgc.cat;
+        proxy_set_header User-Agent "TerritoriADF/1.0";
+        proxy_cache tiles_cache;
+        proxy_cache_valid 200 30d;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        proxy_cache_lock on;
+        add_header X-Cache-Status $upstream_cache_status;
+    }
 }

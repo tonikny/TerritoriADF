@@ -19,9 +19,39 @@ body,
   height: 100%;
 }
 
-.leaflet-map {
+/* Contenidor comú dels dos motors. */
+.map-surface {
   height: 100%;
   width: 100%;
+}
+
+.map-loading {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+/* Controls de zoom sota el logo: 8px de marge + 44px de logo + 10px de separació. */
+.leaflet-top.leaflet-left .leaflet-control-zoom {
+  margin-top: 62px;
+}
+
+.maplibregl-ctrl-top-left {
+  margin-top: 62px;
+}
+
+@media (min-width: 56rem) {
+  .leaflet-top.leaflet-left .leaflet-control-zoom {
+    margin-top: 82px;
+  }
+
+  .maplibregl-ctrl-top-left {
+    margin-top: 82px;
+  }
 }
 
 /* Ajustos per a mòbil del popup de Leaflet */
@@ -36,9 +66,111 @@ body,
   width: auto !important;
 }
 
-/* A mobile el contenidor d'atribució no queda tapat per la barra del bottomsheet */
+.maplibregl-popup-content {
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+/* A mobile el zoom i l'atribució queden a l'alçada de la barra tancada. Si el
+   bottomsheet s'obre, no es mouen: queden a sota i el panell els tapa. */
+.map-zoom-control {
+  bottom: 5px;
+  left: 5px;
+}
+
+.map-scale {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  color: var(--color-ink);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 12px;
+  pointer-events: none;
+}
+
+.map-scale-label {
+  padding: 0 2px;
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 2px;
+}
+
+.map-scale-bar {
+  height: 4px;
+  border-right: 1.5px solid var(--color-ink);
+  border-bottom: 1.5px solid var(--color-ink);
+  border-left: 1.5px solid var(--color-ink);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+body .leaflet-control-container .leaflet-bottom,
+body .maplibregl-ctrl-bottom-left,
+body .maplibregl-ctrl-bottom-right {
+  bottom: 5px;
+}
+
+/* Atribució pròpia de MapLibre: una línia si hi cap; si no, una font per
+   línia, amb prou amplada perquè no arribi al control de zoom de l'esquerra. */
+.map-attribution {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: calc(100% - 90px);
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--color-ink);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: right;
+  pointer-events: none;
+}
+
+.map-attribution-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.map-attribution-single,
+.map-attribution-stacked > span {
+  white-space: nowrap;
+}
+
+.map-attribution-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.map-attribution[data-layout="single"] .map-attribution-stacked {
+  display: none;
+}
+
+.map-attribution[data-layout="stacked"] .map-attribution-single {
+  display: none;
+}
+
 @media (max-width: 895px) {
-  .leaflet-control-container .leaflet-bottom {
+  .map-zoom-control {
+    bottom: 60px;
+  }
+
+  body .leaflet-control-container .leaflet-bottom {
+    bottom: 60px;
+  }
+
+  body .maplibregl-ctrl-bottom-left,
+  body .maplibregl-ctrl-bottom-right {
+    bottom: 60px;
+  }
+
+  .map-attribution {
     bottom: 60px;
   }
 }

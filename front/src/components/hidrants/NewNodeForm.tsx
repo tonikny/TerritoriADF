@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { sendToTelegram } from "../../utils/sendToTelegram";
-import type { LatLng } from "leaflet";
+import type { LatLon } from "../../map/core/types";
 import { toast } from "react-toastify";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../styles/uiStyles";
 import type { HydrantUiFields } from "../../utils/osmConversion";
@@ -12,7 +12,7 @@ interface NewNodeFormProps {
   lat: number;
   lon: number;
   onClose: () => void;
-  setNewNodeLatLng: (latlng: LatLng | null) => void;
+  setNewNodePosition: (position: LatLon | null) => void;
   refreshHidrants?: () => void;
 }
 
@@ -20,7 +20,7 @@ export const NewNodeForm = ({
   lat,
   lon,
   onClose,
-  setNewNodeLatLng,
+  setNewNodePosition,
   refreshHidrants,
 }: NewNodeFormProps) => {
   const [observacions, setObservacions] = useState("");
@@ -79,7 +79,7 @@ export const NewNodeForm = ({
         await refreshHidrants();
       }
       onClose();
-      setNewNodeLatLng(null);
+      setNewNodePosition(null);
     } catch {
       toast.error("Error en afegir l'hidrant");
     }

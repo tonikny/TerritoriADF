@@ -30,13 +30,15 @@ const handler: ApiHandler = async (req, res) => {
   }
 
   try {
-    const { lat, lon, tags, message, originalData, changes, adf_id, isEdit } = req.body;
+    const { lat, lon, tags, message, originalData, changes, adf_id, isEdit, action } = req.body;
 
     let title = "🗺️ <b>Nou Hidrant:</b>";
     let isNewHydrant = false;
 
     if (tags?.type === "incidencia") {
       title = "⚠️ <b>Nova Incidència:</b>";
+    } else if (action === "delete") {
+      title = "🗑️ <b>Hidrant esborrat:</b>";
     } else if (tags?.osm_id || tags?.id) {
       // Diferenciar entre edició i comentari
       title = isEdit ? "✏️ <b>Edició d'hidrant:</b>" : "💬 <b>Comentari de l'hidrant:</b>";
@@ -81,12 +83,13 @@ const handler: ApiHandler = async (req, res) => {
       dbInfo.private_tags = privateTags;
     }
 
+    const nodeId = tags?.id || dbResult?.id;
+
     // Generar URL de l'aplicació utilitzant el Host de la petició,
     // substituint el buclic (localhost) per la IP LAN
     const base = appBaseUrl(req);
-    const nodeId = tags?.id || dbResult?.id;
     const adfParam = adf_id ? `adf=${adf_id}&` : "";
-    const appUrl = nodeId ? `${base}/?${adfParam}node=${nodeId}` : null;
+    const appUrl = nodeId && action !== "delete" ? `${base}/?${adfParam}node=${nodeId}` : null;
 
     let contentSection = "";
     if (isEdit && originalData && changes && Object.keys(changes).length > 0) {
@@ -98,8 +101,12 @@ const handler: ApiHandler = async (req, res) => {
 <pre>${escapeHtml(JSON.stringify(changes, null, 2))}</pre>
 `;
     } else {
+      const dataLabel =
+        action === "delete"
+          ? `📋 <b>Dades del node${nodeId ? ` <code>${escapeHtml(String(nodeId))}</code>` : ""} (abans d'esborrar):</b>`
+          : "🏷️ <b>Info BD:</b>";
       contentSection = `
-🏷️ <b>Info BD:</b>
+${dataLabel}
 <pre>${escapeHtml(JSON.stringify(dbInfo, null, 2))}</pre>
 `;
     }

@@ -54,4 +54,41 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-return": "off",
     },
   },
+
+  // Aïllament dels motors: cap tipus ni API de tercers fora del seu adaptador.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/map/engines/leaflet/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["leaflet", "leaflet/*", "react-leaflet"],
+              message: "Leaflet només es pot importar dins de src/map/engines/leaflet.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/map/engines/maplibre/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["maplibre-gl", "maplibre-gl/*", "@vis.gl/react-maplibre"],
+              message: "MapLibre només es pot importar dins de src/map/engines/maplibre.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

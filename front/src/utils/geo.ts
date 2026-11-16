@@ -1,22 +1,3 @@
-import L from "leaflet";
-
-// El límit (maxMeters) el defineix el backend: vegeu useAppConfig (GET /api/config).
-export function clampToMaxDistance(
-  original: L.LatLng,
-  target: L.LatLng,
-  maxMeters: number,
-): L.LatLng {
-  const dist = original.distanceTo(target);
-  if (dist <= maxMeters) {
-    return target;
-  }
-  const ratio = maxMeters / dist;
-  return L.latLng(
-    original.lat + (target.lat - original.lat) * ratio,
-    original.lng + (target.lng - original.lng) * ratio,
-  );
-}
-
 function pointInRing(lat: number, lon: number, ring: number[][]): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -45,7 +26,7 @@ export function isPointInBoundary(
       return pointInRing(lat, lon, geom.coordinates[0]);
     }
     if (geom.type === "MultiPolygon") {
-      return geom.coordinates.some((p: number[][][]) => pointInRing(lat, lon, p[0]));
+      return geom.coordinates.some((polygon: number[][][]) => pointInRing(lat, lon, polygon[0]));
     }
   } catch {
     /* ignore parse errors */

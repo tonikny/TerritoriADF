@@ -103,7 +103,8 @@ export async function ensureRole(
   }
   for (const acl of acls) {
     try {
-      await dynsecCommand(client, { command: "addRoleACL", rolename, acls: [acl] });
+      // DynSec espera els camps de l'ACL al nivell del comandament, no dins d'un array.
+      await dynsecCommand(client, { command: "addRoleACL", rolename, ...acl });
     } catch {
       /* exists */
     }

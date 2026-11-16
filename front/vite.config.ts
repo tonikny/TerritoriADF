@@ -128,6 +128,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/tiles\/ign-orto/, ""),
       },
+      "/tiles/icgc-terrain": {
+        target: "https://geoserveis.icgc.cat/servei/catalunya/contextmaps-terreny-5m-rgb/wmts",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/tiles\/icgc-terrain/, ""),
+      },
     },
   },
 });
