@@ -52,6 +52,9 @@ no s'hi desa mai, perquè un dispositiu compartit no ha de veure respostes d'un 
   app shell i inflarien la descàrrega inicial.
 - Tiles: `CacheFirst`, 3000 entrades i 30 dies. Un topall és imprescindible perquè
   `CacheStorage` no és il·limitat i el navegador pot evictar-lo.
+- Les tessel·les que MapLibre cancel·la en canviar de zoom reben una resposta `204`
+  del service worker; així Workbox no propaga l'`AbortError` com un error del
+  service worker a les eines de desenvolupament.
 
 ## Comportament per navegador
 

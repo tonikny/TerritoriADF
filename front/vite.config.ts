@@ -71,7 +71,15 @@ export default defineConfig({
                 maxEntries: 3000,
                 maxAgeSeconds: 60 * 60 * 24 * 30,
               },
-              cacheableResponse: { statuses: [0, 200] },
+              cacheableResponse: { statuses: [200] },
+              plugins: [
+                {
+                  // MapLibre cancel·la tessel·les en canviar de zoom. Sense
+                  // aquesta resposta, CacheFirst propaga l'AbortError i el
+                  // navegador mostra un error del service worker.
+                  handlerDidError: async () => new Response(null, { status: 204 }),
+                },
+              ],
             },
           },
           {
