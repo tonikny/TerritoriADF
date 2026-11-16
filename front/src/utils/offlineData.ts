@@ -48,7 +48,8 @@ function clearLastSync(): void {
 
 /**
  * Esborra les respostes d'API cachejades pel service worker i les marques de
- * frescor. Les tiles del mapa i el precache de l'app shell es conserven.
+ * frescor. El precache de l'app shell es conserva; les tessel·les del mapa no
+ * passen pel service worker.
  */
 export async function clearOfflineData(): Promise<void> {
   clearLastSync();

@@ -60,28 +60,10 @@ export default defineConfig({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//, /^\/tiles\//],
         cleanupOutdatedCaches: true,
+        // Les tessel·les no passen pel service worker: MapLibre en cancel·la
+        // moltes en canviar de zoom i Firefox ho pot reportar com un error del
+        // service worker. Nginx i la caché HTTP del navegador se n'encarreguen.
         runtimeCaching: [
-          {
-            // Tiles mateix origen (proxy de Nginx): cache-first amb topall d'espai.
-            urlPattern: /\/tiles\//,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "map-tiles",
-              expiration: {
-                maxEntries: 3000,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
-              },
-              cacheableResponse: { statuses: [200] },
-              plugins: [
-                {
-                  // MapLibre cancel·la tessel·les en canviar de zoom. Sense
-                  // aquesta resposta, CacheFirst propaga l'AbortError i el
-                  // navegador mostra un error del service worker.
-                  handlerDidError: async () => new Response(null, { status: 204 }),
-                },
-              ],
-            },
-          },
           {
             // Lectura offline: dades de l'ADF i llista d'ADFs, xarxa primer. Si la
             // xarxa no respon en 3 s (o falla), es serveix la còpia emmagatzemada i

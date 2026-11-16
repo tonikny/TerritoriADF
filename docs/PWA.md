@@ -3,8 +3,8 @@
 Documentació de la capa PWA (Progressive Web App) del frontend: què s'ha implementat,
 com es prova, com es desplega i quins límits té.
 
-> Estat: **fases 1 i 2 completades** — aplicació instal·lable a Chromium, app shell offline,
-> caché de tiles del mapa i lectura de les dades de l'ADF sense connexió. L'escriptura
+> Estat: **fases 1 i 2 completades** — aplicació instal·lable a Chromium, app shell offline
+> i lectura de les dades de l'ADF sense connexió. L'escriptura
 > offline no està prevista; vegeu
 > [Possibilitat futura](#possibilitat-futura-escriptura-offline).
 
@@ -14,7 +14,7 @@ com es prova, com es desplega i quins límits té.
   icones de 192 i 512 px (reutilitza les de `front/public/`), `display: standalone`,
   `theme_color` `#007bff` i `lang: ca`.
 - **Service worker** (Workbox) generat a `dist/sw.js`, que precacheja l'app shell
-  (JS, CSS, HTML, icones i fonts) i aplica `CacheFirst` a les tiles de mapa.
+  (JS, CSS, HTML, icones i fonts). Les tessel·les del mapa no passen pel service worker.
 - **Meta tags** a `front/index.html`: `manifest`, `theme-color` i les meta
   `apple-mobile-web-app-*`.
 - **Prompt d'instal·lació** (un toast blanc amb botons _Instal·la_ / _Ara no_, sense
@@ -29,13 +29,13 @@ no s'hi desa mai, perquè un dispositiu compartit no ha de veure respostes d'un 
 
 ## Peces i per què
 
-| Fitxer                                      | Funció                                                                                                 |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `front/vite.config.ts`                      | Bloc `VitePWA`: manifest, `globPatterns`, `globIgnores`, `navigateFallback`, `runtimeCaching` de tiles |
-| `front/index.html`                          | `link rel="manifest"`, `theme-color`, meta d'Apple                                                     |
-| `front/src/vite-env.d.ts`                   | Tipus del mòdul virtual `virtual:pwa-register/react`                                                   |
-| `front/src/components/shared/PwaBanner.tsx` | `beforeinstallprompt`, `appinstalled`, toast d'instal·lació i recàrrega per actualització              |
-| `front/nginx.conf`                          | Caché correcta de `sw.js`, manifest i assets versionats                                                |
+| Fitxer                                      | Funció                                                                                              |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `front/vite.config.ts`                      | Bloc `VitePWA`: manifest, `globPatterns`, `globIgnores`, `navigateFallback`, `runtimeCaching` d'API |
+| `front/index.html`                          | `link rel="manifest"`, `theme-color`, meta d'Apple                                                  |
+| `front/src/vite-env.d.ts`                   | Tipus del mòdul virtual `virtual:pwa-register/react`                                                |
+| `front/src/components/shared/PwaBanner.tsx` | `beforeinstallprompt`, `appinstalled`, toast d'instal·lació i recàrrega per actualització           |
+| `front/nginx.conf`                          | Caché correcta de `sw.js`, manifest i assets versionats                                             |
 
 ### Decisions rellevants
 
@@ -50,11 +50,10 @@ no s'hi desa mai, perquè un dispositiu compartit no ha de veure respostes d'un 
   no han de rebre `index.html`.
 - `globIgnores` deixa fora `public/images`, `public/municipis` i `public/geojson`: no són
   app shell i inflarien la descàrrega inicial.
-- Tiles: `CacheFirst`, 3000 entrades i 30 dies. Un topall és imprescindible perquè
-  `CacheStorage` no és il·limitat i el navegador pot evictar-lo.
-- Les tessel·les que MapLibre cancel·la en canviar de zoom reben una resposta `204`
-  del service worker; així Workbox no propaga l'`AbortError` com un error del
-  service worker a les eines de desenvolupament.
+- Tessel·les: el service worker no intercepta `/tiles/`. Les serveix el Nginx del
+  host, que les cacheja, i el navegador les pot guardar a la seva caché HTTP. Així
+  s'evita que una tessel·la cancel·lada per MapLibre es converteixi en un error del
+  service worker a Firefox.
 
 ## Comportament per navegador
 
@@ -90,10 +89,10 @@ Comprovacions a les DevTools (Chrome):
 
 1. **Application → Manifest**: nom, icones, `start_url`, `display` i cap error.
 2. **Application → Service Workers**: `sw.js` actiu i sense errors.
-3. **Application → Cache Storage**: `workbox-precache-*` després de carregar, i
-   `map-tiles` després de navegar pel mapa.
-4. **Network → Offline** i recarregar: l'app ha d'arrencar; el mapa mostra les tiles
-   ja visitades.
+3. **Application → Cache Storage**: `workbox-precache-*` després de carregar; les
+   tessel·les no hi apareixen perquè les gestiona la caché HTTP del navegador.
+4. **Network → Offline** i recarregar: l'app ha d'arrencar; el mapa només pot mostrar
+   les tessel·les que el navegador tingui a la seva caché HTTP.
 5. **Application → Manifest → Installability**: ha de sortir com a instal·lable.
 
 Lighthouse ja no té la categoria PWA: no serveix com a verificació.
@@ -172,8 +171,8 @@ Detalls de la implementació a `PwaBanner.tsx`:
   (`territoriadf-last-sync:<adf>`). Sense connexió, el mapa mostra
   «Sense connexió · dades de fa X», perquè una còpia no es confongui amb l'estat real.
 - **Neteja en tancar sessió**: `logout` i qualsevol `401` a `/api/auth/me` esborren les
-  cachés `api-*` i les marques de frescor. Les tiles i el precache de l'app shell es
-  conserven.
+  cachés `api-*` i les marques de frescor. El precache de l'app shell es conserva; les
+  tessel·les no passen pel service worker.
 - **Emmagatzematge persistent**: `navigator.storage.persist()` des de `PwaBanner`. El
   navegador decideix (pot dir que no) i aquí no es fa res si falla.
 - **Sense cache-buster**: `useHidrantData` ja no afegeix `?_t=<timestamp>`, que feia que
@@ -184,7 +183,8 @@ Detalls de la implementació a `PwaBanner.tsx`:
 
 - `/api/auth/me` no es cacheja, així que offline l'app queda en mode lectura anònima: no
   es pot editar res. És el comportament segur, no un defecte.
-- Les tiles no visitades abans no hi són i el mapa surt gris.
+- Les tessel·les no visitades abans no hi són i el mapa surt gris. El service worker
+  no les pot servir offline; només ho pot fer la caché HTTP del navegador.
 
 ## Possibilitat futura: escriptura offline
 
@@ -202,4 +202,4 @@ i els permisos sense xarxa, perquè avui l'app hi queda en lectura anònima.
 | El SW no es registra en dev             | Certificat de mkcert no confiat al dispositiu                         | Provar a `localhost` o confiar-hi el certificat                                       |
 | Es veu codi antic després de desplegar  | `sw.js` cachejat per un proxy                                         | Comprovar `Cache-Control: no-cache` a `/sw.js` i fer _Unregister_ + _Clear site data_ |
 | Pantalla en blanc després d'actualitzar | Barreja d'`index.html` nou amb chunks antics                          | Usar el prompt d'actualització, no activar el SW automàticament                       |
-| El mapa surt gris sense connexió        | Tiles no visitades abans                                              | És l'esperat: només es cachegen les ja carregades                                     |
+| El mapa surt gris sense connexió        | Tessel·les no presents a la caché HTTP                                | És l'esperat: el service worker no intercepta ni cacheja les tessel·les               |
