@@ -689,6 +689,7 @@ function MapPanelView() {
             loadingHidrants={loadingHidrants}
             hidrantsError={hidrantsError}
             hidrantsEmpty={
+              hydrantsVisible &&
               hidrantsLoaded &&
               features.length === 0 &&
               emptyNoticeDismissedFor !== (activeAdf?.id ?? null)
