@@ -60,7 +60,9 @@ def base_config():
             {"username": backend_user, "textName": "Backend service", "encoded_password": backend_hash, "roles": [{"rolename": "backend-service"}]},
         ],
         "roles": [
-            {"rolename": "owntracks-device", "acls": [{"acltype": "publishClientSend", "topic": f"{prefix}/%u/#", "allow": True}]},
+            {"rolename": "owntracks-device", "acls": [
+                {"acltype": "publishClientSend", "topic": f"{prefix}/%u/#", "allow": True},
+            ]},
             {"rolename": "backend-service", "acls": [
                 {"acltype": "subscribePattern", "topic": f"{prefix}/#", "allow": True},
                 {"acltype": "publishClientSend", "topic": "$CONTROL/dynamic-security/v1", "allow": True},

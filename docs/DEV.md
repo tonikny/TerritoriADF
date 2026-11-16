@@ -201,7 +201,15 @@ OTRC_PORT=51823
 OTRC_TLS=false
 ```
 
-El `.otrc` que baixa la UI (`/api/tracking/config` / `enable`) apunta a aquests valors.
+El `.otrc` que baixa la UI (`/api/tracking/config` / `enable`) apunta a aquests valors i conté la
+identitat plana (`username`, `clientId` i `pubTopicBase`), `auth: true`, `mqttProtocolLevel: 4`,
+`monitoring: 1` (canvis significatius), `locatorDisplacement: 50` i `locatorInterval: 60`. No inclou
+`cmd` ni `remoteConfiguration`: el flux és **només de posicions** (el dispositiu publica i el backend
+escolta), sense canal de comandaments.
+
+La UI només descarrega el `.otrc` o el carrega a l'app (`owntracks:///config?inline=…` amb el base64
+percent-encodat). **No** intenta obrir l'app: a Android el navegador tan sols pot invocar l'activitat
+d'importació (les altres no són `BROWSABLE`), així que obrir-la és sempre manual.
 
 ### 7.3 Reconnexió amb backoff exponencial
 
@@ -216,6 +224,31 @@ docker compose exec mosquitto mosquitto_pub -h localhost -u <usuari> -P <passwor
 ```
 
 Logs útils: `[MQTT] ✅ Connected`, `🔄 Reconnecting`, `❌ Subscribe error`.
+
+### 7.5 Rols i ACLs de DynSec
+
+El backend reconcilia a cada arrencada els rols `owntracks-device` i `backend-service`
+(`ensureRole()` a `back/src/services/dynsec.ts`): llegeix les ACLs actuals i, si no coincideixen
+exactament amb les esperades (sobrants, duplicats o faltants), les substitueix amb `modifyRole`. És
+idempotent —si ja hi són no toca res— però s'aplica **quan arrenca el backend**: després de canviar
+ACLs cal reiniciar-lo (en dev, `tsx watch` ho fa sol).
+
+| Rol                | ACLs                                                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `owntracks-device` | `publishClientSend <prefix>/%u/#` — només pot publicar les seves posicions                                                       |
+| `backend-service`  | `subscribePattern <prefix>/#`, `publishClientSend` a `$CONTROL/dynamic-security/v1` i les dues de recepció d'aquest mateix tòpic |
+
+No hi ha cap ACL de `/cmd`: el canal de comandaments es va eliminar, o sigui que el dispositiu no se
+subscriu enlloc i el backend només escolta.
+
+Comprovació (esperat 1 ACL al rol del dispositiu i 4 al del backend):
+
+```bash
+docker compose exec -T mosquitto cat /mosquitto/data/dynamic-security.json \
+  | jq -c '.roles[] | select(.rolename|test("owntracks-device|backend-service")) | {rolename, n: (.acls|length)}'
+```
+
+I que arriben posicions: obre OwnTracks i mira el nom a «Usuaris connectats».
 
 ### 7.5 Neteja d'identitats
 

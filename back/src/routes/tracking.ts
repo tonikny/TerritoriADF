@@ -150,22 +150,23 @@ const configHandler: ApiHandler = async (req, res) => {
   if (!password) {
     return res.status(500).json({ error: "No es pot desxifrar. Torna a activar." });
   }
-  try {
-    await createMqttUser(mqUsername, password);
-  } catch {
-    /* tornem la config igualment */
-  }
-  // Auto-curat: alinha la identitat MQTT emmagatzemada amb la identitat aplanada actual.
+  // Auto-curat: si la identitat MQTT desada difereix de l'actual, es recrea el client amb la
+  // identitat nova. Si ja coincideix no es toca res: `setClientPassword` expulsa el
+  // dispositiu del broker, i cridar-ho a cada consulta de configuració tallava el tracking.
   if (row.mqtt_username !== mqUsername) {
     try {
+      await createMqttUser(mqUsername, password);
       await deleteMqttUser(row.mqtt_username);
     } catch {
-      /* client antic pot no existir */
+      /* best-effort: la configuració es retorna igualment */
     }
     db.update(mqttUsers).set({ mqtt_username: mqUsername }).where(eq(mqttUsers.id, row.id)).run();
   }
   return res.json(buildOtrc(mqUsername, password));
 };
+
+/** Mode de monitoratge OwnTracks: 1 = canvis significatius (estalvi de bateria), 2 = moviment continu. */
+const OWTRACKS_MONITORING = 1;
 
 /** Genera l'objecte de configuració OwnTracks (.otrc). */
 function buildOtrc(username: string, password: string) {
@@ -180,8 +181,7 @@ function buildOtrc(username: string, password: string) {
     mqttProtocolLevel: 4,
     clientId: username,
     pubTopicBase: `${config.MQTT_TOPIC_PREFIX}/${username}`,
-    cmd: true,
-    monitoring: 1,
+    monitoring: OWTRACKS_MONITORING,
     locatorDisplacement: 50,
     locatorInterval: 60,
   };

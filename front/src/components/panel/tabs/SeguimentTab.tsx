@@ -10,6 +10,33 @@ import { toast } from "react-toastify";
 
 const CONNECTED_MS = 15 * 60 * 1000;
 
+/** Base64 (UTF-8) que espera el paràmetre `inline` de l'esquema owntracks://. */
+function toBase64(value: string): string {
+  let binary = "";
+  for (const byte of new TextEncoder().encode(value)) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+/** URL d'importació de configuració (l'única ruta owntracks:// que Chrome pot obrir).
+ *  El base64 s'ha de percent-encodar: OwnTracks fa URLDecoder.decode de la query i
+ *  un `+` cru es converteix en espai, cosa que trenca el base64. */
+function owntracksConfigHref(otrc: Record<string, unknown> | null): string {
+  if (!otrc) {
+    return "owntracks:///config";
+  }
+  return `owntracks:///config?inline=${encodeURIComponent(toBase64(JSON.stringify(otrc)))}`;
+}
+
+/** Llança una URL d'esquema propi des d'un gest de l'usuari. */
+function launchUrl(url: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  a.click();
+}
+
 export function SeguimentTab({
   positions,
   onCenterCoordinates,
@@ -109,17 +136,38 @@ export function SeguimentTab({
     }
   };
 
+  const loadOtrc = async (): Promise<Record<string, unknown> | null> => {
+    const res = await fetch("/api/tracking/config", { credentials: "same-origin" });
+    if (!res.ok) {
+      const err = await res.json();
+      toast.error(err.error || "Error descarregant config");
+      return null;
+    }
+    return (await res.json()) as Record<string, unknown>;
+  };
+
   const handleConfig = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/tracking/config", { credentials: "same-origin" });
-      if (!res.ok) {
-        const err = await res.json();
-        toast.error(err.error || "Error descarregant config");
-        return;
+      const otrc = await loadOtrc();
+      if (otrc) {
+        downloadOtrc(otrc);
       }
-      const otrc = (await res.json()) as Record<string, unknown>;
-      downloadOtrc(otrc);
+    } catch {
+      toast.error("Error de connexió");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Carrega a OwnTracks la configuració incrustada a la URL (iOS i Android). */
+  const handleLoadConfig = async () => {
+    setLoading(true);
+    try {
+      const cfg = await loadOtrc();
+      if (cfg) {
+        launchUrl(owntracksConfigHref(cfg));
+      }
     } catch {
       toast.error("Error de connexió");
     } finally {
@@ -218,8 +266,8 @@ export function SeguimentTab({
               </a>
             </div>
             <p className="text-xs text-muted mt-1 mb-0">
-              Per que l'app funcioni bé, concedeix els permissos de localització precissa a
-              OwnTracks i desactiva l'optimització de bateria per evitar que s'aturi sola.
+              Perquè l'app funcioni bé, concedeix-li els permisos de localització precisa i
+              desactiva l'optimització de bateria perquè no s'aturi sola.
             </p>
           </li>
           <li>
@@ -251,9 +299,11 @@ export function SeguimentTab({
               Importa les credencials
             </h4>
             <p className="m-0 text-[0.8rem] text-muted">
-              Un cop activat apareixerà el botó <strong>📥 Baixar credencials</strong>: baixa el
-              fitxer <strong>.otrc</strong> i obre'l amb OwnTracks. El fitxer conté les teves
-              credencials: <strong>no el comparteixis amb ningú</strong>.
+              Un cop activat apareixerà <strong>Tornar a configurar l'app</strong> per carregar la
+              configuració directament a OwnTracks o baixar el fitxer <strong>.otrc</strong>. El
+              fitxer conté les teves credencials: <strong>no el comparteixis amb ningú</strong>. Per
+              començar a compartir la posició, obre OwnTracks des de la pantalla d'inici del mòbil:
+              el navegador no pot obrir-la.
             </p>
           </li>
           <li>
@@ -272,18 +322,51 @@ export function SeguimentTab({
         </ol>
       ) : (
         <div className="space-y-3">
-          <CollapsibleSection title="Com compartir la teva posició">
+          <p className="m-0 text-[0.8rem] text-muted">
+            <span className="text-[0.9rem]">📡</span> Obre OwnTracks al mòbil (des de la pantalla
+            d'inici: el navegador no pot llançar-la) i deixa-la oberta, encara que sigui en segon
+            pla o amb la pantalla bloquejada. Si la tanques ("Sortir" al menú), deixaràs de
+            compartir la posició.
+          </p>
+          <CollapsibleSection title="Tornar a configurar l'app">
             <div className="space-y-2">
               <p className="m-0 text-[0.8rem] text-muted">
-                <span className="text-[0.9rem]">📡</span> Obre OwnTracks i deixa-la oberta (pot ser
-                en segon pla o amb la pantalla bloquejada) i la teva posició es mostrarà al mapa.
+                <span className="text-[0.9rem]">🛡️</span> Si la configuració no es pot desxifrar
+                (per exemple si ha canviat la clau de xifrat del servidor), torna a activar per
+                generar credencials noves:
+              </p>
+              <button
+                onClick={() => {
+                  void handleEnable();
+                }}
+                disabled={loading}
+                className={`${secondaryButtonClass} w-full`}
+                title="Genera credencials noves i torna a desar la contrasenya xifrada"
+              >
+                {loading ? "⏳" : "🛡️ Tornar a activar"}
+              </button>
+              <p className="m-0 text-[0.8rem] text-muted">
+                <span className="text-[0.9rem]">⚙️</span> Si has canviat de mòbil o les credencials
+                no funcionen, carrega la configuració directament a OwnTracks:
+              </p>
+              <button
+                onClick={() => {
+                  void handleLoadConfig();
+                }}
+                disabled={loading}
+                className={`${secondaryButtonClass} w-full`}
+                title="Obre OwnTracks amb la configuració ja carregada"
+              >
+                {loading ? "⏳" : "⚙️ Carregar configuració"}
+              </button>
+              <p className="m-0 text-[0.75rem] text-muted">
+                Només per carregar la configuració (o per obrir un <strong>.otrc</strong>) cal tenir
+                activat <strong>«Permet configuració externa»</strong> (en anglès «Allow external
+                configuration») a OwnTracks (Ajustos → Avançat); a les versions noves ve desactivat
+                per seguretat. Ni «Tornar a activar» ni la descàrrega del fitxer no ho necessiten.
               </p>
               <p className="m-0 text-[0.8rem] text-muted">
-                <span className="text-[0.9rem]">⏹</span> Quan la tanquis ("Sortir" al menú),
-                deixaràs de compartir la teva posició.
-              </p>
-              <p className="m-0 text-[0.8rem] text-muted">
-                <span className="text-[0.9rem]">🔑</span> Si cal, pots tornar a baixar el fitxer{" "}
+                <span className="text-[0.9rem]">🔑</span> Alternativa: baixa el fitxer{" "}
                 <strong>.otrc</strong> amb les teves credencials (són personals, no les
                 comparteixis):
               </p>

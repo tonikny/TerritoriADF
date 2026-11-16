@@ -199,6 +199,29 @@ El backend connecta com `backend` i envia comandaments JSON a `$CONTROL/dynamic-
 
 **No cal**: docker exec, mosquitto_ctrl, ni mount del socket Docker.
 
+### ACLs dels rols (reconciliació idempotent)
+
+El backend aplica les ACLs de `owntracks-device` i `backend-service` a cada arrencada
+(`ensureRole()` a `back/src/services/dynsec.ts`): esborra duplicats i ACLs que ja no toquen i afegeix
+les que falten. Per tant, **per netejar ACLs obsoletes en producció n'hi ha prou de reiniciar el
+backend**; no cal editar `dynamic-security.json` a mà:
+
+```bash
+docker compose restart backend          # o: docker compose up -d --build backend
+```
+
+Dos avisos:
+
+- Qualsevol ACL afegida manualment a aquests dos rols s'elimina a la propera arrencada: són rols gestionats pel codi.
+- `npm run mqtt:sync-dynsec` **no** actualitza les ACLs de rols existents (només reescriu els clients `admin`/`backend` i afegeix rols que faltin); no serveix per a això.
+
+Verificació (esperat `owntracks-device` 1 i `backend-service` 4):
+
+```bash
+docker compose exec -T mosquitto cat /mosquitto/data/dynamic-security.json \
+  | jq -c '.roles[] | select(.rolename|test("owntracks-device|backend-service")) | {rolename, n: (.acls|length)}'
+```
+
 ### Neteja d'identitats MQTT (`mqtt:cleanup`)
 
 `npm run mqtt:cleanup` alinea `mqtt_users.mqtt_username` amb el nom d'usuari actual (si ha canviat de format) i esborra clients DynSec orfes (`owntracks-device`) que no corresponguin a cap usuari de la BD. Dry-run per defecte; per aplicar els canvis:
@@ -208,6 +231,9 @@ npm run mqtt:cleanup -- --apply
 ```
 
 Útil després de renombrar usuaris (ex. migració a `XXX/YYY` / `XXX/GI/YYY`) o per treure clients antics. Script: `back/src/scripts/cleanupMqtt.ts`.
+
+> Aquest script neteja **clients**, no ACLs. Les ACLs de rol es reconcilien en arrencar el backend
+> (vegeu la secció anterior).
 
 ---
 

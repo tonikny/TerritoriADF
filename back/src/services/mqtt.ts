@@ -56,7 +56,6 @@ const owntracksSchema = z.object({
  *  Singleton: exportat com a `mqttService`. */
 class MqttService {
   private client: mqtt.MqttClient | null = null;
-  private adminClient: mqtt.MqttClient | null = null;
   private positions = new Map<string, LocationData>();
   private available = false;
   private pruneTimer: ReturnType<typeof setInterval> | null = null;
@@ -84,10 +83,6 @@ class MqttService {
     if (this.client) {
       this.client.end(true);
       this.client = null;
-    }
-    if (this.adminClient) {
-      this.adminClient.end(true);
-      this.adminClient = null;
     }
     this.available = false;
     this.positions.clear();
@@ -128,50 +123,51 @@ class MqttService {
     log.info({ username }, "MQTT user deleted");
   }
 
-  /** Inicialitza DynSec si no ho està: admin, roles (owntracks-device, backend-service), client backend. */
+  /** Inicialitza DynSec si cal (admin, roles, client backend).
+   *
+   *  L'`init` nomes es pot fer per connexio anonima, pero els rols, les ACLs i el client
+   *  del backend s'han d'aplicar SEMPRE amb les credencials d'admin: amb
+   *  `allow_anonymous false` (el cas habitual) la connexio anonima sempre falla i, si
+   *  se'n depenia, cap ACL nova s'arribava a aplicar mai. */
   private async bootstrap(): Promise<void> {
-    let anon: mqtt.MqttClient | undefined;
     try {
-      anon = await dynsecConnect();
-    } catch {
-      log.debug("No anonymous connect on MQTT broker");
-    }
-
-    if (anon && !anon.disconnected) {
+      const anon = await dynsecConnect();
       try {
         await dynsecCommand(anon, {
           command: "init",
           configfile: "/mosquitto/data/dynamic-security.json",
         });
-        anon.end();
-        this.adminClient = await dynsecConnect(
-          config.MQTT_ADMIN_USERNAME,
-          config.MQTT_ADMIN_PASSWORD,
-        );
-        await ensureRole(this.adminClient, "owntracks-device", [
-          { acltype: "publishClientSend", topic: `${config.MQTT_TOPIC_PREFIX}/%u/#`, allow: true },
-        ]);
-        await ensureRole(this.adminClient, "backend-service", [
-          { acltype: "subscribePattern", topic: `${config.MQTT_TOPIC_PREFIX}/#`, allow: true },
-          { acltype: "publishClientSend", topic: "$CONTROL/dynamic-security/v1", allow: true },
-          { acltype: "publishClientReceive", topic: "$CONTROL/dynamic-security/v1/#", allow: true },
-          { acltype: "subscribePattern", topic: "$CONTROL/dynamic-security/v1/#", allow: true },
-        ]);
-        await ensureClient(
-          this.adminClient,
-          config.MQTT_BACKEND_USERNAME,
-          config.MQTT_BACKEND_PASSWORD,
-          "backend-service",
-        );
-      } catch (err) {
-        log.warn({ err }, "MQTT DynSec bootstrap failed");
+        log.info("MQTT DynSec initialized");
       } finally {
-        if (this.adminClient) {
-          this.adminClient.end();
-          this.adminClient = null;
-        }
         anon.end();
       }
+    } catch {
+      log.debug("Broker sense acces anonim: DynSec ja inicialitzat");
+    }
+
+    let admin: mqtt.MqttClient | undefined;
+    try {
+      admin = await dynsecConnect(config.MQTT_ADMIN_USERNAME, config.MQTT_ADMIN_PASSWORD);
+      // El dispositiu només publica les seves posicions al seu propi tòpic.
+      await ensureRole(admin, "owntracks-device", [
+        { acltype: "publishClientSend", topic: `${config.MQTT_TOPIC_PREFIX}/%u/#`, allow: true },
+      ]);
+      await ensureRole(admin, "backend-service", [
+        { acltype: "subscribePattern", topic: `${config.MQTT_TOPIC_PREFIX}/#`, allow: true },
+        { acltype: "publishClientSend", topic: "$CONTROL/dynamic-security/v1", allow: true },
+        { acltype: "publishClientReceive", topic: "$CONTROL/dynamic-security/v1/#", allow: true },
+        { acltype: "subscribePattern", topic: "$CONTROL/dynamic-security/v1/#", allow: true },
+      ]);
+      await ensureClient(
+        admin,
+        config.MQTT_BACKEND_USERNAME,
+        config.MQTT_BACKEND_PASSWORD,
+        "backend-service",
+      );
+    } catch (err) {
+      log.warn({ err }, "MQTT DynSec bootstrap failed");
+    } finally {
+      admin?.end();
     }
   }
 

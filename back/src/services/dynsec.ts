@@ -90,7 +90,33 @@ export function dynsecCommand(
   });
 }
 
-/** Crea un rol DynSec si no existeix i li assigna les ACLs indicades. */
+interface DynAcl {
+  acltype: string;
+  topic: string;
+}
+
+const aclKey = (acl: DynAcl): string => `${acl.acltype} ${acl.topic}`;
+
+/** Llegeix les ACLs actuals d'un rol. La resposta de `getRole` les porta a `data.role.acls`.
+ *  Si la lectura falla es tracta el rol com si no tingués cap ACL. */
+async function roleAcls(client: mqtt.MqttClient, rolename: string): Promise<DynAcl[]> {
+  try {
+    const resp = (await dynsecCommand(client, { command: "getRole", rolename })) as {
+      responses?: { command?: string; data?: { role?: { acls?: unknown } } }[];
+    };
+    const acls = resp.responses?.find((r) => r.command === "getRole")?.data?.role?.acls;
+    if (Array.isArray(acls)) {
+      return acls as DynAcl[];
+    }
+  } catch {
+    /* desconegut */
+  }
+  return [];
+}
+
+/** Assegura un rol DynSec amb EXACTAMENT les ACLs indicades.
+ *  Idempotent: a cada arrencada deixa el rol igual; esborra duplicats i ACLs obsoletes
+ *  en lloc d'acumular-ne de noves. */
 export async function ensureRole(
   client: mqtt.MqttClient,
   rolename: string,
@@ -101,12 +127,41 @@ export async function ensureRole(
   } catch {
     /* exists */
   }
-  for (const acl of acls) {
+
+  const desired = acls.map((acl) => ({
+    acltype: String(acl.acltype),
+    topic: String(acl.topic),
+    allow: acl.allow === undefined ? true : Boolean(acl.allow),
+  }));
+  const wanted = new Set(desired.map(aclKey));
+  const existing = await roleAcls(client, rolename);
+  const existingKeys = existing.map((acl) =>
+    aclKey({ acltype: String(acl.acltype), topic: String(acl.topic) }),
+  );
+
+  // Ja hi són exactament, sense duplicats ni sobrants: no cal tocar res.
+  if (existingKeys.length === wanted.size && existingKeys.every((key) => wanted.has(key))) {
+    return;
+  }
+
+  // `modifyRole` substitueix la llista sencera d'ACLs: és l'única manera de treure'n,
+  // perquè aquest broker respon «Unknown command» a `deleteRoleACL`.
+  try {
+    await dynsecCommand(client, { command: "modifyRole", rolename, acls: desired });
+    return;
+  } catch {
+    /* si no es pot substituir, almenys s'afegeixen les que falten */
+  }
+
+  for (const acl of desired) {
+    if (existingKeys.includes(aclKey(acl))) {
+      continue;
+    }
     try {
-      // DynSec espera els camps de l'ACL al nivell del comandament, no dins d'un array.
+      // DynSec vol els camps de l'ACL al nivell del comandament.
       await dynsecCommand(client, { command: "addRoleACL", rolename, ...acl });
     } catch {
-      /* exists */
+      /* ja hi és */
     }
   }
 }
