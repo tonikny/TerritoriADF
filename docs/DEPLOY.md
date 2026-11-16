@@ -312,6 +312,54 @@ Per defecte, l'aplicació està configurada per escoltar a `127.0.0.1` per segur
 1.  **Opció A:** Utilitzar un Reverse Proxy (Nginx, Traefik) al host que apunti a `localhost:8080`.
 2.  **Opció B:** Modificar `docker-compose.yml` per obrir el port 80 directament: `0.0.0.0:80:80`.
 
+### 8.1 Cache de les tessel·les Terrain-RGB de l'ICGC
+
+El relleu 3D no va directament a `geoserveis.icgc.cat`: el front demana `/tiles/icgc-terrain/{z}/{x}/{y}.png` i el Nginx del host ho proxya i ho guarda a la zona `tiles_cache` (la mateixa dels mapes base). Això evita dependre de la latència de l'ICGC, redueix el trànsit i evita problemes de CSP.
+
+La configuració és a `config/site-docker.nginx.example`:
+
+```nginx
+location /tiles/icgc-terrain/ {
+    proxy_pass https://geoserveis.icgc.cat/servei/catalunya/contextmaps-terreny-5m-rgb/wmts/;
+    proxy_ssl_server_name on;
+    proxy_set_header Host geoserveis.icgc.cat;
+    proxy_set_header User-Agent "TerritoriADF/1.0";
+    proxy_cache tiles_cache;
+    proxy_cache_valid 200 30d;
+    proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+    proxy_cache_lock on;
+    add_header X-Cache-Status $upstream_cache_status;
+}
+```
+
+No cal crear cap zona nova: `tiles_cache` ja es defineix a la part superior de la plantilla (`max_size=5g`, `inactive=30d`). El `proxy_cache_lock` evita que diverses peticions simultànies de la mateixa tessel·la arribin a l'ICGC.
+
+Per aplicar-ho en un servidor que ja té la configuració anterior:
+
+```bash
+npm run nginx:render
+sudo cp config/site-docker.nginx /etc/nginx/sites-available/territoriadf
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Comprova la caché amb una tessel·la de Catalunya. Amb la caché buida, la primera petició ha de ser `MISS` i la segona `HIT`:
+
+```bash
+for i in 1 2; do
+  curl -s -o /dev/null -D - \
+    "https://<domini>/tiles/icgc-terrain/14/8270/6067.png" \
+    | grep -i x-cache-status
+done
+```
+
+Per buidar la zona `tiles_cache` (afecta tots els mapes base i el relleu; Nginx la tornarà a omplir):
+
+```bash
+sudo find /var/cache/nginx/tiles -type f -delete
+```
+
+En desenvolupament no intervé aquest Nginx: Vite proxya `/tiles/icgc-terrain` cap a l'ICGC directament.
+
 ## 9. Notificacions Telegram per ADF (webhooks)
 
 Cada ADF pot usar el seu bot de Telegram amb un grup propi (configuració des de la UI: **Configuració → Notificacions de Telegram**). El backend necessita rebre actualitzacions de Telegram a `POST /api/telegram/webhook/:secret`.

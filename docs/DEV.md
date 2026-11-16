@@ -4,18 +4,19 @@ Aquesta guia cobreix **desenvolupament local**. Per a altres entorns i temes esp
 
 ## Mapa de documentació
 
-| Document                | Contingut                                                                                                        | Quan usar-lo                          |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `README.md`             | Visió general, característiques, stack i resum OSM                                                               | Presentació ràpida del projecte       |
-| `docs/DEV.md`           | **Aquest fitxer**: setup local, execució, variables, MQTT dev, Telegram dev, OSM quickref, API i troubleshooting | Desenvolupar en local                 |
-| `docs/DEPLOY.md`        | Deploy producció amb Docker, backups, Telegram prod i MQTT prod resum                                            | Pujar a servidor                      |
-| `docs/OSM_SYNC.md`      | Sincronització bidireccional OSM completa (fluxos, UI, conflictes, validació, API)                               | Treballar amb OSM a fons              |
-| `docs/MQTT_DEPLOY.md`   | MQTT producció: TLS, certs, Dynamic Security, `init-dynsec.py`, permisos `mosquitto/data`                        | Configurar Mosquitto en prod          |
-| `docs/MIGRATION.md`     | Migrar una instància: identitat de la pila i canvi de domini, amb rollback                                       | Canviar de servidor o d'instància     |
-| `docs/backup-README.md` | Backups automàtics: scripts, cron, rotació, restauració i verificació                                            | Configurar o recuperar còpies         |
-| `docs/DOMAIN_CHANGE.md` | Canviar domini, ubicació o nom; renombrar backups i canvis de MQTT/estat                                         | Moure o renombrar el desplegament     |
-| `AGENTS.md`             | Arquitectura, model ADF-centric, rols/permisos i convencions per agents                                          | Context ràpid per a IA/col·laboradors |
-| `back/.env.example`     | Referència canònica de totes les variables d'entorn del backend                                                  | Consultar valors per defecte          |
+| Document                | Contingut                                                                                                        | Quan usar-lo                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `README.md`             | Visió general, característiques, stack i resum OSM                                                               | Presentació ràpida del projecte                  |
+| `docs/DEV.md`           | **Aquest fitxer**: setup local, execució, variables, MQTT dev, Telegram dev, OSM quickref, API i troubleshooting | Desenvolupar en local                            |
+| `docs/ARCHITECTURE.md`  | Estructura de fitxers, motors MapLibre/Leaflet, contracte del mapa, controls i tests                             | Entendre el codi o afegir funcionalitats de mapa |
+| `docs/DEPLOY.md`        | Deploy producció amb Docker, backups, Telegram prod i MQTT prod resum                                            | Pujar a servidor                                 |
+| `docs/OSM_SYNC.md`      | Sincronització bidireccional OSM completa (fluxos, UI, conflictes, validació, API)                               | Treballar amb OSM a fons                         |
+| `docs/MQTT_DEPLOY.md`   | MQTT producció: TLS, certs, Dynamic Security, `init-dynsec.py`, permisos `mosquitto/data`                        | Configurar Mosquitto en prod                     |
+| `docs/MIGRATION.md`     | Migrar una instància: identitat de la pila i canvi de domini, amb rollback                                       | Canviar de servidor o d'instància                |
+| `docs/backup-README.md` | Backups automàtics: scripts, cron, rotació, restauració i verificació                                            | Configurar o recuperar còpies                    |
+| `docs/DOMAIN_CHANGE.md` | Canviar domini, ubicació o nom; renombrar backups i canvis de MQTT/estat                                         | Moure o renombrar el desplegament                |
+| `AGENTS.md`             | Arquitectura, model ADF-centric, rols/permisos i convencions per agents                                          | Context ràpid per a IA/col·laboradors            |
+| `back/.env.example`     | Referència canònica de totes les variables d'entorn del backend                                                  | Consultar valors per defecte                     |
 
 ---
 
@@ -110,6 +111,8 @@ npm run docker:down  # atura contenidors
 | Mosquitto intern/dev       | `mqtt://localhost:1883`                                               |
 | Mosquitto OwnTracks públic | `mqtt://<BASE_DOMAIN_URL>:51823` (`OTRC_TLS=true` prod / `false` dev) |
 
+En desenvolupament, Vite proxya `/tiles/osm`, `/tiles/opentopo`, `/tiles/ign-*` i `/tiles/icgc-terrain`; en producció ho fa el Nginx del host, que a més cacheja les tessel·les. La configuració del relleu ICGC és a `docs/DEPLOY.md` §8.1.
+
 ---
 
 ## 5. Scripts (npm)
@@ -123,6 +126,7 @@ Font canònica: `package.json:5` i `back/package.json`. Agrupats per tema.
 | `npm run start`                   | Arrenca backend compilat (`back/dist`)                                                                                                                                                                                                               |
 | `npm run lint` / `lint:fix`       | ESLint a `front` + `back` (vegeu §11)                                                                                                                                                                                                                |
 | `npm run typecheck`               | `tsc --noEmit` a `front` + `back`                                                                                                                                                                                                                    |
+| `npm test -w front`               | Vitest del frontend (tests de `front/src/map/core/*.test.ts`)                                                                                                                                                                                        |
 | `npm run format` / `format:check` | Prettier                                                                                                                                                                                                                                             |
 | `npm run mqtt:up`                 | `docker compose up -d mosquitto`                                                                                                                                                                                                                     |
 | `npm run mqtt:cleanup`            | Neteja identitats MQTT obsoletes: alinea `mqtt_users.mqtt_username` amb username actual i esborra clients DynSec `owntracks-device` orfes. **Dry-run** per defecte; aplica amb `npm run mqtt:cleanup -- --apply` (`back/src/scripts/cleanupMqtt.ts`) |
@@ -146,13 +150,15 @@ Font canònica: `package.json:5` i `back/package.json`. Agrupats per tema.
 | `npm run telegram:selftest`       | Self-test lògica vinculació Telegram sense xarxa                                                                                                                                                                                                     |
 | `npm run prepare`                 | Husky hooks (`prepare: husky`)                                                                                                                                                                                                                       |
 
-Per paquet: `front/` (`dev`, `build`), `back/` (`db:migrate`, `db:generate`, `dev`, `build`, `mqtt:cleanup`). `create:user`, `telegram:selftest` i `db:*` només existeixen a `back/`: des de l'arrel, `npm run <script> -w back -- ...`.
+Per paquet: `front/` (`dev`, `build`, `preview`, `test`, `lint`, `typecheck`), `back/` (`db:migrate`, `db:generate`, `dev`, `build`, `lint`, `typecheck`, `mqtt:cleanup`). `create:user`, `telegram:selftest` i `db:*` només existeixen a `back/`: des de l'arrel, `npm run <script> -w back -- ...`.
 
 ---
 
 ## 6. Arquitectura (resum)
 
-- **Stack:** React 19 + Leaflet 1.9 / React-Leaflet 5 (front), Fastify 5 + TypeScript + Drizzle ORM + SQLite + Zod (back), Mosquitto 2 (MQTT).
+- **Stack:** React 19 + MapLibre GL JS 6 (motor per defecte) / Leaflet 1.9 + React-Leaflet 5 (fallback) + Vitest (front), Fastify 5 + TypeScript + Drizzle ORM + SQLite + Zod (back), Mosquitto 2 (MQTT).
+- **Motors de mapa:** contracte neutral a `front/src/map/core/types.ts`; adaptadors aïllats a `front/src/map/engines/{maplibre,leaflet}`; selecció per URL, fallback de sessió, preferència, WebGL2 i Leaflet. Detall a [`docs/ARCHITECTURE.md`](ARCHITECTURE.md#3-motors-de-mapa).
+- **Estructura de fitxers:** arbre complet del repositori, responsabilitats de `front/src/map` i convencions per afegir funcionalitats a [`docs/ARCHITECTURE.md`](ARCHITECTURE.md#2-estructura-del-repositori).
 - **Model ADF-centric:** `adfs` és la unitat principal (no municipis). Una ADF agrupa `osm_relations`; `bbox`, `center` i `boundary_geojson` es desen a `adfs`. `users.adf_id` vincula usuari a ADF; admin `adf_id = null`.
 - **SPA:** Un domini, canvi ADF via `AdfContext` i selector. Flux dades: `GET /api/adf?adf=ID`, `GET /api/adf/boundary?adf=ID` (GeoJSON), `GET /api/hidrants?adf=ID` (GeoJSON).
 - **Rols i permisos:** `admin` (tot) / `coordinador` (ADF pròpia) / `voluntari` (edició camp) / `public` (només lectura). Matriu central `back/src/permissions.ts: rol → capacitats` (`create_hydrant`, `delete_hydrant`, `sync_osm`, `create_incidencia`, `view_all_positions`, `manage_telegram`, etc.). Middleware `back/src/server.ts:164` valida capacitat i abast ADF amb el rol i l'ADF **rellegits de la BD** a cada petició (el JWT només identifica l'usuari, així un canvi de rol o un usuari esborrat té efecte immediat); `permissionsFor()` avisa al log si el rol no és a la matriu. `POST /api/auth/login` i `GET /api/auth/me` retornen el `user` amb `permissions[]` i `mqtt_enabled`; `GET /api/config` publica `role_permissions` (matriu rol → permisos) perquè el front no la dupliqui (vista "veure com"), i `min_password_length` per al `minLength` dels formularis de contrasenya. Username no-admin: `XXX/YYY` o `XXX/GI/YYY` (`back/src/routes/users.ts:12`).
@@ -162,7 +168,7 @@ Per paquet: `front/` (`dev`, `build`), `back/` (`db:migrate`, `db:generate`, `de
 - **Resiliència MQTT:** backend funciona encara que Mosquitto no disponible (`startMqttService().catch` a `back/src/server.ts:276`).
 - **Proxy:** Nginx cap a contenidors; tiles i Overpass cachejats.
 
-> Detall complet d'arquitectura i lògica: `AGENTS.md`.
+> Detall complet d'arquitectura i lògica: `AGENTS.md`. Estructura de fitxers, motors i tests: [`docs/ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
@@ -501,7 +507,8 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 
 - **ESLint** (flat `eslint.config.mjs`, un per `front/` i `back/`): `npm run lint` / `lint:fix` a arrel o paquet. Stack `typescript-eslint` (recommended) + `eslint-config-prettier`, `eslint-plugin-react-hooks` i `react-refresh` (front). Objectiu **0 errors, 0 warnings**. `no-console` via `front/src/utils/log.ts`; `no-explicit-any` adapter Fastify amb `eslint-disable` justificat (`back/src/server.ts:1`).
 - **Husky + lint-staged** (hook pre-commit): `.husky/pre-commit` → `npx lint-staged` (ESLint `--fix` als staged). **No `--no-verify`** sense justificació. Config a `package.json:51` (`*.{ts,tsx,js,jsx}` → `eslint --fix` + `prettier`, `*.{json,md,yml}` → `prettier`).
-- **CI** (`.github/workflows/ci.yml`): `push` a `main`/`develop` i `pull_request`. Pipeline Node 26: `npm ci` → `typecheck` → `lint` → `build`. Mínim: no tests ni deploy encara.
+- **Tests del front:** Vitest a `front/src/map/core/` (`zoom`, `geometry` i `engineSelection`). Comanda: `npm test -w front`; CI també els executa. Detall a [`docs/ARCHITECTURE.md`](ARCHITECTURE.md#4-tests-i-comprovacions).
+- **CI** (`.github/workflows/ci.yml`): `push` a `main`/`develop` i `pull_request`. Pipeline Node 26: `npm ci` → `typecheck` → `lint` → `npm test -w front` → `build`. No publica artefactes ni desplega.
 
 ---
 
@@ -519,4 +526,4 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 
 ---
 
-_Darrera actualització: generat des de `back/src/server.ts:211` (rutes), `back/.env.example`, `package.json:5` i `docs/OSM_SYNC.md` / `docs/MQTT_DEPLOY.md` / `docs/DEPLOY.md`._
+_Darrera actualització: generat des de `back/src/server.ts:211` (rutes), `back/.env.example`, `package.json:5`, `docs/ARCHITECTURE.md` i `docs/OSM_SYNC.md` / `docs/MQTT_DEPLOY.md` / `docs/DEPLOY.md`._

@@ -16,23 +16,26 @@ Aquesta aplicació permet a les ADFs gestionar i visualitzar la xarxa d'hidrants
 - **Tracking en temps real (MQTT/OwnTracks)**: Recepció d'ubicacions GPS de les unitats per conèixer-ne la posició sobre el mapa.
 - **Notificacions Telegram per ADF**: Cada ADF pot tenir el seu bot i un grup de Telegram on rep automàticament els avisos (incidències, altes i edicions d'hidrants). Configuració guiada des de la pestanya **Configuració → Notificacions de Telegram**: token xifrat, deep link `startgroup` d'un sol ús i avís de prova directament al grup.
 - **Seguretat**: Sessions amb JWT i control d'accés per rols; el backend és resilient i funciona encara que Mosquitto no estigui disponible.
-- **Mapa interactiu**: Basat en Leaflet amb suport per a:
+- **Mapa interactiu**: MapLibre GL JS 6 com a motor per defecte (WebGL2), amb Leaflet 1.9 + React Leaflet 5 com a fallback. Inclou:
   - Visualització de límits territorials.
   - Creació i edició d'hidrants locals.
   - Vista d'imatges des d'URLs incloses a OSM.
   - Llista detallada d'hidrants i cerca ràpida.
   - Càlcul de rutes a hidrants mitjançant GraphHopper.
   - URLs compartibles per a la localització exacta de cada hidrant.
+  - Capes base i superposicions compartides entre els dos motors, relleu 3D quan el navegador té WebGL2 i atribució completa de les fonts.
 - **Exportació OSM**: Exportació de canvis en format .osc (OSM XML) compatible amb JOSM per importar manualment a OpenStreetMap.
 - **Backups automàtics**: Sistema complet de còpies de seguretat de la base de dades amb rotació (diària, setmanal, mensual i semestral).
 
 ## Stack Tecnològic
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS 4, Leaflet, React Leaflet.
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS 4, MapLibre GL JS 6, Leaflet 1.9 + React Leaflet 5 (fallback) i Vitest.
 - **Backend**: Fastify 5, TypeScript, Drizzle ORM, Zod.
 - **Base de dades**: SQLite (Better-SQLite3).
 - **Messaging**: Eclipse Mosquitto 2 (MQTT) + OwnTracks.
 - **Infraestructura**: Docker, Docker Compose, Nginx, GraphHopper.
+
+> Estructura de fitxers, contracte dels motors de mapa i tests: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## 🗺️ Sincronització amb OpenStreetMap
 
