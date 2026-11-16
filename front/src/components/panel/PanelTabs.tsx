@@ -2,6 +2,8 @@ import type { PanelTab } from "../layout/Panel";
 import type { HidrantFeature } from "../../hooks/useHidrantData";
 import type { IncidenciaFeature } from "../../types";
 import type { Position } from "../../hooks/usePositionPolling";
+import type { EngineId } from "../../map/core/types";
+import type { EnginePreference } from "../../map/core/engineSelection";
 import { MapaTab } from "./tabs/MapaTab";
 import { SeguimentTab } from "./tabs/SeguimentTab";
 import { InformesTab } from "./tabs/InformesTab";
@@ -18,6 +20,9 @@ export function buildTabs({
   onSelectHydrantById,
   onRefreshHidrants,
   onCenterCoordinates,
+  engine,
+  enginePreference,
+  onEngineChange,
 }: {
   features: HidrantFeature[];
   incidenciaFeatures: IncidenciaFeature[];
@@ -27,6 +32,9 @@ export function buildTabs({
   onSelectHydrantById?: (id: string) => void;
   onRefreshHidrants?: () => void;
   onCenterCoordinates?: (coords: [number, number]) => void;
+  engine?: EngineId;
+  enginePreference?: EnginePreference;
+  onEngineChange?: (preference: EnginePreference) => void;
 }): PanelTab[] {
   return [
     {
@@ -55,7 +63,18 @@ export function buildTabs({
       ),
     },
     { id: "usuaris", icon: "👤", label: "Usuaris", content: <UsuarisTab /> },
-    { id: "config", icon: "⚙️", label: "Configuració", content: <ConfigTab /> },
+    {
+      id: "config",
+      icon: "⚙️",
+      label: "Configuració",
+      content: (
+        <ConfigTab
+          engine={engine}
+          enginePreference={enginePreference}
+          onEngineChange={onEngineChange}
+        />
+      ),
+    },
     { id: "ajuda", icon: "📖", label: "Ajuda", content: <AjudaTab /> },
   ];
 }

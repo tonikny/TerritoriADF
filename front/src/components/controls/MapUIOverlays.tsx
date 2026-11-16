@@ -1,8 +1,12 @@
 import { FullscreenButton } from "./FullscreenButton";
 import { LocateButton } from "./LocateButton";
 import { MapLogo } from "./MapLogo";
+import type { ReactNode } from "react";
 import { OfflineNotice } from "../shared/OfflineNotice";
 import { ZoomDisplay } from "./ZoomDisplay";
+import { MapScale } from "./MapScale";
+import { MapAttribution } from "../../map/ui/MapAttribution";
+import type { LatLon } from "../../map/core/types";
 import {
   floatingButtonClass,
   controlContainerClass,
@@ -10,39 +14,47 @@ import {
 } from "../../styles/uiStyles";
 
 interface MapUIOverlaysProps {
-  setLocatePosition: (latlng: L.LatLng | null) => void;
-  setLocateAccuracy?: (accuracy: number | null) => void;
+  layers?: ReactNode;
+  center: LatLon;
+  zoom: number;
+  tracking: boolean;
+  onToggleTracking: () => void;
   loadingHidrants: boolean;
   hidrantsError: string | null;
   /** L'ADF s'ha carregat i no té cap hidrant a la base de dades. */
-  emptyHidrants?: boolean;
+  hidrantsEmpty?: boolean;
   /** L'usuari pot baixar hidrants d'OSM (permís sync_osm). */
   canSyncFromOsm?: boolean;
   onDismissEmptyHidrants?: () => void;
+  /** Atribucions del mapa, una per línia. Només s'usa amb MapLibre. */
+  attributionLines?: string[];
 }
 
 export function MapUIOverlays({
-  setLocatePosition,
-  setLocateAccuracy,
+  layers,
+  center,
+  zoom,
+  tracking,
+  onToggleTracking,
   loadingHidrants,
   hidrantsError,
-  emptyHidrants,
+  hidrantsEmpty,
   canSyncFromOsm,
   onDismissEmptyHidrants,
+  attributionLines,
 }: MapUIOverlaysProps) {
   return (
     <>
-      {/* Top Left: Logo de l'aplicació (inclou el desplaçament dels controls de zoom). */}
       <MapLogo />
 
-      {/* Top Right: Native Layers Control is at top: 10px, right: 10px.
-          We place our controls under it with enough gap. */}
-      <div className={`${controlContainerClass} top-18 right-3 items-end gap-2`}>
+      <div className={`${controlContainerClass} top-2 right-3 items-end gap-2`}>
+        {layers && <div className={controlItemClass}>{layers}</div>}
+
         <div className={controlItemClass}>
           <LocateButton
             className={floatingButtonClass}
-            setPosition={setLocatePosition}
-            setAccuracy={setLocateAccuracy}
+            tracking={tracking}
+            onToggle={onToggleTracking}
           />
         </div>
 
@@ -51,15 +63,14 @@ export function MapUIOverlays({
         </div>
       </div>
 
-      {/* Bottom Left: Zoom Display (Above Attribution if it were there, but on the left).
-          On mobile it sits above the bottomsheet bar (60px), aligned with the attribution.
-          A partir del breakpoint del panell lateral (tb) no hi ha bottomsheet, així que
-          baixa fins al fons del mapa. */}
-      <div className={`${controlContainerClass} bottom-15 tb:bottom-1.25 left-1.25`}>
+      <div className={`${controlContainerClass} map-zoom-control`}>
+        <MapScale center={center} zoom={zoom} />
         <div className={controlItemClass}>
-          <ZoomDisplay />
+          <ZoomDisplay zoom={zoom} />
         </div>
       </div>
+
+      {attributionLines && <MapAttribution lines={attributionLines} />}
 
       {loadingHidrants && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-white/80 px-4 py-2 rounded-[20px] z-990 shadow-[0_2px_5px_rgba(0,0,0,0.2)] text-[0.8rem] pointer-events-none">
@@ -67,7 +78,7 @@ export function MapUIOverlays({
         </div>
       )}
 
-      {!loadingHidrants && !hidrantsError && emptyHidrants && (
+      {!loadingHidrants && !hidrantsError && hidrantsEmpty && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 max-w-[90%] flex items-start gap-2 bg-white/90 pl-4 pr-1.5 py-2 rounded-[20px] z-990 shadow-[0_2px_5px_rgba(0,0,0,0.2)] text-[0.8rem] text-center">
           <span className="pointer-events-none">
             {canSyncFromOsm

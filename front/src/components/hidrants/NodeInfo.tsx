@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type L from "leaflet";
+import type { LatLon } from "../../map/core/types";
 import type { HidrantFeature } from "../../hooks/useHidrantData";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdf } from "../../contexts/AdfContext";
@@ -29,8 +29,8 @@ export const NodeInfo = ({
   canEdit: boolean;
   editing: boolean;
   setEditing: (v: boolean) => void;
-  draftPosition?: L.LatLng | null;
-  setDraftPosition?: (v: L.LatLng | null) => void;
+  draftPosition?: LatLon | null;
+  setDraftPosition?: (v: LatLon | null) => void;
   className?: string;
 }) => {
   const { user } = useAuth();
@@ -62,7 +62,7 @@ export const NodeInfo = ({
       originalUiFields: props.ui_fields,
       originalObservacions: props.private_tags?.observacions || "",
       newLat: draftPosition?.lat,
-      newLon: draftPosition?.lng,
+      newLon: draftPosition?.lon,
     });
     if (ok) {
       setEditing(false);
@@ -78,7 +78,10 @@ export const NodeInfo = ({
   };
 
   const handleCancelEdit = () => {
-    if (!hasChanges || window.confirm("Hi ha canvis sense desar. Si tanques ara, es perdran. Vols continuar?")) {
+    if (
+      !hasChanges ||
+      window.confirm("Hi ha canvis sense desar. Si tanques ara, es perdran. Vols continuar?")
+    ) {
       setEditing(false);
       setDraftPosition?.(null);
     }

@@ -1,30 +1,16 @@
-import { useGeolocationTracking } from "../../hooks/useGeolocationTracking";
-import { useEffect } from "react";
-
 export function LocateButton({
   className,
-  setPosition,
-  setAccuracy,
+  tracking,
+  onToggle,
 }: Readonly<{
   className?: string;
-  setPosition: (latlng: L.LatLng | null) => void;
-  setAccuracy?: (accuracy: number | null) => void;
+  tracking: boolean;
+  onToggle: () => void;
 }>) {
-  const { tracking, toggleTracking, position, accuracy } = useGeolocationTracking();
-
-  useEffect(() => {
-    setPosition(position ?? null);
-  }, [position, setPosition]);
-
-  useEffect(() => {
-    if (setAccuracy) {
-      setAccuracy(accuracy ?? null);
-    }
-  }, [accuracy, setAccuracy]);
-
   return (
     <button
-      onClick={toggleTracking}
+      type="button"
+      onClick={onToggle}
       className={`${className || ""} relative`}
       title={
         tracking

@@ -1,46 +1,46 @@
-import type { LatLng } from 'leaflet';
-import type { CreateType } from '../../types';
-import { CreationSelector } from '../shared/CreationSelector';
-import { NewNodeForm } from '../hidrants/NewNodeForm';
-import { NovaIncidenciaForm } from '../incidencies/NovaIncidenciaForm';
+import type { LatLon } from "../../map/core/types";
+import type { CreateType } from "../../types";
+import { CreationSelector } from "../shared/CreationSelector";
+import { NewNodeForm } from "../hidrants/NewNodeForm";
+import { NovaIncidenciaForm } from "../incidencies/NovaIncidenciaForm";
 
 export function CreateNodePanel({
   form,
   position,
   setForm,
   onClose,
-  setNewNodeLatLng,
+  setNewNodePosition,
   refreshHidrants,
   refreshIncidencies,
 }: {
   form: Exclude<CreateType, null>;
-  position: LatLng;
+  position: LatLon;
   setForm: (form: CreateType) => void;
   onClose: () => void;
-  setNewNodeLatLng: (latlng: LatLng | null) => void;
+  setNewNodePosition: (position: LatLon | null) => void;
   refreshHidrants: () => void;
   refreshIncidencies: () => void;
 }) {
-  if (form === 'selection') {
+  if (form === "selection") {
     return (
       <div className="p-3">
         <CreationSelector
-          onSelectHydrant={() => setForm('hydrant')}
-          onSelectIncidencia={() => setForm('incidencia')}
+          onSelectHydrant={() => setForm("hydrant")}
+          onSelectIncidencia={() => setForm("incidencia")}
           onClose={onClose}
         />
       </div>
     );
   }
 
-  if (form === 'hydrant') {
+  if (form === "hydrant") {
     return (
       <div className="p-3">
         <NewNodeForm
           lat={position.lat}
-          lon={position.lng}
+          lon={position.lon}
           onClose={onClose}
-          setNewNodeLatLng={setNewNodeLatLng}
+          setNewNodePosition={setNewNodePosition}
           refreshHidrants={refreshHidrants}
         />
       </div>
@@ -51,7 +51,7 @@ export function CreateNodePanel({
     <div className="p-3">
       <NovaIncidenciaForm
         lat={position.lat}
-        lon={position.lng}
+        lon={position.lon}
         onClose={() => {
           onClose();
           refreshIncidencies();
