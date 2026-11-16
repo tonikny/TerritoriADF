@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "../../hooks/useHidrantData";
+import { useAdf } from "../../contexts/AdfContext";
+import { sendToTelegram } from "../../utils/sendToTelegram";
 import { logError } from "../../utils/log";
 
 type SyncStatus = HidrantFeature["properties"]["sync_status"];
@@ -117,6 +119,7 @@ export function HydrantSyncActions({
   feature: HidrantFeature;
   refreshHidrants?: () => Promise<void>;
 }) {
+  const { activeAdf } = useAdf();
   const [busy, setBusy] = useState(false);
   const [diffState, setDiff] = useState<DiffData | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
@@ -175,6 +178,23 @@ export function HydrantSyncActions({
     void refreshHidrants?.();
   };
 
+  const notifyDeleted = async () => {
+    if (!activeAdf) {
+      return;
+    }
+    try {
+      await sendToTelegram({
+        lat: feature.geometry.coordinates[1],
+        lon: feature.geometry.coordinates[0],
+        tags: { ...feature.properties },
+        adf_id: activeAdf.id,
+        action: "delete",
+      });
+    } catch (err) {
+      logError("Error notificant l'esborrat a Telegram", err);
+    }
+  };
+
   const handlePush = async () => {
     setBusy(true);
     try {
@@ -195,6 +215,9 @@ export function HydrantSyncActions({
       }
       if (data.reviewed > 0) {
         toast.info("Per revisar");
+      }
+      if (sync_status === "PENDING_DELETE" && data.synced > 0) {
+        await notifyDeleted();
       }
       refresh();
     } catch (err) {
@@ -239,11 +262,17 @@ export function HydrantSyncActions({
     }
     setBusy(true);
     try {
-      await fetch("/api/osm/discard-selected", {
+      const res = await fetch("/api/osm/discard-selected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: [id] }),
       });
+      if (!res.ok) {
+        throw new Error("Error descartant el canvi");
+      }
+      if (sync_status === "PENDING_CREATE") {
+        await notifyDeleted();
+      }
       toast.success("Descartat");
       refresh();
     } catch (err) {

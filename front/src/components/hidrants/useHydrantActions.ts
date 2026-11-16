@@ -193,6 +193,18 @@ export function useHydrantActions(
       if (!response.ok) {
         throw new Error("Error esborrant l'hidrant");
       }
+      try {
+        await sendToTelegram({
+          lat: poi.lat,
+          lon: poi.lng,
+          tags: { ...feature.properties },
+          adf_id: adf.id,
+          action: "delete",
+        });
+      } catch (err) {
+        // L'esborrat ja s'ha fet: una fallada de Telegram no ha de fer-lo semblar fallit.
+        logError("Error notificant l'esborrat a Telegram", err);
+      }
       toast.success("Hidrant esborrat");
       await afterChange();
     } catch (err) {

@@ -1,4 +1,4 @@
-import { logError } from './log';
+import { logError } from "./log";
 
 interface SendPayload {
   lat: number;
@@ -9,14 +9,15 @@ interface SendPayload {
   changes?: unknown;
   adf_id?: number;
   isEdit?: boolean;
+  action?: "delete";
 }
 
 export async function sendToTelegram(data: SendPayload): Promise<void> {
   try {
-    const res = await fetch('/api/sendToTelegram', {
-      method: 'POST',
+    const res = await fetch("/api/sendToTelegram", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
@@ -26,7 +27,7 @@ export async function sendToTelegram(data: SendPayload): Promise<void> {
       throw new Error(`Error enviant el missatge: ${text}`);
     }
   } catch (err) {
-    logError('Error enviant a Telegram', err);
+    logError("Error enviant a Telegram", err);
     throw err;
   }
 }
