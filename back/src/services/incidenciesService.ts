@@ -16,6 +16,7 @@ import type {
 import { NotFoundError } from "../errors.js";
 import { sendTelegramMessage } from "../utils/telegram.js";
 import { sendToAdf } from "./telegramService.js";
+import { assertPointInAdf } from "./adfArea.js";
 
 function escapeHtml(text: string | undefined): string {
   return (text ?? "")
@@ -94,6 +95,9 @@ export const IncidenciesService = {
     comentari?: string;
     clientBaseUrl?: string;
   }) {
+    // Igual que els hidrants: només es poden crear incidències dins del límit de l'ADF.
+    assertPointInAdf(data.adf_id, data.lat, data.lon);
+
     const incidenciaId = uuidv4();
     const eventId = uuidv4();
     const timestamp = new Date().toISOString();
@@ -220,6 +224,8 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
 🔭 Visibilitat: ${escapeHtml(dades.anterior)} ➡️ <b>${escapeHtml(dades.nou)}</b>
 👤 Per: ${escapeHtml(displayUser)}${linkHtml}`;
     } else if (tipusEvent === "CANVI_UBICACIO" && dades.nova) {
+      // Moure una incidència tampoc no pot sortir de l'àrea de l'ADF.
+      assertPointInAdf(incidencia.adf_id ?? 0, dades.nova.lat, dades.nova.lon);
       updates.lat = dades.nova.lat;
       updates.lon = dades.nova.lon;
       updates.precisio = dades.nova.precisio;

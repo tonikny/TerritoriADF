@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { HidrantsRepository } from "../db/repositories/hidrantsRepository.js";
 import { syncAdfFromOSM } from "./osmSync.js";
-import { NotFoundError, BadRequestError, ForbiddenError } from "../errors.js";
+import { NotFoundError, BadRequestError } from "../errors.js";
 import {
   osm2Ui,
   ui2Osm,
@@ -9,15 +9,8 @@ import {
   sameOsmTags,
   type HydrantUiFields,
 } from "../utils/osmConversion.js";
-import { db } from "../db/index.js";
-import { adfs } from "../db/schema.js";
-import { eq } from "drizzle-orm";
-import {
-  isPointInBoundary,
-  clampToMaxDistance,
-  hasPositionChanged,
-  MAX_HYDRANT_MOVE_METERS,
-} from "../utils/geo.js";
+import { clampToMaxDistance, hasPositionChanged, MAX_HYDRANT_MOVE_METERS } from "../utils/geo.js";
+import { assertPointInAdf } from "./adfArea.js";
 /**
  * Parseja un camp de text que hauria de contenir un objecte JSON.
  * Retorna {} si és buit o malmès perquè una fila defectuosa no faci
@@ -111,14 +104,7 @@ export const HidrantsService = {
       throw new BadRequestError("Missing lat or lon");
     }
 
-    const adf = db
-      .select({ boundary_geojson: adfs.boundary_geojson })
-      .from(adfs)
-      .where(eq(adfs.id, adfId))
-      .get();
-    if (!isPointInBoundary(lat, lon, adf?.boundary_geojson ?? null)) {
-      throw new ForbiddenError("Coordenades fora del límit de l'ADF");
-    }
+    assertPointInAdf(adfId, lat, lon);
 
     const osm_tags = ui_fields ? ui2Osm(ui_fields) : {};
     const id = uuidv4();
@@ -183,14 +169,7 @@ export const HidrantsService = {
     if (positionChanged) {
       const finalLat = lat ?? current.lat;
       const finalLon = lon ?? current.lon;
-      const adf = db
-        .select({ boundary_geojson: adfs.boundary_geojson })
-        .from(adfs)
-        .where(eq(adfs.id, adfId))
-        .get();
-      if (!isPointInBoundary(finalLat, finalLon, adf?.boundary_geojson ?? null)) {
-        throw new ForbiddenError("Coordenades fora del límit de l'ADF");
-      }
+      assertPointInAdf(adfId, finalLat, finalLon);
     }
 
     // Comprovar canvis en osm_tags

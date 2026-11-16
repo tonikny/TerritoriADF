@@ -312,6 +312,11 @@ function MapPanelView() {
       if (!user) {
         return;
       }
+      // Només es pot crear a l'ADF pròpia (l'admin pot crear a qualsevol ADF).
+      if (user.role !== "admin" && user.adf_id && activeAdf && activeAdf.id !== user.adf_id) {
+        toast.warning("Només pots crear hidrants i incidències a la teva ADF");
+        return;
+      }
       if (!isPointInBoundary(target.lat, target.lon, boundaryGeojson)) {
         toast.warning("Coordenades fora del límit de l'ADF");
         return;
@@ -332,7 +337,7 @@ function MapPanelView() {
         });
       }, 400);
     },
-    [boundaryGeojson, sendFocus, user],
+    [activeAdf, boundaryGeojson, sendFocus, user],
   );
 
   const handleMapClick = useCallback(() => {
