@@ -19,8 +19,8 @@ maskable"` perquè Firefox per a Android la pugui fer servir per a la icona
   `lang: ca`.
 - **Service worker** (Workbox) generat a `dist/sw.js`, que precacheja l'app shell
   (JS, CSS, HTML, icones i fonts). Les tessel·les del mapa no passen pel service worker.
-- **Meta tags** a `front/index.html`: `manifest`, `theme-color` i les meta
-  `apple-mobile-web-app-*`.
+- **Meta tags** a `front/index.html`: `manifest`, `theme-color`, `mobile-web-app-capable`
+  (l'estàndard) i les `apple-mobile-web-app-*` per a versions antigues d'iOS.
 - **Prompt d'instal·lació** (un toast blanc amb botons _Instal·la_ / _Ara no_, sense
   tancament automàtic) i **avís d'actualització** a
   `front/src/components/shared/PwaBanner.tsx`, muntat des de `App.tsx`.

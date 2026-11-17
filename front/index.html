@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- vite-plugin-pwa injecta el link al manifest durant el build. -->
     <meta name="theme-color" content="#00552B" />
+    <!-- Meta estàndard (Chrome) i d'Apple (iOS < 17): a partir d'iOS 17 Safari
+         també entén la de mobile-web-app-capable. Chrome marca la d'Apple com a
+         obsoleta si no hi ha la seva. -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="TerritoriADF" />
     <link rel="icon" href="/favicon.ico" />
