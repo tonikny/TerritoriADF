@@ -428,6 +428,67 @@ Si algun dia calgués una capçalera a tot arreu, l'única manera és un snippet
 
 Un cas que sembla de document i no ho és: les **tessel·les ràster de MapLibre**. Amb `refreshExpiredTiles` pel valor per defecte (`true`), MapLibre les baixa amb `fetch`, no amb `<img>`, així que els hosts externs de WMS i de mapes base han d'estar a `connect-src`. Leaflet, el motor de reserva, les carrega amb `<img>` i per això els mateixos hosts van també a `img-src`. Les tessel·les pròpies (`/tiles/*`) i el ràster-dem del terreny passen per `'self'` i no necessiten res més.
 
+### 8.4 Stream SSE de posicions (`/api/tracking/stream`)
+
+El mapa no consulta `/api/tracking/positions` cada 15 s: obre una connexió `text/event-stream` que el backend manté oberta, rep un `event: positions` quan el conjunt visible canvia, un `event: ping` cada 25 s i una ordre de reconnexió (`retry: 3000`). Per al Nginx del host és una excepció i necessita un `location` propi: la resposta no té `Content-Length` ni final fins que el backend la tanca (cada 5 min) i, amb el `proxy_buffering on` per defecte, nginx acumula els esdeveniments en comptes d'entregar-los. El símptoma és clar: el primer `positions` arriba i després el mapa es queda quiet.
+
+`config/site-docker.nginx.example` ja porta el bloc, davant de `location /api/`:
+
+```nginx
+location = /api/tracking/stream {
+    proxy_pass http://127.0.0.1:3034/api/tracking/stream;
+
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_buffering off;
+    proxy_cache off;
+
+    proxy_read_timeout 1h;
+}
+```
+
+Cada peça té un motiu:
+
+| Directiva                                  | Per què hi és                                                                                                                                                                                                                          |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `location =`                               | Coincidència exacta: guanya sempre a `location /api/` (prefix), així que el stream no hereta el buffering ni el timeout d'API. No depèn de l'ordre dels blocs.                                                                         |
+| `proxy_http_version 1.1` + `Connection ""` | Cap a l'upstream, nginx fa HTTP/1.0 amb `Connection: close` per defecte. Amb 1.1 i la capçalera de connexió buida, la connexió es manté i el stream no es talla.                                                                       |
+| `proxy_buffering off`                      | Entrega cada esdeveniment quan arriba. És la línia que fa funcionar el temps real.                                                                                                                                                     |
+| `proxy_cache off`                          | Cap caché no ha de tocar una resposta `no-store` que no s'acaba mai.                                                                                                                                                                   |
+| `proxy_read_timeout 1h`                    | El backend envia un `ping` cada 25 s i tanca la connexió als 5 min, així que el valor per defecte (60 s) no hauria de saltar; es puja igualment perquè cap proxy no talli per inactivitat i deixi el mapa mut sense cap error visible. |
+| `Host` i `X-Forwarded-*`                   | Els mateixos que a `/api/`: `X-Forwarded-For` per a la IP real (fre de login i logs) i `Host` perquè el backend derivi URLs públiques.                                                                                                 |
+
+El `proxy_pass` ha d'apuntar al **mateix upstream** que el bloc `/api/`. La plantilla va directa al backend (`127.0.0.1:3034`, el port que publica `docker-compose.yml`). Si en una instal·lació el `/api/` va a `127.0.0.1:8080` (el contenidor del front), el stream també hi ha d'anar: `front/nginx.conf` porta aquest mateix bloc. No hi barregis una imatge antiga del front: si el destí és 8080 i el seu nginx encara no té el bloc, la petició cauria al seu `location /api/`, amb buffering.
+
+Un cas que no es veu al bloc: si el `/etc/nginx/nginx.conf` global té `gzip on` **i** `gzip_proxied any`, nginx tornaria a acumular el stream per comprimir-lo. El valor per defecte de `gzip_proxied` és `off` (no comprimeix respostes proxidades), així que només cal vigilar-ho si algú el canvia; en aquest cas, afegeix `gzip off;` dins del `location`.
+
+**Per què SSE i no WebSocket**: `EventSource` és mateix origen i el navegador hi envia sol la cookie `httpOnly` de sessió. Un WebSocket no ho fa i obligaria a posar el token a la URL (query), on acaba als logs del proxy. La ruta està darrere del middleware d'autenticació, no accepta cap paràmetre i el filtre de visibilitat (rol, ADF pròpia i ADFs que comparteixen tracking) es calcula al servidor, així que no es pot demanar la posició d'un altre usuari.
+
+Cada pestanya oberta és una connexió. El backend la tanca als 5 min a posta: el client reconecta (3 s) i es tornen a comprovar permisos i ADF. Dins d'una connexió, un canvi de rol o d'ADF s'aplica al proper canvi de posició o, com a molt tard, en aquesta reconnexió. Si el navegador no aconsegueix el stream, al cap de 30 s sense senyal passa a polling i el mapa continua funcionant.
+
+Aplicar-ho i comprovar-ho:
+
+```bash
+npm run nginx:render
+sudo cp config/site-docker.nginx /etc/nginx/sites-available/territoriadf
+sudo nginx -t && sudo systemctl reload nginx
+
+# Ha de sortir `retry: 3000`, un `event: positions` i, cap als 25 s, un `event: ping`.
+# Sense final: el curl s'atura amb --max-time.
+curl -sN --max-time 40 -b "auth_token=<cookie-de-sessio>" \
+  https://<domini>/api/tracking/stream
+```
+
+Al navegador: DevTools → Network → la petició `stream` ha de ser de tipus `eventsource` i la pestanya _EventStream_ ha de mostrar `positions` i un `ping` cada 25 s. Si la petició es tanca de seguida o les dades surten totes juntes al final, falta `proxy_buffering off` en aquest `location` (o al nginx del contenidor del front, si el proxy hi passa).
+
+> `scripts/deploy/update.sh` **no** regenera el lloc nginx: aquests canvis de proxy s'apliquen a mà amb `npm run nginx:render` i `reload`. Si al davant hi ha un altre proxy o CDN, també s'hi ha de desactivar el buffering per a aquesta ruta.
+
 ## 9. Notificacions Telegram per ADF (webhooks)
 
 Cada ADF pot usar el seu bot de Telegram amb un grup propi (configuració des de la UI: **Configuració → Notificacions de Telegram**). El backend necessita rebre actualitzacions de Telegram a `POST /api/telegram/webhook/:secret`.
@@ -480,7 +541,8 @@ Resum del que demana cada canvi d'aquesta versió:
 ### 10.2 Proxy, HTTPS i xarxa
 
 - [ ] `TRUST_PROXY=true` a `back/.env`: la petició passa pel Nginx del contenidor `frontend` i pel Nginx del host, així que `request.ip` ha de sortir de `X-Forwarded-For` perquè funcioni el límit de 30 intents per IP (§10.9 de `docs/DEV.md`). Deixa'l a `false` només si exposes el 3033 directament a Internet.
-- [ ] El proxy del host ha de reenviar `/api/` a `127.0.0.1:8080` conservant `Host`, `X-Forwarded-For` i `X-Forwarded-Proto`. El `Host` és el que permet derivar la URL del webhook de Telegram sense `WEBHOOK_PUBLIC_URL`.
+- [ ] El proxy del host ha de reenviar `/api/` al backend conservant `Host`, `X-Forwarded-For` i `X-Forwarded-Proto`. La plantilla va directa a `127.0.0.1:3034`; si passes pel contenidor del front (`127.0.0.1:8080`, el seu nginx també proxya `/api/`), el stream ha d'anar al mateix lloc. El `Host` és el que permet derivar la URL del webhook de Telegram sense `WEBHOOK_PUBLIC_URL`.
+- [ ] `location = /api/tracking/stream` amb `proxy_http_version 1.1`, `proxy_buffering off` i `proxy_read_timeout 1h` (vegeu §8.4). Sense aquest bloc el mapa no es trenca: el client passa a polling al cap de 30 s i deixa de rebre posicions en temps real.
 - [ ] Entrar **sempre per HTTPS**: la imatge va amb `NODE_ENV=production` i la cookie `auth_token` es marca `secure`, així que per HTTP pla el navegador no la desa i el login sembla que falli.
 - [ ] Firewall: només 80/TCP, 443/TCP + 443/UDP (QUIC) i 51823 (OwnTracks TLS) oberts. `3034` (backend), `8080` (front) i `1883` (MQTT) han de quedar a `127.0.0.1`.
 - [ ] Cert Let's Encrypt renovat per cron i hook de còpia a Mosquitto (`scripts/copy-mosquitto-certs.sh`).
@@ -507,6 +569,7 @@ Resum del que demana cada canvi d'aquesta versió:
 - [ ] Entrar per la UI amb un usuari real: el formulari de contrasenya ha de mostrar el mínim de 8 caràcters (ve de `/api/config`, no està hardcodejat al front).
 - [ ] Comprovar que el `429` es veu a la pantalla de login amb el missatge en català i no com un error genèric.
 - [ ] `docker compose ps` amb tots els serveis `healthy` i `npm run docker:logs` sense errors.
+- [ ] Stream SSE: `curl -sN --max-time 40 -b "auth_token=<cookie-de-sessio>" https://<domini>/api/tracking/stream` ha de mostrar `retry: 3000`, un `event: positions` i un `event: ping` cap als 25 s, sense tancar-se (§8.4).
 - [ ] Telegram: registrar el bot d'una ADF de prova i comprovar que la vinculació al grup arriba (webhook HTTPS públic).
 - [ ] Backups actius: `./scripts/backup/setup-cron.sh status`.
 

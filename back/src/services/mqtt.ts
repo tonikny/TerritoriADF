@@ -57,6 +57,8 @@ const owntracksSchema = z.object({
 class MqttService {
   private client: mqtt.MqttClient | null = null;
   private positions = new Map<string, LocationData>();
+  /** S'incrementa a cada alta, esborratge del mapa o neteja. */
+  private positionsRevision = 0;
   private available = false;
   private pruneTimer: ReturnType<typeof setInterval> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -86,10 +88,17 @@ class MqttService {
     }
     this.available = false;
     this.positions.clear();
+    this.positionsRevision += 1;
   }
 
   getPositions(): Map<string, LocationData> {
     return this.positions;
+  }
+
+  /** Comptador que canvia a cada modificació del mapa: permet detectar-hi canvis sense
+   *  recórrer-lo (els streams SSE només recalculen permisos quan això canvia). */
+  getPositionsRevision(): number {
+    return this.positionsRevision;
   }
   isAvailable(): boolean {
     return this.available;
@@ -276,6 +285,7 @@ class MqttService {
             battery: batt,
             receivedAt: Date.now(),
           });
+          this.positionsRevision += 1;
         } catch {
           /* ignore */
         }
@@ -306,6 +316,7 @@ class MqttService {
     for (const [user, pos] of this.positions) {
       if (now - pos.receivedAt > maxAgeSec * 1000) {
         this.positions.delete(user);
+        this.positionsRevision += 1;
       }
     }
   }
@@ -315,6 +326,7 @@ export const mqttService = new MqttService();
 export const startMqttService = () => mqttService.start();
 export const stopMqttService = () => mqttService.stop();
 export const getPositions = () => mqttService.getPositions();
+export const getPositionsRevision = () => mqttService.getPositionsRevision();
 export const isAvailable = () => mqttService.isAvailable();
 export const createMqttUser = (u: string, p: string) => mqttService.createMqttUser(u, p);
 export const deleteMqttUser = (u: string) => mqttService.deleteMqttUser(u);
