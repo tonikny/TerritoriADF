@@ -39,14 +39,20 @@ export default defineConfig({
             src: "/android-chrome-192x192.png",
             sizes: "192x192",
             type: "image/png",
+            purpose: "any",
           },
           {
             src: "/android-chrome-512x512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "any",
           },
           {
-            src: "/android-chrome-512x512.png",
+            // Icona maskable pròpia: fons sòlid i el dibuix dins de la zona
+            // segura del 80 %, perquè Android (WebAPK i la drecera de Firefox)
+            // el retalla amb la forma del launcher. No es pot reutilitzar la de
+            // 512 px: té les cantonades transparents i el text tocant a la vora.
+            src: "/maskable-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

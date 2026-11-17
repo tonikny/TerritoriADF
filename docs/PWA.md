@@ -11,8 +11,10 @@ com es prova, com es desplega i quins límits té.
 ## Què fa la fase 1
 
 - **Manifest** generat per `vite-plugin-pwa` a `dist/manifest.webmanifest`, amb nom,
-  icones de 192 i 512 px (reutilitza les de `front/public/`), `display: standalone`,
-  `theme_color` `#007bff` i `lang: ca`.
+  icones de 192 i 512 px (`purpose: any`, reutilitza les de `front/public/`), una
+  icona **maskable** pròpia de 512 px (`front/public/maskable-512x512.png`, fons
+  sòlid i dibuix dins de la zona segura del 80 %), `display: standalone`,
+  `theme_color` `#00552B` i `lang: ca`.
 - **Service worker** (Workbox) generat a `dist/sw.js`, que precacheja l'app shell
   (JS, CSS, HTML, icones i fonts). Les tessel·les del mapa no passen pel service worker.
 - **Meta tags** a `front/index.html`: `manifest`, `theme-color` i les meta
