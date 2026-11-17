@@ -3,6 +3,7 @@ import L from "leaflet";
 import type { Map as LeafletMap } from "leaflet";
 import { MapContainer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import "./leaflet.css";
 import type { MapEngineProps, MapFocus, ViewState } from "../../core/types";
 import { useLeafletEvents } from "./Events";
 import { LeafletMarker } from "./Markers";

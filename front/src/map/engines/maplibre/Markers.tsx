@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as turf from "@turf/turf";
 import { Layer, Marker, Popup, Source } from "@vis.gl/react-maplibre";
+import type { Marker as MaplibreMarkerInstance, Popup as MaplibrePopupInstance } from "maplibre-gl";
 import type { MapMarkerSpec, MarkerIcon } from "../../core/types";
 
 function MarkerContent({ icon }: { icon: MarkerIcon }) {
@@ -93,8 +94,36 @@ function CircleShape({ spec }: { spec: MapMarkerSpec }) {
 
 export function MaplibreMarker({ spec }: { spec: MapMarkerSpec }) {
   const [popupOpen, setPopupOpen] = useState(false);
+  const markerRef = useRef<MaplibreMarkerInstance>(null);
+  const popupRef = useRef<MaplibrePopupInstance>(null);
   const icon = spec.icon;
   const anchor = icon.anchor[1] >= icon.size[1] ? "bottom" : "center";
+
+  // Clic fora del popup (i del seu marcador) per tancar-lo. MapLibre té
+  // `closeOnClick`, però el clic del mateix marcador també arriba al mapa i el
+  // tancaria tot just obrir-lo.
+  useEffect(() => {
+    if (!popupOpen) {
+      return;
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (popupRef.current?.getElement()?.contains(target)) {
+        return;
+      }
+      if (markerRef.current?.getElement()?.contains(target)) {
+        return;
+      }
+      setPopupOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [popupOpen]);
 
   return (
     <>
@@ -113,6 +142,7 @@ export function MaplibreMarker({ spec }: { spec: MapMarkerSpec }) {
         </Marker>
       )}
       <Marker
+        ref={markerRef}
         longitude={spec.position.lon}
         latitude={spec.position.lat}
         anchor={anchor}
@@ -135,11 +165,12 @@ export function MaplibreMarker({ spec }: { spec: MapMarkerSpec }) {
       </Marker>
       {spec.popup && popupOpen && (
         <Popup
+          ref={popupRef}
           longitude={spec.position.lon}
           latitude={spec.position.lat}
           anchor="bottom"
           offset={[0, -(icon.size[1] + 2)]}
-          closeButton={false}
+          closeButton
           closeOnClick={false}
           onClose={() => setPopupOpen(false)}
         >

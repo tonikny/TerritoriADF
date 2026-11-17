@@ -35,48 +35,6 @@ body,
   font-size: 0.9rem;
 }
 
-/* Controls de zoom sota el logo: 8px de marge + 44px de logo + 10px de separació. */
-.leaflet-top.leaflet-left .leaflet-control-zoom {
-  margin-top: 62px;
-}
-
-.maplibregl-ctrl-top-left {
-  margin-top: 62px;
-}
-
-@media (min-width: 56rem) {
-  .leaflet-top.leaflet-left .leaflet-control-zoom {
-    margin-top: 82px;
-  }
-
-  .maplibregl-ctrl-top-left {
-    margin-top: 82px;
-  }
-}
-
-/* Ajustos per a mòbil del popup de Leaflet */
-.leaflet-popup-content-wrapper {
-  border-radius: 8px;
-  padding: 0;
-}
-
-.leaflet-popup-content {
-  margin: 8px 10px;
-  line-height: 1.35;
-  width: auto !important;
-}
-
-/* Els popups queden per sobre dels marcadors (com a molt z-30) però per sota
-   dels controls de la UI (z-990). */
-.maplibregl-popup {
-  z-index: 40;
-}
-
-.maplibregl-popup-content {
-  border-radius: 8px;
-  padding: 6px 8px;
-}
-
 /* A mobile el zoom i l'atribució queden a l'alçada de la barra tancada. Si el
    bottomsheet s'obre, no es mouen: queden a sota i el panell els tapa. */
 .map-zoom-control {
@@ -108,12 +66,6 @@ body,
   border-bottom: 1.5px solid var(--color-ink);
   border-left: 1.5px solid var(--color-ink);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-body .leaflet-control-container .leaflet-bottom,
-body .maplibregl-ctrl-bottom-left,
-body .maplibregl-ctrl-bottom-right {
-  bottom: 5px;
 }
 
 /* Atribució pròpia de MapLibre: una línia si hi cap; si no, una font per
@@ -164,15 +116,6 @@ body .maplibregl-ctrl-bottom-right {
 
 @media (max-width: 895px) {
   .map-zoom-control {
-    bottom: 60px;
-  }
-
-  body .leaflet-control-container .leaflet-bottom {
-    bottom: 60px;
-  }
-
-  body .maplibregl-ctrl-bottom-left,
-  body .maplibregl-ctrl-bottom-right {
     bottom: 60px;
   }
 

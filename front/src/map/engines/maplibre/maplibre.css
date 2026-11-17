@@ -1,0 +1,46 @@
+/* Ajustos propis de l'adaptador MapLibre. S'importa després del CSS de MapLibre. */
+
+.maplibregl-ctrl-top-left {
+  margin-top: 62px;
+}
+
+/* Els popups queden per sobre dels marcadors (com a molt z-30) però per sota
+   dels controls de la UI (z-990). */
+body .maplibregl-popup {
+  z-index: 40;
+}
+
+body .maplibregl-popup-content {
+  border-radius: 8px;
+  padding: 0 18px 0 8px;
+}
+
+body .maplibregl-popup-close-button {
+  top: 50%;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  padding: 0;
+  border-radius: 2px;
+  font-size: 14px;
+  line-height: 14px;
+}
+
+body .maplibregl-ctrl-bottom-left,
+body .maplibregl-ctrl-bottom-right {
+  bottom: 5px;
+}
+
+@media (min-width: 56rem) {
+  .maplibregl-ctrl-top-left {
+    margin-top: 82px;
+  }
+}
+
+@media (max-width: 895px) {
+  body .maplibregl-ctrl-bottom-left,
+  body .maplibregl-ctrl-bottom-right {
+    bottom: 60px;
+  }
+}

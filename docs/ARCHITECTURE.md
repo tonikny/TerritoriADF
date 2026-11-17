@@ -97,7 +97,7 @@ Els tests de la capa de mapa viuen al costat del codi que proven, dins de `front
 | `engines/maplibre/` | MapLibre GL JS 6 + `@vis.gl/react-maplibre` | WebGL2, pitch i terreny 3D      |
 | `engines/leaflet/`  | Leaflet 1.9 + React Leaflet 5               | Mapa 2D; sense pitch ni terreny |
 
-Els dos adaptadors implementen les mateixes peces: `Rasters`, `Shapes`, `Markers` i `MapEngine`; la gestió d'esdeveniments viu dins de `MapEngine` (a Leaflet, a més, a `Events.ts`). La UI no importa mai `leaflet`, `react-leaflet`, `maplibre-gl` ni `@vis.gl/react-maplibre`; ho impedeix `no-restricted-imports` a `front/eslint.config.mjs`.
+Els dos adaptadors implementen les mateixes peces: `Rasters`, `Shapes`, `Markers` i `MapEngine`; la gestió d'esdeveniments viu dins de `MapEngine` (a Leaflet, a més, a `Events.ts`). Cada motor té els seus ajustos CSS a `leaflet.css` o `maplibre.css`, dins de la seva carpeta; `styles/index.css` només conté estils comuns. La UI no importa mai `leaflet`, `react-leaflet`, `maplibre-gl` ni `@vis.gl/react-maplibre`; ho impedeix `no-restricted-imports` a `front/eslint.config.mjs`.
 
 ### 3.4 Zoom, ràsters i capes
 
