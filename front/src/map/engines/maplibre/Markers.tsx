@@ -138,7 +138,7 @@ export function MaplibreMarker({ spec }: { spec: MapMarkerSpec }) {
           longitude={spec.position.lon}
           latitude={spec.position.lat}
           anchor="bottom"
-          offset={12}
+          offset={[0, -(icon.size[1] + 2)]}
           closeButton={false}
           closeOnClick={false}
           onClose={() => setPopupOpen(false)}

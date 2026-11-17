@@ -61,14 +61,20 @@ body,
 }
 
 .leaflet-popup-content {
-  margin: 12px;
-  line-height: 1.4;
+  margin: 8px 10px;
+  line-height: 1.35;
   width: auto !important;
+}
+
+/* Els popups queden per sobre dels marcadors (com a molt z-30) però per sota
+   dels controls de la UI (z-990). */
+.maplibregl-popup {
+  z-index: 40;
 }
 
 .maplibregl-popup-content {
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 6px 8px;
 }
 
 /* A mobile el zoom i l'atribució queden a l'alçada de la barra tancada. Si el

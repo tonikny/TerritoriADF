@@ -9,7 +9,7 @@ export function toLeafletIcon(icon: MarkerIcon): L.Icon | L.DivIcon {
       iconAnchor: icon.anchor,
       shadowUrl: icon.shadowUrl,
       shadowSize: icon.shadowSize,
-      popupAnchor: [0, -icon.size[1]],
+      popupAnchor: [0, -(icon.size[1] + 2)],
     });
   }
 
@@ -18,7 +18,7 @@ export function toLeafletIcon(icon: MarkerIcon): L.Icon | L.DivIcon {
     html: icon.html,
     iconSize: icon.size,
     iconAnchor: icon.anchor,
-    popupAnchor: [0, -icon.size[1]],
+    popupAnchor: [0, -(icon.size[1] + 2)],
   });
 }
 

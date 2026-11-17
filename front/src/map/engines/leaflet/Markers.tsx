@@ -43,7 +43,11 @@ export function LeafletMarker({ spec }: { spec: MapMarkerSpec }) {
           },
         }}
       >
-        {spec.popup ? <Popup>{spec.popup}</Popup> : null}
+        {spec.popup ? (
+          <Popup offset={[0, 0]} closeButton={false}>
+            {spec.popup}
+          </Popup>
+        ) : null}
       </Marker>
     </>
   );

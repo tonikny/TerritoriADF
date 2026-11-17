@@ -500,9 +500,11 @@ function MapPanelView() {
             username.slice(-3),
             ageColor(tracked.receivedAt || tracked.timestamp * 1000),
           ),
-          zIndex: 1000,
+          // Ordre entre marcadors. MapLibre l'aplica com a z-index absolut, així
+          // que cal quedar per sota dels controls de la UI (z-990).
+          zIndex: 10,
           popup: (
-            <div className="text-[0.85rem] leading-[1.4] whitespace-nowrap min-w-30">
+            <div className="whitespace-nowrap text-[0.8rem] leading-[1.3]">
               <strong>{username}</strong>
               <br />
               bateria: {tracked.battery}%<br />
@@ -519,7 +521,7 @@ function MapPanelView() {
         id: "user-position",
         position,
         icon: USER_ICON,
-        zIndex: 1100,
+        zIndex: 20,
         circle: accuracy
           ? { radiusMeters: accuracy, color: "#3388ff", fillOpacity: 0.2, weight: 1 }
           : undefined,
@@ -533,7 +535,7 @@ function MapPanelView() {
         position: createPos,
         icon: CREATE_ICON,
         interactive: false,
-        zIndex: 1200,
+        zIndex: 30,
       });
     }
 

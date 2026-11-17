@@ -61,6 +61,7 @@ export type MapMarkerSpec = {
   draggable?: boolean;
   circle?: MarkerCircle;
   popup?: ReactNode;
+  /** Ordre entre marcadors. MapLibre l'aplica com a z-index absolut: no ha de superar els controls de la UI (z-990). */
   zIndex?: number;
   onClick?: () => void;
   onDragEnd?: (position: LatLon) => void;
