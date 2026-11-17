@@ -52,10 +52,14 @@ export default defineConfig({
             // segura del 80 %, perquè Android (WebAPK i la drecera de Firefox)
             // el retalla amb la forma del launcher. No es pot reutilitzar la de
             // 512 px: té les cantonades transparents i el text tocant a la vora.
+            // `any maskable` i no només `maskable`: Firefox per a Android, a
+            // partir d'Android 8, demana una icona alhora `any` i `maskable`
+            // per construir la icona adaptativa de la drecera; si només en troba
+            // de `maskable`, en queda una de genèrica.
             src: "/maskable-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "maskable",
+            purpose: "any maskable",
           },
         ],
       },
