@@ -29,8 +29,18 @@ server {
 
 # 3. BLOC SSL UNIFICAT (Docker Proxy Mode)
 server {
+    # --- ESCOLTA ---
+    # TCP: HTTP/1.1 i HTTP/2. És el fallback obligatori: HTTP/3 no existeix en clar
+    # i les xarxes que bloquegen UDP han de poder seguir entrant.
     listen 443 ssl;
     listen [::]:443 ssl;
+    http2 on;
+
+    # UDP: HTTP/3 (QUIC). Mateix port que el TCP, com recomana nginx.
+    # Cal obrir 443/UDP al firewall: si no, el navegador cau a h2 en silenci.
+    listen 443 quic reuseport;
+    listen [::]:443 quic reuseport;
+
     server_name __APP_DOMAIN__;
 
     # Certificats SSL (Gestionats pel Host amb Certbot)
@@ -39,14 +49,8 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
-    # --- CAPÇALERES DE SEGURETAT ---
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-
-    # CSP: Permetem scripts propis, estils d'unpkg (leaflet), imatges de tiles, Panoramax i connexió a l'API Overpass
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://*.openstreetmap.org https://*.opentopomap.org https://*.idee.es https://maps.effis.emergency.copernicus.eu https://api.panoramax.xyz https://panoramax.mapcomplete.org https://geoserveis.icgc.cat; connect-src 'self' https://overpass-api.de;" always;
+    # QUIC exigeix TLS 1.3; al TCP mantenim 1.2 per als navegadors antics.
+    ssl_protocols TLSv1.2 TLSv1.3;
 
     # FRONTEND (Proxy al contenidor Docker)
     location / {
@@ -58,6 +62,42 @@ server {
 
         # Timeout per a aplicacions React
         proxy_read_timeout 90;
+
+        # --- PROTOCOL I CAPÇALERES DE SEGURETAT ---
+        # Tot açò va ací, dins de `location /`, i no al `server`, per la regla
+        # d'herència d'`add_header`: si el nivell actual en declara cap, es
+        # descarten TOTS els del nivell superior. Les tessel·les i
+        # /api/overpass declaren el seu propi `X-Cache-Status`, així que del
+        # `server` no en rebrien cap. I no cal que en rebin: són capçaleres de
+        # document, i el document se serveix des d'aquest `location`.
+
+        # Anuncia HTTP/3. El navegador el llegeix d'ací, el desa per a tot
+        # l'origen i el recorda 24 h (`ma=86400`); sense aquesta capçalera no
+        # prova mai QUIC en aquest domini.
+        add_header Alt-Svc 'h3=":443"; ma=86400' always;
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+        # CSP: només recursos propis. Sense 'unsafe-inline' a script-src (el
+        # build de Vite no genera cap script inline i la PWA no n'injecta cap:
+        # `injectRegister: null`). object-src/form-action/base-uri/frame-ancestors
+        # tanquen vectors clàssics d'injecció.
+        #
+        # Els hosts de tessel·les i de WMS apareixen a img-src I a connect-src a
+        # posta, perquè els dos motors de mapa no baixen les imatges igual:
+        # MapLibre fa servir fetch (`refreshExpiredTiles` val true per defecte, i
+        # llavors `canUseHTMLImageElement` és fals a image_request.ts), així que
+        # les seues tessel·les es governen per connect-src; Leaflet, el motor de
+        # reserva, les carrega amb <img> i es governa per img-src. Si un host
+        # només hi fos en una de les dues directives, aquell motor no pintaria
+        # els ràsters. El ràster-dem del terreny també va per fetch, però passa
+        # per /tiles/icgc-terrain/ (mateix origen), així que 'self' el cobreix.
+        # img-src deixa fora les URL `image=*` d'OSM que no hi siguin: aquestes
+        # fotos no es veuen, i el component les amaga.
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.openstreetmap.org https://*.opentopomap.org https://*.idee.es https://maps.effis.emergency.copernicus.eu https://api.panoramax.xyz https://panoramax.mapcomplete.org https://geoserveis.icgc.cat; connect-src 'self' https://maps.effis.emergency.copernicus.eu https://geoserveis.icgc.cat; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self';" always;
     }
 
     # API / BACKEND (Proxy al contenidor Docker port 3034)
@@ -79,7 +119,7 @@ server {
         proxy_cache_valid 200 7d;
         proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
 
-        add_header X-Cache-Status $upstream_cache_status;
+        add_header X-Cache-Status $upstream_cache_status always;
 
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -91,7 +131,7 @@ server {
         proxy_cache tiles_cache;
         proxy_cache_valid 200 30d;
         proxy_cache_use_stale error timeout updating;
-        add_header X-Cache-Status $upstream_cache_status;
+        add_header X-Cache-Status $upstream_cache_status always;
         proxy_set_header User-Agent "TerritoriADF/1.0";
     }
 
@@ -100,7 +140,7 @@ server {
         proxy_cache tiles_cache;
         proxy_cache_valid 200 30d;
         proxy_cache_use_stale error timeout updating;
-        add_header X-Cache-Status $upstream_cache_status;
+        add_header X-Cache-Status $upstream_cache_status always;
     }
 
     location /tiles/ign-raster/ {
@@ -109,7 +149,7 @@ server {
         proxy_set_header User-Agent "TerritoriADF/1.0";
         proxy_cache tiles_cache;
         proxy_cache_valid 200 30d;
-        add_header X-Cache-Status $upstream_cache_status;
+        add_header X-Cache-Status $upstream_cache_status always;
     }
 
     location /tiles/ign-orto/ {
@@ -118,7 +158,7 @@ server {
         proxy_set_header User-Agent "TerritoriADF/1.0";
         proxy_cache tiles_cache;
         proxy_cache_valid 200 30d;
-        add_header X-Cache-Status $upstream_cache_status;
+        add_header X-Cache-Status $upstream_cache_status always;
     }
 
     # Terrain-RGB de l'ICGC (5 m). El servei només cobreix Catalunya i publica z6-z14.
@@ -131,6 +171,6 @@ server {
         proxy_cache_valid 200 30d;
         proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
         proxy_cache_lock on;
-        add_header X-Cache-Status $upstream_cache_status;
+        add_header X-Cache-Status $upstream_cache_status always;
     }
 }

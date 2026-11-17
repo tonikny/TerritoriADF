@@ -360,6 +360,74 @@ sudo find /var/cache/nginx/tiles -type f -delete
 
 En desenvolupament no intervé aquest Nginx: Vite proxya `/tiles/icgc-terrain` cap a l'ICGC directament.
 
+### 8.2 HTTP/2 i HTTP/3 (QUIC)
+
+El lloc nginx del host serveix **HTTP/2 a TCP i HTTP/3 a UDP** al mateix port 443. El TCP es manté sempre: HTTP/3 no existeix en clar i les xarxes que bloquegen UDP han de poder seguir entrant per h2.
+
+Requisits, tots dos ja coberts al servidor actual (nginx 1.26.3):
+
+```bash
+nginx -v                                           # ≥ 1.25.0
+nginx -V 2>&1 | grep -o with-http_v3_module        # ha de sortir
+openssl version                                    # ≥ 1.1.1 (3.5.7 al servidor)
+```
+
+Si el paquet d'nginx fos el de l'arxiu principal d'Ubuntu, no portaria el mòdul i caldria el repositori de nginx.org. El d'aquest servidor ja el porta.
+
+La configuració és a `config/site-docker.nginx.example` (bloc 443):
+
+```nginx
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+
+    listen 443 quic reuseport;
+    listen [::]:443 quic reuseport;
+
+    ssl_protocols TLSv1.2 TLSv1.3;   # QUIC només fa 1.3; el TCP accepta 1.2
+
+    location / {
+        # ... proxy_pass al contenidor del front ...
+        add_header Alt-Svc 'h3=":443"; ma=86400' always;
+    }
+}
+```
+
+`Alt-Svc` viu dins de `location /`, no al `server` (el perquè, a §8.3): és una capçalera de document i les respostes de `/api/` i de les tessel·les no la necessiten. És el que fa que el navegador descobreixi h3: la primera visita sempre va per h2 i el navegador el recorda 24 h (`ma=86400`). Amb `listen 443 quic reuseport` duplicat a IPv4 i IPv6, si nginx protesta per paràmetres duplicats, treu `reuseport` de la línia `[::]`.
+
+**0-RTT no s'activa**: amb OpenSSL cal nginx ≥ 1.29.1, i a més permet reintentar `POST /api/...` (crear hidrants, incidències) amb risc de repetició. No compensa.
+
+Aplicar-ho:
+
+```bash
+npm run nginx:render
+sudo cp config/site-docker.nginx /etc/nginx/sites-available/territoriadf
+sudo nginx -t && sudo systemctl reload nginx
+sudo ufw allow 443/udp        # imprescindible: sense UDP, h3 no s'arriba a estrenar mai
+```
+
+Verificar:
+
+```bash
+sudo ss -lunp | grep ':443'                              # socket UDP escoltant
+curl -sI --http2 https://<domini>/ | grep -i alt-svc     # h3=":443"
+```
+
+Al navegador: DevTools → Network → recarrega **dues vegades** (la segona, quan ja coneix l'`Alt-Svc`) → la columna _Protocol_ ha de mostrar `h3` a les tessel·les i les crides d'API. Si continua dient `h2`, el bloqueig és UDP/443, no la configuració.
+
+**Rollback:** treure les línies `quic`, `http2 on` i l'`Alt-Svc` (o restaurar la versió anterior de la plantilla), `nginx -t` i `reload`. Els navegadors que ja tenen l'`Alt-Svc` desat cauen sols a h2 en no rebre resposta QUIC; no cal fer res més.
+
+### 8.3 On viuen les capçaleres de seguretat
+
+Van dins de `location /`, no al `server`. L'`add_header` d'nginx no s'hereta de manera acumulativa: si un `location` en declara cap, descarta **tots** els del nivell superior. Com que les tessel·les i `/api/overpass` declaren el seu `X-Cache-Status`, qualsevol capçalera posada al `server` no hi arribaria, i seria fàcil creure el contrari.
+
+No hi ha cap pèrdua: HSTS, CSP, `X-Frame-Options` i `Referrer-Policy` són capçaleres de document, i els documents (la SPA, `sw.js`, el manifest) se serveixen des de `location /`. Les respostes de `/api/` i de `/tiles/*` no les necessiten. `Alt-Svc` també hi viu, i és suficient: el navegador el desa per a tot l'origen i el recorda 24 h.
+
+Si algun dia calgués una capçalera a tot arreu, l'única manera és un snippet amb `include` a cada `location`; posar-la al `server` no funciona si més avall hi ha `add_header`.
+
+Un cas que sembla de document i no ho és: les **tessel·les ràster de MapLibre**. Amb `refreshExpiredTiles` pel valor per defecte (`true`), MapLibre les baixa amb `fetch`, no amb `<img>`, així que els hosts externs de WMS i de mapes base han d'estar a `connect-src`. Leaflet, el motor de reserva, les carrega amb `<img>` i per això els mateixos hosts van també a `img-src`. Les tessel·les pròpies (`/tiles/*`) i el ràster-dem del terreny passen per `'self'` i no necessiten res més.
+
 ## 9. Notificacions Telegram per ADF (webhooks)
 
 Cada ADF pot usar el seu bot de Telegram amb un grup propi (configuració des de la UI: **Configuració → Notificacions de Telegram**). El backend necessita rebre actualitzacions de Telegram a `POST /api/telegram/webhook/:secret`.
@@ -414,7 +482,7 @@ Resum del que demana cada canvi d'aquesta versió:
 - [ ] `TRUST_PROXY=true` a `back/.env`: la petició passa pel Nginx del contenidor `frontend` i pel Nginx del host, així que `request.ip` ha de sortir de `X-Forwarded-For` perquè funcioni el límit de 30 intents per IP (§10.9 de `docs/DEV.md`). Deixa'l a `false` només si exposes el 3033 directament a Internet.
 - [ ] El proxy del host ha de reenviar `/api/` a `127.0.0.1:8080` conservant `Host`, `X-Forwarded-For` i `X-Forwarded-Proto`. El `Host` és el que permet derivar la URL del webhook de Telegram sense `WEBHOOK_PUBLIC_URL`.
 - [ ] Entrar **sempre per HTTPS**: la imatge va amb `NODE_ENV=production` i la cookie `auth_token` es marca `secure`, així que per HTTP pla el navegador no la desa i el login sembla que falli.
-- [ ] Firewall: només 80/443 i 51823 (OwnTracks TLS) oberts. `3034` (backend), `8080` (front) i `1883` (MQTT) han de quedar a `127.0.0.1`.
+- [ ] Firewall: només 80/TCP, 443/TCP + 443/UDP (QUIC) i 51823 (OwnTracks TLS) oberts. `3034` (backend), `8080` (front) i `1883` (MQTT) han de quedar a `127.0.0.1`.
 - [ ] Cert Let's Encrypt renovat per cron i hook de còpia a Mosquitto (`scripts/copy-mosquitto-certs.sh`).
 
 ### 10.3 Just abans de pujar
