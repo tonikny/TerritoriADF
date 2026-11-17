@@ -79,10 +79,14 @@ interface ResAdapter {
   setHeader: (name: string, value: string) => void;
   _userToSign?: { id: string; username: string; adf_id: number | null; role: string };
   _clearCookie?: boolean;
+  _reply?: FastifyReply;
 }
 
 function createRes(reply: FastifyReply, app: any, request: FastifyRequest): ResAdapter {
   const adapter: ResAdapter = {
+    // Connexions llargues (SSE): el handler fa `hijack()` i escriu directament al socket.
+    _reply: reply,
+
     status(code: number) {
       reply.code(code);
       return adapter;
@@ -266,6 +270,7 @@ const routes = [
   { path: "/api/incidencies/:id/events", handler: incidencies },
   { path: "/api/tracking/status", handler: tracking.status, protected: true },
   { path: "/api/tracking/positions", handler: tracking.positions, protected: true },
+  { path: "/api/tracking/stream", handler: tracking.stream, protected: true },
   { path: "/api/tracking/enable", handler: tracking.enable, protected: true },
   { path: "/api/tracking/config", handler: tracking.config, protected: true },
   { path: "/api/adfs/:id/tracking-sharing", handler: trackingSharing, protected: true },

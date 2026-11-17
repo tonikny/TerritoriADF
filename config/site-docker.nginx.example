@@ -100,6 +100,33 @@ server {
         add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.openstreetmap.org https://*.opentopomap.org https://*.idee.es https://maps.effis.emergency.copernicus.eu https://api.panoramax.xyz https://panoramax.mapcomplete.org https://geoserveis.icgc.cat; connect-src 'self' https://maps.effis.emergency.copernicus.eu https://geoserveis.icgc.cat; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self';" always;
     }
 
+    # STREAM SSE DE POSICIONS (Proxy al backend, sense buffering)
+    # El mapa manté oberta aquesta connexió i rep les posicions quan canvien. Necessita un
+    # `location` exacte propi: amb el `proxy_buffering` per defecte, nginx acumula els
+    # esdeveniments i el mapa es quedaria quiet. `location =` guanya sempre a
+    # `location /api/` (prefix), així que aquest bloc no depèn de l'ordre dels `location`.
+    location = /api/tracking/stream {
+        proxy_pass http://127.0.0.1:3034/api/tracking/stream;
+
+        # Cap a l'upstream, nginx fa HTTP/1.0 amb `Connection: close` per defecte; un stream
+        # vol 1.1 i la capçalera de connexió buida (la manté oberta).
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Cada esdeveniment ha d'arribar quan es produeix: sense buffering i sense caché.
+        proxy_buffering off;
+        proxy_cache off;
+
+        # El backend envia un `ping` cada 25 s i tanca la connexió als 5 min (perquè el client
+        # reconecte i es revalidin permisos i ADF). 1 h dóna marge de sobres.
+        proxy_read_timeout 1h;
+    }
+
     # API / BACKEND (Proxy al contenidor Docker port 3034)
     location /api/ {
         proxy_pass http://127.0.0.1:3034;

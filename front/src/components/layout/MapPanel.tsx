@@ -57,8 +57,8 @@ import {
   POSITIONS_POLL_ACTIVE_MS,
   POSITIONS_POLL_IDLE_MS,
   TRACKING_STORAGE_KEY,
-  usePositionPolling,
 } from "../../hooks/usePositionPolling";
+import { usePositions } from "../../hooks/usePositions";
 import { useLocalStorage } from "../../utils/useLocalStorage";
 import { storageKey } from "../../utils/storageKeys";
 import { NodeInfo } from "../hidrants/NodeInfo";
@@ -142,7 +142,7 @@ function MapPanelView() {
     TRACKING_STORAGE_KEY,
     false,
   );
-  const positions = usePositionPolling({
+  const positions = usePositions({
     enabled: !!user,
     intervalMs: trackingChecked ? POSITIONS_POLL_ACTIVE_MS : POSITIONS_POLL_IDLE_MS,
   });

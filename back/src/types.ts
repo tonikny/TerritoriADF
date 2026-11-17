@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- adapter Express simplificat, tipejar tot seria cerimònia */
-import type { FastifyBaseLogger } from "fastify";
+import type { FastifyBaseLogger, FastifyReply } from "fastify";
 
 export type ApiRequest = {
   method: string;
@@ -27,6 +27,9 @@ export type ApiResponse = {
   setHeader: (name: string, value: string) => void;
   _userToSign?: { id: string; username: string; adf_id: number | null; role: string };
   _clearCookie?: boolean;
+  /** Resposta crua de Fastify, només per a streaming (`/api/tracking/stream`): el handler
+   *  fa `hijack()` i escriu directament al socket. */
+  _reply?: FastifyReply;
 };
 
 export type ApiHandler = (req: ApiRequest, res: ApiResponse) => Promise<void> | void;
