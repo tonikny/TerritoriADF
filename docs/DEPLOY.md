@@ -385,14 +385,20 @@ server {
     listen 443 quic reuseport;
     listen [::]:443 quic reuseport;
 
-    ssl_protocols TLSv1.2 TLSv1.3;   # QUIC només fa 1.3; el TCP accepta 1.2
-
     location / {
         # ... proxy_pass al contenidor del front ...
         add_header Alt-Svc 'h3=":443"; ma=86400' always;
     }
 }
 ```
+
+**No hi ha cap `ssl_protocols` al bloc, i és a posta.** El `include /etc/letsencrypt/options-ssl-nginx.conf` ja declara `ssl_protocols TLSv1.2 TLSv1.3;`, que és exactament el que cal (QUIC només fa 1.3; el TCP accepta 1.2). Repetir-lo no canvia res i fa que `nginx -t` escopiga un avís a cada execució («duplicate value "TLSv1.3" in .../sites-enabled/territoriadf»). Si el servidor portara un d'eixos fitxers antic, sense TLS 1.3, QUIC no arrencaria: comprova-ho abans de desplegar amb
+
+```bash
+grep ssl_protocols /etc/letsencrypt/options-ssl-nginx.conf   # ha de traure TLSv1.3
+```
+
+i, si no hi és, actualitza `python3-certbot-nginx` o afig `ssl_protocols TLSv1.2 TLSv1.3;` al bloc i conviu amb l'avís.
 
 `Alt-Svc` viu dins de `location /`, no al `server` (el perquè, a §8.3): és una capçalera de document i les respostes de `/api/` i de les tessel·les no la necessiten. És el que fa que el navegador descobreixi h3: la primera visita sempre va per h2 i el navegador el recorda 24 h (`ma=86400`). Amb `listen 443 quic reuseport` duplicat a IPv4 i IPv6, si nginx protesta per paràmetres duplicats, treu `reuseport` de la línia `[::]`.
 
@@ -402,10 +408,13 @@ Aplicar-ho:
 
 ```bash
 npm run nginx:render
+grep ssl_protocols /etc/letsencrypt/options-ssl-nginx.conf   # ha de traure TLSv1.3
 sudo cp config/site-docker.nginx /etc/nginx/sites-available/territoriadf
 sudo nginx -t && sudo systemctl reload nginx
 sudo ufw allow 443/udp        # imprescindible: sense UDP, h3 no s'arriba a estrenar mai
 ```
+
+`nginx -t` ha de sortir sense cap avís. Si en surt un de «duplicate value "TLSv1.2"», el fitxer de `sites-available` encara porta la línia `ssl_protocols` que la plantilla ja no té: torna a copiar-lo.
 
 Verificar:
 

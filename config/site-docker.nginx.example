@@ -49,8 +49,13 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
-    # QUIC exigeix TLS 1.3; al TCP mantenim 1.2 per als navegadors antics.
-    ssl_protocols TLSv1.2 TLSv1.3;
+    # TLS 1.2 (TCP, navegadors antics) i 1.3 (QUIC només fa 1.3) els declara
+    # `/etc/letsencrypt/options-ssl-nginx.conf`, que s'inclou damunt. No ho
+    # repetim ací: nginx avisa a cada `nginx -t` amb «duplicate value "TLSv1.3"
+    # in .../sites-enabled/territoriadf». Si algun dia un servidor portara un
+    # options-ssl-nginx.conf antic (sense TLS 1.3), QUIC no arrencaria: mira-ho
+    # amb `grep ssl_protocols /etc/letsencrypt/options-ssl-nginx.conf` i, si cal,
+    # actualitza `python3-certbot-nginx` (o afig la línia ací i conviu amb l'avís).
 
     # FRONTEND (Proxy al contenidor Docker)
     location / {
