@@ -23,7 +23,7 @@ const DOWNLOAD_CONCURRENCY = 4;
 const DOWNLOAD_PAUSE_MS = 60;
 const MAX_LAT = 85.05112878;
 
-/** Mides mitjanes mesurades al Montseny (z10–14, 18/11/2026). */
+/** Mides mitjanes mesurades al Montseny (zoom 10–14). */
 const AVG_TILE_BYTES: Record<string, number> = {
   osm: 33_000,
   opentopo: 46_000,

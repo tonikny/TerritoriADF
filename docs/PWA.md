@@ -73,7 +73,7 @@ prioritari, i el risc (un altre voluntari al mateix dispositiu en podria veure u
 
 Cada font té la seva caché (`CacheFirst`, 30 dies, `purgeOnQuotaError`) perquè una
 orto no expulsi el mapa base ni el relleu. Els límits surten de mides mesurades al
-Montseny (z10–14, 18/11/2026):
+Montseny (zoom 10–14):
 
 | Caché              | Ruta                    | Mida mitjana | Entrades | Sostre aprox. |
 | ------------------ | ----------------------- | ------------ | -------- | ------------- |
@@ -88,7 +88,7 @@ conjunt és d'uns **98 MB**, que cap navegador no considera problemàtic; a la p
 costarà arribar-hi perquè només s'omple el que es visita.
 
 Referència de cobertura: les ADFs més grans fan uns 50 km², que amb un bbox d'uns 7×7 km
-necessiten unes 115 tessel·les de 256 px per font (z10–15) i unes 45 de terrain (z6–14;
+necessiten unes 115 tessel·les de 256 px per font (zoom 10–15) i unes 45 de terrain (z6–14;
 a 512 px, el nivell demanat és un menys que el zoom del mapa). Per això 400 entrades per
 font cobreixen tres ADFs descarregades i encara deixen marge per navegar; les 150 de
 relleu, també tres. El hillshade i el terreny comparteixen URL, així que no dupliquen
@@ -97,7 +97,7 @@ entrades.
 ### Descarregar el mapa d'una ADF
 
 Al tab **ADF** hi ha la secció **Mapa offline**: baixa de cop les tessel·les del bbox de
-l'ADF activa, de tots els fons (z10–15) i del relleu (z6–14), a través del service
+l'ADF activa, de tots els fons (zoom 10–15) i del relleu (z6–14), a través del service
 worker. Una ADF de 50 km² (bbox d'uns 7×7 km) són unes 500 tessel·les i uns 26 MB; la
 UI en mostra el compte i la mida estimada abans de començar, i permet cancel·lar la
 descàrrega.

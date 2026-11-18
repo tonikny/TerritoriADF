@@ -127,10 +127,10 @@ export default defineConfig({
           },
           // Tessel·les del mapa: CacheFirst, 30 dies i una caché per font, perquè
           // l'orto o el relleu no expulsin el mapa base. Mides mesurades al
-          // Montseny (z10–14, 18/11/2026): OSM ~33 KB, OpenTopoMap ~46 KB i
+          // Montseny (zoom 10–14): OSM ~33 KB, OpenTopoMap ~46 KB i
           // terrain-RGB de l'ICGC ~240 KB (512 px). Sostre total ~66 MB.
           // Una ADF d'uns 500 km² necessita ~200 tessel·les de 256 px per al
-          // z10–14 i ~60 de terrain (512 px, la meitat per eix).
+          // zoom 10–14 i ~60 de terrain (512 px, la meitat per eix).
           {
             urlPattern: /\/tiles\/osm\/\d+\/\d+\/\d+\.png$/,
             handler: "CacheFirst",

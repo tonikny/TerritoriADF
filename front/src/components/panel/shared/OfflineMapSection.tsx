@@ -81,8 +81,8 @@ export function OfflineMapSection({
       </div>
 
       <p className="m-0 mb-2 text-muted">
-        Descarrega els fons de mapa (z10–15) i el relleu d'aquesta ADF perquè el mapa funcioni sense
-        cobertura.
+        Descarrega els fons de mapa (zoom 10-15) i el relleu d'aquesta ADF perquè el mapa funcioni
+        sense cobertura.
       </p>
 
       {!bbox ? (
