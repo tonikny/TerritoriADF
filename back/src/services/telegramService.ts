@@ -38,6 +38,9 @@ async function callBot(token: string, method: string, body?: Record<string, unkn
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
+    // Sense límit, un Telegram inabastable deixa l'operació penjada per sempre:
+    // al re-registre bloquejaria els bots següents i al webhook, l'usuari.
+    signal: AbortSignal.timeout(15_000),
   });
   const data = (await res.json().catch(() => ({ ok: false }))) as {
     ok: boolean;

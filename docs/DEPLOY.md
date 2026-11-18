@@ -579,6 +579,9 @@ Resum del que demana cada canvi d'aquesta versió:
   # esperat: 401 401 401 401 401 429
   ```
   Al log ha d'aparèixer `Login bloquejat per massa intents` (sense contrasenya).
+  **Atenció:** aquesta prova deixa el nom d'usuari `prova-deploy` bloquejat 15 min (no la
+  teva IP, si `TRUST_PROXY=true`); no la repetisquis amb un compte real. El `429` de nginx
+  dura com a molt ~30 s (burst 5 a 10 r/m).
 - [ ] Entrar per la UI amb un usuari real: el formulari de contrasenya ha de mostrar el mínim de 8 caràcters (ve de `/api/config`, no està hardcodejat al front).
 - [ ] Comprovar que el `429` es veu a la pantalla de login amb el missatge en català i no com un error genèric.
 - [ ] `docker compose ps` amb tots els serveis `healthy` i `npm run docker:logs` sense errors.
@@ -586,4 +589,4 @@ Resum del que demana cada canvi d'aquesta versió:
 - [ ] Telegram: registrar el bot d'una ADF de prova i comprovar que la vinculació al grup arriba (webhook HTTPS públic).
 - [ ] Backups actius: `./scripts/backup/setup-cron.sh status`.
 
-> El comptador del fre de força bruta viu **en memòria**: reiniciar el backend l'esborra i no queda cap rastre de les contrasenyes provades. Amb una sola instància n'hi ha prou; si un dia escales el backend a diverses rèpliques, cada una comptaria els seus propis intents.
+> El comptador del fre de força bruta viu **en memòria**: reiniciar el backend l'esborra i no queda cap rastre de les contrasenyes provades. Si una prova del `429` et deixa fora, espera't els 15 min de la finestra o reinicia'l (`docker compose restart backend`); aquest fre no pot bloquejar SSH ni la resta del lloc, només el login. Amb una sola instància n'hi ha prou; si un dia escales el backend a diverses rèpliques, cada una comptaria els seus propis intents.
