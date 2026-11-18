@@ -62,12 +62,14 @@ export async function getMe(token: string): Promise<BotInfo> {
 export async function setWebhook(
   token: string,
   url: string,
+  secretToken: string,
   allowedUpdates: string[] = ["message", "my_chat_member"],
 ) {
   await callBot(token, "setWebhook", {
     url,
     allowed_updates: allowedUpdates,
     drop_pending_updates: true,
+    secret_token: secretToken,
   });
 }
 

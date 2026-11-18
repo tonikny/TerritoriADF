@@ -65,7 +65,7 @@ Tant `front/` com `back/` requereixen `.env`. La referència canònica és `back
 | `OTRC_HOST`             | no               | `BASE_DOMAIN_URL`                                                | Només per al `.otrc` d'OwnTracks quan el broker és en un host diferent de `BASE_DOMAIN_URL`. No és obligatòria                                                                                       |
 | `OTRC_PORT`             | no               | `51823`                                                          | Port públic MQTT                                                                                                                                                                                     |
 | `OTRC_TLS`              | no               | `true` (prod)                                                    | `true` amb TLS (prod) / `false` pla (dev)                                                                                                                                                            |
-| `WEBHOOK_PUBLIC_URL`    | dev sí / prod no | —                                                                | URL https pública on Telegram arriba a `/api/telegram/webhook/:secret`. En dev cal túnel (vegeu §8). En prod es deriva del `Host` si no es defineix                                                  |
+| `WEBHOOK_PUBLIC_URL`    | dev sí / prod no | —                                                                | URL https pública on Telegram arriba a `/api/telegram/webhook/:secret`. En dev cal túnel (vegeu §8). En prod es deriva de `BASE_DOMAIN_URL`; el `Host` només s'accepta si hi coincideix              |
 | `OVERPASS_URL`          | no               | `https://overpass-api.de/api/interpreter`                        | Overpass per pull sync                                                                                                                                                                               |
 | `OVERPASS_CONTACT`      | recomanat        | — (només `TerritoriADF/1.0`)                                     | Correu o URL que s'envia al `User-Agent` d'Overpass; la seva política d'ús en demana un de vàlid                                                                                                     |
 | `OSM_ACCESS_TOKEN`      | només push       | —                                                                | Token OAuth 2.0 OSM `write_api` (registrar a https://www.openstreetmap.org/oauth2/applications, no expira)                                                                                           |
@@ -275,6 +275,9 @@ Endpoint webhook:
 POST /api/telegram/webhook/:secret
 ```
 
+Telegram ha d'enviar `X-Telegram-Bot-Api-Secret-Token`; el backend el compara amb
+`telegramBots.webhook_secret` i rebutja la petició si no coincideix.
+
 Lògica a `back/src/routes/telegramWebhook.ts:39` (vincula amb codi `startgroup`, valida `group`/`supergroup`, conflicte grup-ADF, expiració/ús, `my_chat_member` per detectar sortida del bot).
 
 ### 8.1 Dev local: cal túnel
@@ -302,7 +305,7 @@ curl https://xxx.trycloudflare.com/api/telegram/webhook/prova
 
 ### 8.2 Com es construeix la URL del webhook
 
-Si `WEBHOOK_PUBLIC_URL` definit, s'usa tal qual (`back/src/routes/telegram.ts:125` → `config.WEBHOOK_PUBLIC_URL ?? appBaseUrl(req)`). Si no, es deriva del `Host` de la petició de registre (`appBaseUrl()` a `back/src/utils/appUrl.ts`). En prod cal entrar per domini públic; en dev per `localhost:3003` sense variable es generaria URL LAN no accessible.
+Si `WEBHOOK_PUBLIC_URL` està definit, s'usa tal qual (`back/src/routes/telegram.ts` → `config.WEBHOOK_PUBLIC_URL ?? appBaseUrl(req)`). Si no, s'usa `appBaseUrl(req)`: accepta el `Host` de la petició si coincideix amb `BASE_DOMAIN_URL` o és un host local de desenvolupament; qualsevol altre valor cau a `BASE_DOMAIN_URL`.
 
 ### 8.3 Self-test
 
@@ -508,14 +511,14 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 
 ### 10.7 Telegram per ADF
 
-| Endpoint                        | Mètode | Auth                   | Descripció                                                                                                                                                                                                              |
-| ------------------------------- | ------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/adfs/:id/telegram/status` | GET    | sí                     | `{ status, bot_username, bot_name, group_name }` (`NO_CONFIGURAT`/`BOT_CONFIGURAT`/`GRUP_PENDENT`/`CONFIGURAT`/`TOKEN_INVALID`; aquest últim indica que el token desat no es pot desxifrar i cal tornar-lo a introduir) |
-| `/api/adfs/:id/telegram`        | POST   | sí (`manage_telegram`) | Registra bot `{ token }` → `getMe` + `setWebhook` a `${WEBHOOK_PUBLIC_URL\|Host}/api/telegram/webhook/:secret`                                                                                                          |
-| `/api/adfs/:id/telegram`        | DELETE | sí (`manage_telegram`) | `deleteWebhook` + esborra `telegramBots`/`telegramLinks`                                                                                                                                                                |
-| `/api/adfs/:id/telegram/link`   | POST   | sí (`manage_telegram`) | Genera `https://t.me/<bot>?startgroup=<code>` TTL 15 min, un sol ús (`sha256hex`)                                                                                                                                       |
-| `/api/adfs/:id/telegram/test`   | POST   | sí (`manage_telegram`) | Envia `{ message? }` al grup vinculat                                                                                                                                                                                   |
-| `/api/telegram/webhook/:secret` | POST   | no (secret URL)        | Webhook Telegram (vegeu §8)                                                                                                                                                                                             |
+| Endpoint                        | Mètode | Auth                     | Descripció                                                                                                                                                                                                              |
+| ------------------------------- | ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/adfs/:id/telegram/status` | GET    | sí                       | `{ status, bot_username, bot_name, group_name }` (`NO_CONFIGURAT`/`BOT_CONFIGURAT`/`GRUP_PENDENT`/`CONFIGURAT`/`TOKEN_INVALID`; aquest últim indica que el token desat no es pot desxifrar i cal tornar-lo a introduir) |
+| `/api/adfs/:id/telegram`        | POST   | sí (`manage_telegram`)   | Registra bot `{ token }` → `getMe` + `setWebhook` a `${WEBHOOK_PUBLIC_URL\|Host}/api/telegram/webhook/:secret`                                                                                                          |
+| `/api/adfs/:id/telegram`        | DELETE | sí (`manage_telegram`)   | `deleteWebhook` + esborra `telegramBots`/`telegramLinks`                                                                                                                                                                |
+| `/api/adfs/:id/telegram/link`   | POST   | sí (`manage_telegram`)   | Genera `https://t.me/<bot>?startgroup=<code>` TTL 15 min, un sol ús (`sha256hex`)                                                                                                                                       |
+| `/api/adfs/:id/telegram/test`   | POST   | sí (`manage_telegram`)   | Envia `{ message? }` al grup vinculat                                                                                                                                                                                   |
+| `/api/telegram/webhook/:secret` | POST   | no (secret URL + header) | Webhook Telegram; exigeix `X-Telegram-Bot-Api-Secret-Token` (vegeu §8)                                                                                                                                                  |
 
 ### 10.8 Altres
 
@@ -530,7 +533,7 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 `POST /api/auth/login` compta els intents fallits en memòria (`back/src/services/loginThrottle.ts`) i, quan se supera el límit, respon **429** amb la capçalera `Retry-After` i un missatge en català. Finestra lliscant de 15 minuts:
 
 - **5 intents fallits per usuari** → aquell usuari queda bloquejat fins que caduca l'intent més antic. Un login correcte neteja el comptador.
-- **30 intents fallits per IP**, només amb `TRUST_PROXY=true`. Sense proxy de confiança no es limita per IP a posta: tots els usuaris darrere del mateix proxy compartirien comptador i es bloquejarien entre ells.
+- **30 intents fallits per IP**, només amb `TRUST_PROXY=true`. Sense proxy de confiança no es limita per IP a posta: tots els usuaris darrere del mateix proxy compartirien comptador i es bloquejarien entre ells. Nginx ha d'escriure `X-Forwarded-For $remote_addr` (no `$proxy_add_x_forwarded_for`) perquè un client no pugui falsejar la IP.
 - El comptador és en memòria i es perd en reiniciar el procés (no s'escriu res a la BD, així no queda rastre de credencials provades).
 - Efecte col·lateral conegut: qui conegui un username pot bloquejar-lo 15 minuts fent 5 intents. Amb una ADF petita es considera acceptable; si molestés, es pot canviar a bloqueig per `usuari+IP`.
 

@@ -18,7 +18,9 @@
     "db:import-osm": "tsx src/scripts/importOsm.ts",
     "db:export-osm": "tsx src/scripts/exportAllToOsm.ts",
     "mqtt:cleanup": "tsx src/scripts/cleanupMqtt.ts",
-    "telegram:selftest": "tsx src/scripts/telegramSelftest.ts"
+    "telegram:selftest": "tsx src/scripts/telegramSelftest.ts",
+    "telegram:rewebhook": "tsx src/scripts/reRegisterTelegramWebhooks.ts",
+    "telegram:rewebhook:prod": "node dist/scripts/reRegisterTelegramWebhooks.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

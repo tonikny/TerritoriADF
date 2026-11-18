@@ -452,7 +452,7 @@ location = /api/tracking/stream {
 
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
 
     proxy_buffering off;
@@ -549,8 +549,12 @@ Resum del que demana cada canvi d'aquesta versió:
 
 ### 10.2 Proxy, HTTPS i xarxa
 
-- [ ] `TRUST_PROXY=true` a `back/.env`: la petició passa pel Nginx del contenidor `frontend` i pel Nginx del host, així que `request.ip` ha de sortir de `X-Forwarded-For` perquè funcioni el límit de 30 intents per IP (§10.9 de `docs/DEV.md`). Deixa'l a `false` només si exposes el 3033 directament a Internet.
-- [ ] El proxy del host ha de reenviar `/api/` al backend conservant `Host`, `X-Forwarded-For` i `X-Forwarded-Proto`. La plantilla va directa a `127.0.0.1:3034`; si passes pel contenidor del front (`127.0.0.1:8080`, el seu nginx també proxya `/api/`), el stream ha d'anar al mateix lloc. El `Host` és el que permet derivar la URL del webhook de Telegram sense `WEBHOOK_PUBLIC_URL`.
+- [ ] `TRUST_PROXY=true` a `back/.env`: si el Nginx del host envia `/api/` directament al backend (`127.0.0.1:3034`) només hi ha un proxy; si passa pel contenidor `frontend`, n'hi ha dos. En tots dos casos `request.ip` ha de sortir de `X-Forwarded-For` perquè funcioni el límit de 30 intents per IP (§10.9 de `docs/DEV.md`). Deixa'l a `false` només si exposes el 3033 directament a Internet.
+- [ ] El proxy del host ha de reenviar `/api/` al backend conservant `Host`, `X-Forwarded-For` i `X-Forwarded-Proto`. La plantilla va directa a `127.0.0.1:3034`; si passes pel contenidor del front (`127.0.0.1:8080`, el seu nginx també proxya `/api/`), el stream ha d'anar al mateix lloc. La URL del webhook de Telegram es deriva de `WEBHOOK_PUBLIC_URL` o `BASE_DOMAIN_URL`; el `Host` només s'accepta si hi coincideix.
+- [ ] El Nginx del host ha d'escriure `X-Forwarded-For $remote_addr`; no el canviïs per `$proxy_add_x_forwarded_for`, o un client podria falsejar la seva IP i saltar-se el fre de login. El Nginx del contenidor `frontend` conserva la cadena perquè només rep peticions del host o de `127.0.0.1`.
+- [ ] La plantilla inclou `limit_req`/`limit_conn` per IP (login més estricte). Després de `nginx -t` i `reload`, comprova que una ràfega de logins rep **429**.
+- [ ] Recrea els contenidors (`docker compose up -d --build`) per aplicar `cap_drop`, `read_only` i `pids_limit`. El backend necessita `DAC_OVERRIDE` per escriure al volum `back/data`, que pertany a l'usuari del host; si no arrenca, revisa els logs i els permisos del volum.
+- [ ] Re-registra els webhooks de Telegram amb el nou `secret_token`: `docker compose exec backend node dist/scripts/reRegisterTelegramWebhooks.js --apply`. Sense això, Telegram no enviarà la capçalera i els avisos als grups es rebutjaran.
 - [ ] `location = /api/tracking/stream` amb `proxy_http_version 1.1`, `proxy_buffering off` i `proxy_read_timeout 1h` (vegeu §8.4). Sense aquest bloc el mapa no es trenca: el client passa a polling al cap de 30 s i deixa de rebre posicions en temps real.
 - [ ] Entrar **sempre per HTTPS**: la imatge va amb `NODE_ENV=production` i la cookie `auth_token` es marca `secure`, així que per HTTP pla el navegador no la desa i el login sembla que falli.
 - [ ] Firewall: només 80/TCP, 443/TCP + 443/UDP (QUIC) i 51823 (OwnTracks TLS) oberts. `3034` (backend), `8080` (front) i `1883` (MQTT) han de quedar a `127.0.0.1`.

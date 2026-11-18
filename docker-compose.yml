@@ -7,6 +7,17 @@ services:
     image: eclipse-mosquitto:2
     container_name: territoriadf-mosquitto
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    pids_limit: 200
     ports:
       - "127.0.0.1:1883:1883"
       - "51823:51823"
@@ -35,6 +46,19 @@ services:
       dockerfile: back/Dockerfile
     container_name: territoriadf-backend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # El volum back/data pertany a l'usuari del host. Sense DAC_OVERRIDE,
+      # root al contenidor no hi pot escriure amb cap_drop: ALL.
+      - DAC_OVERRIDE
+    pids_limit: 256
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /root/.npm:rw,noexec,nosuid,size=16m
     ports:
       - "127.0.0.1:3034:3033"
     env_file:
@@ -62,6 +86,17 @@ services:
       dockerfile: front/Dockerfile
     container_name: territoriadf-frontend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    pids_limit: 128
     ports:
       - "127.0.0.1:8080:80"
     depends_on:

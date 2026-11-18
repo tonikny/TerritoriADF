@@ -40,6 +40,12 @@ const app = Fastify({
   trustProxy: config.TRUST_PROXY,
 });
 
+if (process.env.NODE_ENV === "production" && !config.TRUST_PROXY) {
+  logger.warn(
+    "TRUST_PROXY=false en producció: el límit de login per IP queda desactivat; activa'l darrere de nginx",
+  );
+}
+
 app.register(fastifyCookie);
 
 app.register(fastifyJwt, {

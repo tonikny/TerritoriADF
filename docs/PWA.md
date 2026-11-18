@@ -27,9 +27,10 @@ maskable"` perquè Firefox per a Android la pugui fer servir per a la icona
 - **Capçaleres de caché** a `front/nginx.conf`: `no-cache` per `sw.js`, manifest i
   `workbox-*.js`; `immutable` per `/assets/`.
 
-Les dades de l'API es cachegen només per a lectura offline (fase 2). Com que són
-autenticades per cookie, les cachés d'API s'esborren en tancar sessió i `/api/auth/me`
-no s'hi desa mai, perquè un dispositiu compartit no ha de veure respostes d'un altre usuari.
+Les dades públiques de l'API es cachegen només per a lectura offline (fase 2); les
+incidències i `/api/auth/*` no s'hi inclouen. Com que la resta s'autentica per cookie,
+les cachés d'API s'esborren en tancar sessió i `/api/auth/me` no s'hi desa mai, perquè
+un dispositiu compartit no ha de veure respostes d'un altre usuari.
 
 ## Peces i per què
 
@@ -161,14 +162,16 @@ Detalls de la implementació a `PwaBanner.tsx`:
   IndexedDB si falta espai. No hi guardeu mai l'única còpia de res.
 - **Push**: suportat a Chromium i a iOS 16.4+ (amb l'app a la pantalla d'inici), amb
   lliurament no garantit. No serveix per a alertes crítiques.
-- **Privadesa**: les respostes de `/api` es cachegen per a lectura offline, així que
-  s'esborren en tancar sessió i en rebre un `401`; `/api/auth/me` no es cacheja mai.
+- **Privadesa**: només es cachegen dades públiques (`/api/adfs`, `/api/hidrants`,
+  `/api/adf/boundary`). Les incidències i `/api/auth/*` no es cachegen; les cachés
+  existents s'esborren en tancar sessió i en rebre un `401`.
 
 ## Fase 2: lectura offline de dades
 
 - **Caché d'API** (`runtimeCaching` de `front/vite.config.ts`): `NetworkFirst` amb
-  `networkTimeoutSeconds: 3` per a `GET /api/adfs`, `/api/hidrants`, `/api/incidencies` i
-  `/api/adf/boundary`, a la caché `api-data` (60 entrades, 7 dies). Només `GET` i només
+  `networkTimeoutSeconds: 3` per a `GET /api/adfs`, `/api/hidrants` i
+  `/api/adf/boundary`, a la caché `api-data` (60 entrades, 7 dies). Les incidències no
+  s'hi inclouen perquè poden contenir dades privades i historial. Només `GET` i només
   respostes `200`: les escriptures no s'emmagatzemen mai.
 - **Antiguitat** (`utils/offlineData.ts` i `components/shared/OfflineNotice.tsx`): cada
   lectura feta amb xarxa desa el moment a `localStorage`

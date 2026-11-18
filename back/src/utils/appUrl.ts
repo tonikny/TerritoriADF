@@ -14,26 +14,55 @@ function lanIp(): string | null {
   return null;
 }
 
+function hostnameOf(value: string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  try {
+    return new URL(`http://${value}`).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+const CONFIGURED_BASE = config.BASE_DOMAIN_URL.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+const CONFIGURED_HOSTNAME = hostnameOf(CONFIGURED_BASE);
+
 /**
- * URL base per als enllaços de Telegram.
- * Usa el Host de la petició (domini o IP:port real de l'accés),
- * però si el Host és un buclic (localhost/127.0.0.1), el substituïx
- * per la IP LAN del servidor, perquè Telegram no renderitza els
- * buclics com a enllaços.
+ * URL base per als enllaços de Telegram i d'accés.
+ * Només es confia en el `Host` si és el domini configurat (`BASE_DOMAIN_URL`) o
+ * un host local de desenvolupament. Qualsevol altre valor cau al domini
+ * configurat, de manera que una capçalera `Host` falsificada no pot desviar
+ * enllaços ni enllaços d'accés.
  */
 export function appBaseUrl(req: {
   headers?: { host?: string; "x-forwarded-proto"?: string };
 }): string {
-  let host = req.headers?.host;
-  if (host) {
-    const [hostname, port] = host.split(":");
-    if (/^localhost$/i.test(hostname) || hostname === "127.0.0.1" || hostname === "::1") {
-      const ip = lanIp();
-      if (ip) {
-        host = port ? `${ip}:${port}` : ip;
-      }
+  const host = req.headers?.host;
+  const hostname = hostnameOf(host);
+
+  if (!host || !hostname) {
+    return `https://${CONFIGURED_BASE}`;
+  }
+
+  const isLocal = LOCAL_HOSTNAMES.has(hostname);
+  const isConfigured = CONFIGURED_HOSTNAME !== null && hostname === CONFIGURED_HOSTNAME;
+
+  if (!isLocal && !isConfigured) {
+    return `https://${CONFIGURED_BASE}`;
+  }
+
+  let finalHost = host;
+  if (isLocal) {
+    // Telegram no renderitza els buclics: els canviem per la IP LAN del servidor.
+    const port = new URL(`http://${host}`).port;
+    const ip = lanIp();
+    if (ip) {
+      finalHost = port ? `${ip}:${port}` : ip;
     }
   }
+
   const protocol = req.headers?.["x-forwarded-proto"] || "https";
-  return host ? `${protocol}://${host}` : `https://${config.BASE_DOMAIN_URL}`;
+  return `${protocol}://${finalHost}`;
 }

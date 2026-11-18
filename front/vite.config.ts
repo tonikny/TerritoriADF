@@ -78,8 +78,9 @@ export default defineConfig({
             // Lectura offline: dades de l'ADF i llista d'ADFs, xarxa primer. Si la
             // xarxa no respon en 3 s (o falla), es serveix la còpia emmagatzemada i
             // `OfflineNotice` n'indica l'antiguitat. Mai `/api/auth/*`: la sessió no
-            // s'ha de poder reprendre des de la caché.
-            urlPattern: /\/api\/(?:adfs|hidrants|incidencies|adf\/boundary)\b/,
+            // s'ha de poder reprendre des de la caché. Les incidències tampoc no es
+            // cachegen: poden contenir dades privades i historial de canvis.
+            urlPattern: /\/api\/(?:adfs|hidrants|adf\/boundary)\b/,
             handler: "NetworkFirst",
             method: "GET",
             options: {

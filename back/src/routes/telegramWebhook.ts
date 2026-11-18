@@ -20,11 +20,7 @@ export function extractCode(text: string): string {
   return trimmed;
 }
 
-async function notifyGroupError(
-  token: string,
-  chatId: number,
-  message: string,
-) {
+async function notifyGroupError(token: string, chatId: number, message: string) {
   try {
     await sendMessage(token, chatId, message);
   } catch {
@@ -44,6 +40,13 @@ const webhook: ApiHandler = async (req, res) => {
   const bot = db.select().from(telegramBots).where(eq(telegramBots.webhook_secret, secret)).get();
   if (!bot) {
     return res.json({ ok: false });
+  }
+
+  // Telegram envia aquesta capçalera si el webhook es va registrar amb
+  // `secret_token`. Sense coincidència exacta no processem cap actualització.
+  const headerSecret = req.headers?.["x-telegram-bot-api-secret-token"];
+  if (typeof headerSecret !== "string" || headerSecret !== bot.webhook_secret) {
+    return res.status(401).json({ ok: false });
   }
 
   const token = bot.token_enc ? decrypt(bot.token_enc) : null;
@@ -81,7 +84,11 @@ const webhook: ApiHandler = async (req, res) => {
       }
       if (link.used_at) {
         if (token) {
-          await notifyGroupError(token, chatId, "❌ Aquest enllaç de vinculació ja s'ha utilitzat.");
+          await notifyGroupError(
+            token,
+            chatId,
+            "❌ Aquest enllaç de vinculació ja s'ha utilitzat.",
+          );
         }
         return res.json({ ok: true });
       }
@@ -104,11 +111,7 @@ const webhook: ApiHandler = async (req, res) => {
         .get();
       if (conflict) {
         if (token) {
-          await notifyGroupError(
-            token,
-            chatId,
-            "❌ Aquest grup ja està vinculat a una altra ADF.",
-          );
+          await notifyGroupError(token, chatId, "❌ Aquest grup ja està vinculat a una altra ADF.");
         }
         return res.json({ ok: true });
       }

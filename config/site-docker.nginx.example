@@ -11,6 +11,11 @@
 proxy_cache_path /var/cache/nginx/overpass levels=1:2 keys_zone=overpass_cache:10m max_size=1g inactive=7d use_temp_path=off;
 proxy_cache_path /var/cache/nginx/tiles levels=1:2 keys_zone=tiles_cache:10m max_size=5g inactive=30d use_temp_path=off;
 
+# Fre d'abús per IP. El login té un límit molt més baix que la resta de l'API.
+limit_req_zone $binary_remote_addr zone=api_general:10m rate=20r/s;
+limit_req_zone $binary_remote_addr zone=api_login:10m rate=10r/m;
+limit_conn_zone $binary_remote_addr zone=api_conn:10m;
+
 # 2. REDIRECCIÓ DE HTTP A HTTPS
 server {
     listen 80;
@@ -42,6 +47,9 @@ server {
     listen [::]:443 quic reuseport;
 
     server_name __APP_DOMAIN__;
+
+    limit_req_status 429;
+    limit_conn_status 429;
 
     # Certificats SSL (Gestionats pel Host amb Certbot)
     ssl_certificate /etc/letsencrypt/live/__APP_DOMAIN__/fullchain.pem;
@@ -120,29 +128,49 @@ server {
 
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
 
         # Cada esdeveniment ha d'arribar quan es produeix: sense buffering i sense caché.
         proxy_buffering off;
         proxy_cache off;
+        limit_conn api_conn 5;
 
         # El backend envia un `ping` cada 25 s i tanca la connexió als 5 min (perquè el client
         # reconecte i es revalidin permisos i ADF). 1 h dóna marge de sobres.
         proxy_read_timeout 1h;
     }
 
+    # LOGIN: límit específic, més estricte que la resta de l'API.
+    location = /api/auth/login {
+        limit_req zone=api_login burst=5 nodelay;
+        limit_conn api_conn 10;
+
+        proxy_pass http://127.0.0.1:3034/api/auth/login;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # Sobreescrivim la cadena: un client no pot falsejar la seva IP.
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # API / BACKEND (Proxy al contenidor Docker port 3034)
     location /api/ {
+        limit_req zone=api_general burst=60 nodelay;
+        limit_conn api_conn 30;
+
         proxy_pass http://127.0.0.1:3034;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # CACHE OVERPASS (Proxy al contenidor Backend amb cache al host)
     location /api/overpass {
+        limit_req zone=api_general burst=20 nodelay;
+        limit_conn api_conn 10;
+
         proxy_pass http://127.0.0.1:3034/api/overpass;
 
         proxy_cache overpass_cache;
@@ -155,6 +183,8 @@ server {
 
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # PROXY TILES AMB CACHE (Gestionat pel host)

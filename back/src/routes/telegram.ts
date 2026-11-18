@@ -50,6 +50,11 @@ const status: ApiHandler = async (req, res) => {
   if (adfId === null) {
     return res.status(400).json({ error: "ID d'ADF no vàlid" });
   }
+  if (!canManage(req.user, adfId)) {
+    return res
+      .status(403)
+      .json({ error: "No tens permisos per veure la configuració de Telegram d'aquesta ADF" });
+  }
   const bot = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
   if (!bot) {
     return res.json({ status: "NO_CONFIGURAT" });
@@ -141,7 +146,7 @@ const register: ApiHandler = async (req, res) => {
   const publicBase = config.WEBHOOK_PUBLIC_URL?.trim().replace(/\/+$/, "") ?? appBaseUrl(req);
   const webhookUrl = `${publicBase}/api/telegram/webhook/${webhookSecret}`;
   try {
-    await setWebhook(token, webhookUrl);
+    await setWebhook(token, webhookUrl, webhookSecret);
   } catch (err) {
     return res.status(502).json({
       error: `No s'ha pogut connectar el webhook amb Telegram (${webhookUrl}): ${
