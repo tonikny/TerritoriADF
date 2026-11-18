@@ -18,7 +18,9 @@ maskable"` perquè Firefox per a Android la pugui fer servir per a la icona
   adaptativa de la drecera, `display: standalone`, `theme_color` `#00552B` i
   `lang: ca`.
 - **Service worker** (Workbox) generat a `dist/sw.js`, que precacheja l'app shell
-  (JS, CSS, HTML, icones i fonts). Les tessel·les del mapa no passen pel service worker.
+  (JS, CSS, HTML, icones i fonts), les imatges dels marcadors/hidrants
+  (`/images/icons/*.png`) i el logo (`/images/logo-horitzontal.png`). Les tessel·les
+  del mapa es cachegen amb `CacheFirst` i un límit per font (vegeu [Tessel·les](#tessel·les-del-mapa)).
 - **Meta tags** a `front/index.html`: `manifest`, `theme-color`, `mobile-web-app-capable`
   (l'estàndard) i les `apple-mobile-web-app-*` per a versions antigues d'iOS.
 - **Prompt d'instal·lació** (un toast blanc amb botons _Instal·la_ / _Ara no_, sense
@@ -27,20 +29,23 @@ maskable"` perquè Firefox per a Android la pugui fer servir per a la icona
 - **Capçaleres de caché** a `front/nginx.conf`: `no-cache` per `sw.js`, manifest i
   `workbox-*.js`; `immutable` per `/assets/`.
 
-Les dades públiques de l'API es cachegen només per a lectura offline (fase 2); les
-incidències i `/api/auth/*` no s'hi inclouen. Com que la resta s'autentica per cookie,
-les cachés d'API s'esborren en tancar sessió i `/api/auth/me` no s'hi desa mai, perquè
-un dispositiu compartit no ha de veure respostes d'un altre usuari.
+Les dades de l'API es cachegen només per a lectura offline (fase 2): les de l'ADF, els
+hidrants, el límit i les incidències. `/api/auth/*` no s'hi inclou mai. Com que la resta
+s'autentica per cookie, les cachés d'API s'esborren en tancar sessió i `/api/auth/me` no
+s'hi desa, perquè un dispositiu compartit no ha de veure respostes d'un altre usuari. Les
+incidències sí que es cachegen: poder-les consultar sense cobertura es va considerar
+prioritari, i el risc (un altre voluntari al mateix dispositiu en podria veure una que no
+és seva fins al logout) s'accepta.
 
 ## Peces i per què
 
-| Fitxer                                      | Funció                                                                                              |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `front/vite.config.ts`                      | Bloc `VitePWA`: manifest, `globPatterns`, `globIgnores`, `navigateFallback`, `runtimeCaching` d'API |
-| `front/index.html`                          | `link rel="manifest"`, `theme-color`, meta d'Apple                                                  |
-| `front/src/vite-env.d.ts`                   | Tipus del mòdul virtual `virtual:pwa-register/react`                                                |
-| `front/src/components/shared/PwaBanner.tsx` | `beforeinstallprompt`, `appinstalled`, toast d'instal·lació i recàrrega per actualització           |
-| `front/nginx.conf`                          | Caché correcta de `sw.js`, manifest i assets versionats                                             |
+| Fitxer                                      | Funció                                                                                                              |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `front/vite.config.ts`                      | Bloc `VitePWA`: manifest, `globPatterns`, `globIgnores`, `navigateFallback`, `runtimeCaching` d'API i de tessel·les |
+| `front/index.html`                          | `link rel="manifest"`, `theme-color`, meta d'Apple                                                                  |
+| `front/src/vite-env.d.ts`                   | Tipus del mòdul virtual `virtual:pwa-register/react`                                                                |
+| `front/src/components/shared/PwaBanner.tsx` | `beforeinstallprompt`, `appinstalled`, toast d'instal·lació i recàrrega per actualització                           |
+| `front/nginx.conf`                          | Caché correcta de `sw.js`, manifest i assets versionats                                                             |
 
 ### Decisions rellevants
 
@@ -53,12 +58,58 @@ un dispositiu compartit no ha de veure respostes d'un altre usuari.
   injectat al HTML.
 - `navigateFallbackDenylist` amb `/api/` i `/tiles/`: les navegacions a aquests camins
   no han de rebre `index.html`.
-- `globIgnores` deixa fora `public/images`, `public/municipis` i `public/geojson`: no són
-  app shell i inflarien la descàrrega inicial.
-- Tessel·les: el service worker no intercepta `/tiles/`. Les serveix el Nginx del
-  host, que les cacheja, i el navegador les pot guardar a la seva caché HTTP. Així
-  s'evita que una tessel·la cancel·lada per MapLibre es converteixi en un error del
-  service worker a Firefox.
+- `globPatterns` inclou `images/icons/*.png` i `images/logo-horitzontal.png` (~120 KB):
+  sense precache, sense connexió els marcadors i el logo surten com una imatge trencada
+  perquè nginx no els envia cap `max-age` i el navegador no pot revalidar.
+  `globIgnores` deixa fora `public/municipis`, `public/geojson` i el PNG de 1 MB de
+  `images/icons/` que no s'usa enlloc.
+- Tessel·les: el service worker les intercepta amb `CacheFirst` perquè sense
+  connexió el mapa no quedés mai gris a les zones ja visitades. Se segueixen servint
+  pel Nginx del host quan no hi ha caché. Contrapartida coneguda: MapLibre cancel·la
+  moltes tessel·les en canviar de zoom i el service worker les pot registrar com a
+  error de xarxa a la consola (soroll, no falla res).
+
+### Tessel·les del mapa
+
+Cada font té la seva caché (`CacheFirst`, 30 dies, `purgeOnQuotaError`) perquè una
+orto no expulsi el mapa base ni el relleu. Els límits surten de mides mesurades al
+Montseny (z10–14, 18/11/2026):
+
+| Caché              | Ruta                    | Mida mitjana | Entrades | Sostre aprox. |
+| ------------------ | ----------------------- | ------------ | -------- | ------------- |
+| `tiles-osm`        | `/tiles/osm/…`          | ~33 KB       | 600      | ~20 MB        |
+| `tiles-opentopo`   | `/tiles/opentopo/…`     | ~46 KB       | 400      | ~18 MB        |
+| `tiles-ign-raster` | `/tiles/ign-raster/…`   | ~30 KB\*     | 400      | ~12 MB        |
+| `tiles-ign-orto`   | `/tiles/ign-orto/…`     | ~30 KB\*     | 400      | ~12 MB        |
+| `tiles-terrain`    | `/tiles/icgc-terrain/…` | ~240 KB      | 150      | ~36 MB        |
+
+\* No mesurades: l'IGN responia `403` o una imatge d'error en les proves. El sostre
+conjunt és d'uns **98 MB**, que cap navegador no considera problemàtic; a la pràctica
+costarà arribar-hi perquè només s'omple el que es visita.
+
+Referència de cobertura: les ADFs més grans fan uns 50 km², que amb un bbox d'uns 7×7 km
+necessiten unes 115 tessel·les de 256 px per font (z10–15) i unes 45 de terrain (z6–14;
+a 512 px, el nivell demanat és un menys que el zoom del mapa). Per això 400 entrades per
+font cobreixen tres ADFs descarregades i encara deixen marge per navegar; les 150 de
+relleu, també tres. El hillshade i el terreny comparteixen URL, així que no dupliquen
+entrades.
+
+### Descarregar el mapa d'una ADF
+
+Al tab **ADF** hi ha la secció **Mapa offline**: baixa de cop les tessel·les del bbox de
+l'ADF activa, de tots els fons (z10–15) i del relleu (z6–14), a través del service
+worker. Una ADF de 50 km² (bbox d'uns 7×7 km) són unes 500 tessel·les i uns 26 MB; la
+UI en mostra el compte i la mida estimada abans de començar, i permet cancel·lar la
+descàrrega.
+
+- Les tessel·les ja cachejades es tornen a servir des de la caché (`CacheFirst`), així
+  que repetir la descàrrega només baixa el que falta.
+- No substitueix la navegació: per sobre del z15 les tessel·les no són a la caché fins
+  que es torni a tenir xarxa.
+- La marca «Desat fa X» es desa a `localStorage` per ADF (`territoriadf_offline_map:<id>`);
+  no garanteix que la caché segueixi sencera (el navegador pot evictar-la).
+- Cal que el service worker controli la pàgina; si encara no ho fa, la secció ho indica
+  i demana recarregar.
 
 ## Comportament per navegador
 
@@ -94,10 +145,11 @@ Comprovacions a les DevTools (Chrome):
 
 1. **Application → Manifest**: nom, icones, `start_url`, `display` i cap error.
 2. **Application → Service Workers**: `sw.js` actiu i sense errors.
-3. **Application → Cache Storage**: `workbox-precache-*` després de carregar; les
-   tessel·les no hi apareixen perquè les gestiona la caché HTTP del navegador.
-4. **Network → Offline** i recarregar: l'app ha d'arrencar; el mapa només pot mostrar
-   les tessel·les que el navegador tingui a la seva caché HTTP.
+3. **Application → Cache Storage**: `workbox-precache-*` després de carregar, amb les
+   imatges de `/images/icons/` i el logo, i les cachés `tiles-*` amb les tessel·les
+   visitades.
+4. **Network → Offline** i recarregar: l'app ha d'arrencar; el mapa mostra les
+   tessel·les ja visitades (cachés `tiles-*`), també el relleu si s'ha activat.
 5. **Application → Manifest → Installability**: ha de sortir com a instal·lable.
 
 Lighthouse ja no té la categoria PWA: no serveix com a verificació.
@@ -162,24 +214,26 @@ Detalls de la implementació a `PwaBanner.tsx`:
   IndexedDB si falta espai. No hi guardeu mai l'única còpia de res.
 - **Push**: suportat a Chromium i a iOS 16.4+ (amb l'app a la pantalla d'inici), amb
   lliurament no garantit. No serveix per a alertes crítiques.
-- **Privadesa**: només es cachegen dades públiques (`/api/adfs`, `/api/hidrants`,
-  `/api/adf/boundary`). Les incidències i `/api/auth/*` no es cachegen; les cachés
-  existents s'esborren en tancar sessió i en rebre un `401`.
+- **Privadesa**: es cachegen `/api/adfs`, `/api/hidrants`, `/api/adf/boundary` i
+  `/api/incidencies*` perquè l'app sigui útil sense cobertura. `/api/auth/*` no es
+  cacheja mai. Les cachés existents s'esborren en tancar sessió i en rebre un `401`, així
+  que en un dispositiu compartit les incidències d'un usuari no sobreviuen al logout (sí
+  que poden veure's mentre la sessió continua oberta).
 
 ## Fase 2: lectura offline de dades
 
 - **Caché d'API** (`runtimeCaching` de `front/vite.config.ts`): `NetworkFirst` amb
   `networkTimeoutSeconds: 3` per a `GET /api/adfs`, `/api/hidrants` i
-  `/api/adf/boundary`, a la caché `api-data` (60 entrades, 7 dies). Les incidències no
-  s'hi inclouen perquè poden contenir dades privades i historial. Només `GET` i només
-  respostes `200`: les escriptures no s'emmagatzemen mai.
+  `/api/adf/boundary`, a la caché `api-data` (60 entrades, 7 dies). Les incidències tenen
+  una caché pròpia, `api-incidencies` (200 entrades, 7 dies), perquè el detall d'una
+  incidència ocupa una entrada per id i no ha d'expulsar les dades bàsiques de l'ADF.
+  Només `GET` i només respostes `200`: les escriptures no s'emmagatzemen mai.
 - **Antiguitat** (`utils/offlineData.ts` i `components/shared/OfflineNotice.tsx`): cada
   lectura feta amb xarxa desa el moment a `localStorage`
   (`territoriadf-last-sync:<adf>`). Sense connexió, el mapa mostra
   «Sense connexió · dades de fa X», perquè una còpia no es confongui amb l'estat real.
 - **Neteja en tancar sessió**: `logout` i qualsevol `401` a `/api/auth/me` esborren les
-  cachés `api-*` i les marques de frescor. El precache de l'app shell es conserva; les
-  tessel·les no passen pel service worker.
+  cachés `api-*` i les marques de frescor. El precache de l'app shell i les cachés `tiles-*` es conserven (no són dades d'usuari).
 - **Emmagatzematge persistent**: `navigator.storage.persist()` des de `PwaBanner`. El
   navegador decideix (pot dir que no) i aquí no es fa res si falla.
 - **Sense cache-buster**: `useHidrantData` ja no afegeix `?_t=<timestamp>`, que feia que
@@ -190,8 +244,9 @@ Detalls de la implementació a `PwaBanner.tsx`:
 
 - `/api/auth/me` no es cacheja, així que offline l'app queda en mode lectura anònima: no
   es pot editar res. És el comportament segur, no un defecte.
-- Les tessel·les no visitades abans no hi són i el mapa surt gris. El service worker
-  no les pot servir offline; només ho pot fer la caché HTTP del navegador.
+- Les tessel·les no visitades abans no hi són i el mapa surt gris en aquella zona.
+  Les que sí que s'han vist es veuen, i també el relleu si s'havia activat. Els
+  marcadors, els hidrants i el logo es veuen sempre: són al precache.
 
 ## Possibilitat futura: escriptura offline
 
@@ -203,10 +258,11 @@ i els permisos sense xarxa, perquè avui l'app hi queda en lectura anònima.
 
 ## Diagnòstic
 
-| Símptoma                                | Causa habitual                                                        | Solució                                                                               |
-| --------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| No apareix el prompt d'instal·lació     | Firefox/Safari, o poc engagement, o `beforeinstallprompt` ja consumit | Instal·lar des del menú del navegador; recarregar i esperar uns segons                |
-| El SW no es registra en dev             | Certificat de mkcert no confiat al dispositiu                         | Provar a `localhost` o confiar-hi el certificat                                       |
-| Es veu codi antic després de desplegar  | `sw.js` cachejat per un proxy                                         | Comprovar `Cache-Control: no-cache` a `/sw.js` i fer _Unregister_ + _Clear site data_ |
-| Pantalla en blanc després d'actualitzar | Barreja d'`index.html` nou amb chunks antics                          | Usar el prompt d'actualització, no activar el SW automàticament                       |
-| El mapa surt gris sense connexió        | Tessel·les no presents a la caché HTTP                                | És l'esperat: el service worker no intercepta ni cacheja les tessel·les               |
+| Símptoma                                | Causa habitual                                                        | Solució                                                                                 |
+| --------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| No apareix el prompt d'instal·lació     | Firefox/Safari, o poc engagement, o `beforeinstallprompt` ja consumit | Instal·lar des del menú del navegador; recarregar i esperar uns segons                  |
+| El SW no es registra en dev             | Certificat de mkcert no confiat al dispositiu                         | Provar a `localhost` o confiar-hi el certificat                                         |
+| Es veu codi antic després de desplegar  | `sw.js` cachejat per un proxy                                         | Comprovar `Cache-Control: no-cache` a `/sw.js` i fer _Unregister_ + _Clear site data_   |
+| Pantalla en blanc després d'actualitzar | Barreja d'`index.html` nou amb chunks antics                          | Usar el prompt d'actualització, no activar el SW automàticament                         |
+| El mapa surt gris sense connexió        | Zona no visitada abans, o límit d'entrades assolit                    | És l'esperat fora del que s'ha carregat; visitar la zona amb xarxa la deixa a `tiles-*` |
+| Marcadors/logo amb imatge trencada      | Imatges fora del precache (versió antiga del SW)                      | Carregar un cop amb xarxa perquè el SW nou precachegi `/images/`                        |

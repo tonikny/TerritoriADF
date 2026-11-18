@@ -4,6 +4,7 @@ import * as turf from "@turf/turf";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdf, type AdfData } from "../../../contexts/AdfContext";
 import { OsmSyncPanel } from "../../osm/OsmSyncPanel";
+import { OfflineMapSection } from "../shared/OfflineMapSection";
 import { adfLabel } from "../../../utils/adfLabel";
 import { logError } from "../../../utils/log";
 import {
@@ -360,6 +361,10 @@ export function MapaTab({
             )}
           </dl>
         </div>
+      )}
+
+      {activeAdf && (
+        <OfflineMapSection key={activeAdf.id} adfId={activeAdf.id} bbox={activeAdf.bbox} />
       )}
 
       {draft && (
