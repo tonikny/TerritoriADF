@@ -12,19 +12,22 @@ body .maplibregl-popup {
 
 body .maplibregl-popup-content {
   border-radius: 8px;
-  padding: 0 18px 0 8px;
+  padding: 6px 18px 6px 8px;
 }
 
+/* La x queda a la cantonada superior dreta. Sense contorn de focus ni el
+   rectangle del toc: el botó no ha de semblar seleccionat. */
 body .maplibregl-popup-close-button {
-  top: 50%;
+  top: 1px;
   right: 2px;
   width: 14px;
   height: 14px;
-  margin-top: -7px;
   padding: 0;
   border-radius: 2px;
   font-size: 14px;
   line-height: 14px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body .maplibregl-ctrl-bottom-left,

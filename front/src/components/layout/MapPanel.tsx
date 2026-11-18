@@ -496,10 +496,7 @@ function MapPanelView() {
         list.push({
           id: `tracking-${username}`,
           position: { lat: tracked.lat, lon: tracked.lon },
-          icon: trackingPin(
-            username.slice(-3),
-            ageColor(tracked.receivedAt || tracked.timestamp * 1000),
-          ),
+          icon: trackingPin(username, ageColor(tracked.receivedAt || tracked.timestamp * 1000)),
           // Ordre entre marcadors. MapLibre l'aplica com a z-index absolut, així
           // que cal quedar per sota dels controls de la UI (z-990).
           zIndex: 10,

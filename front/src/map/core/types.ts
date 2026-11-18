@@ -31,6 +31,8 @@ export type MarkerIcon =
       url: string;
       size: [number, number];
       anchor: [number, number];
+      /** Punt on s'ancora el popup, relatiu a `anchor` (per defecte, a sobre). */
+      popupAnchor?: [number, number];
       shadowUrl?: string;
       shadowSize?: [number, number];
     }
@@ -39,6 +41,8 @@ export type MarkerIcon =
       html: string;
       size: [number, number];
       anchor: [number, number];
+      /** Punt on s'ancora el popup, relatiu a `anchor` (per defecte, a sobre). */
+      popupAnchor?: [number, number];
       className?: string;
     };
 

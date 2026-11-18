@@ -97,7 +97,12 @@ export function MaplibreMarker({ spec }: { spec: MapMarkerSpec }) {
   const markerRef = useRef<MaplibreMarkerInstance>(null);
   const popupRef = useRef<MaplibrePopupInstance>(null);
   const icon = spec.icon;
-  const anchor = icon.anchor[1] >= icon.size[1] ? "bottom" : "center";
+  // MapLibre només admet ancoratges centrats; desplacem el marcador perquè
+  // qualsevol `icon.anchor` (com la punta de la cua d'OwnTracks) quedi al punt.
+  const offset: [number, number] = [
+    icon.size[0] / 2 - icon.anchor[0],
+    icon.size[1] / 2 - icon.anchor[1],
+  ];
 
   // Clic fora del popup (i del seu marcador) per tancar-lo. MapLibre té
   // `closeOnClick`, però el clic del mateix marcador també arriba al mapa i el
@@ -145,7 +150,8 @@ export function MaplibreMarker({ spec }: { spec: MapMarkerSpec }) {
         ref={markerRef}
         longitude={spec.position.lon}
         latitude={spec.position.lat}
-        anchor={anchor}
+        anchor="center"
+        offset={offset}
         draggable={Boolean(spec.draggable)}
         style={{ zIndex: spec.zIndex }}
         onClick={() => {
@@ -169,7 +175,7 @@ export function MaplibreMarker({ spec }: { spec: MapMarkerSpec }) {
           longitude={spec.position.lon}
           latitude={spec.position.lat}
           anchor="bottom"
-          offset={[0, -(icon.size[1] + 2)]}
+          offset={icon.popupAnchor ?? [0, -(icon.size[1] + 2)]}
           closeButton
           closeOnClick={false}
           onClose={() => setPopupOpen(false)}

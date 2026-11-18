@@ -5,29 +5,33 @@
   margin-top: 62px;
 }
 
-/* Popups compactes: sense farciment vertical i amb un botó de tancar petit a la dreta. */
+/* Popups compactes, amb un xic de marge vertical i el botó de tancar a la
+   cantonada superior dreta. */
 body .leaflet-popup-content-wrapper {
   border-radius: 8px;
   padding: 0;
 }
 
 body .leaflet-popup-content {
-  margin: 0 18px 0 8px;
+  margin: 6px 18px 6px 8px;
   line-height: 1.35;
   width: auto !important;
 }
 
+/* Sense contorn de focus ni el rectangle del toc: el botó no ha de semblar
+   seleccionat. */
 body .leaflet-container a.leaflet-popup-close-button {
-  top: 50%;
+  top: 1px;
   right: 2px;
   width: 14px;
   height: 14px;
-  margin-top: -7px;
   padding: 0;
   border-radius: 2px;
   color: var(--color-muted);
   font-size: 14px;
   line-height: 14px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body .leaflet-control-container .leaflet-bottom {
