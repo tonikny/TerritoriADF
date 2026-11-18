@@ -46,7 +46,11 @@ const handler: ApiHandler = async (req, res) => {
 
   // --- GET: Llistar hidrants (GeoJSON) ---
   if (method === "GET") {
-    const geoJson = await HidrantsService.getGeoJson(adf_id);
+    // Els usuaris autenticats de qualsevol ADF poden veure les observacions privades;
+    // els anònims reben el mateix GeoJSON sense `private_tags`.
+    const geoJson = await HidrantsService.getGeoJson(adf_id, {
+      includePrivateTags: Boolean(req.user),
+    });
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");

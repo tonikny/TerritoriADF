@@ -52,7 +52,7 @@ export const HidrantsService = {
     return result;
   },
 
-  async getGeoJson(adfId: number) {
+  async getGeoJson(adfId: number, options: { includePrivateTags?: boolean } = {}) {
     // Lectura pura: aquí no es fa cap pull d'OSM. Baixar els hidrants és una acció
     // explícita (panell OSM → "Baixar d'OSM", o POST /api/hidrants/sync), de manera
     // que una recàrrega de la pàgina no depèn de cap servei extern ni es queda
@@ -75,7 +75,12 @@ export const HidrantsService = {
           osm_id: row.osm_id,
           osm_tags, // Ara van en el seu propi objecte, no escampats
           ui_fields,
-          private_tags: parseJsonObject(row.private_tags),
+          // Les observacions privades només surten amb sessió iniciada (de qualsevol
+          // ADF). La resposta anònima manté la mateixa URL perquè la caché offline
+          // del service worker segueixi funcionant.
+          ...(options.includePrivateTags
+            ? { private_tags: parseJsonObject(row.private_tags) }
+            : {}),
           sync_status: row.sync_status,
           sync_error: parseSyncError(row.sync_error),
           synced_at: row.synced_at,
