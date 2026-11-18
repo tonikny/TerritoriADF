@@ -1,4 +1,5 @@
 import type { HidrantFeature } from "../../hooks/useHidrantData";
+import { getNodeShareUrl } from "../../utils/urlParams";
 import { NodeActions } from "../shared/NodeActions";
 
 export function HydrantActions({
@@ -16,7 +17,7 @@ export function HydrantActions({
 
   return (
     <NodeActions
-      nodeId={feature.id}
+      shareUrl={getNodeShareUrl(feature.id)}
       lat={lat}
       lon={lon}
       showRoute={showRoute}

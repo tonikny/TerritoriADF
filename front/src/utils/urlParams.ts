@@ -16,12 +16,24 @@ export function setNodeUrlParam(nodeId: string | null): void {
   setUrlParam("node", nodeId);
 }
 
+export function setIncidenciaUrlParam(incidenciaId: string | null): void {
+  setUrlParam("incidencia", incidenciaId);
+}
+
 export function setAdfUrlParam(adfId: number | null): void {
   setUrlParam("adf", adfId ? adfId.toString() : null);
 }
 
 export function getNodeShareUrl(nodeId: string): string {
   const url = new URL(window.location.href);
+  url.searchParams.delete("incidencia");
   url.searchParams.set("node", nodeId);
+  return url.toString();
+}
+
+export function getIncidenciaShareUrl(incidenciaId: string): string {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("node");
+  url.searchParams.set("incidencia", incidenciaId);
   return url.toString();
 }

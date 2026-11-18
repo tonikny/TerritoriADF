@@ -3,10 +3,9 @@ import { useAuth } from "../../contexts/AuthContext";
 import { openInNativeMaps } from "../../utils/geoMaps";
 import { ShareIcon } from "./Icons";
 
-import { getNodeShareUrl } from "../../utils/urlParams";
-
 interface NodeActionsProps {
-  nodeId: string;
+  /** Enllaç que copia el botó de compartir (node o incidència segons el cas). */
+  shareUrl: string;
   lat: number;
   lon: number;
   showRoute?: boolean;
@@ -15,7 +14,7 @@ interface NodeActionsProps {
 }
 
 export function NodeActions({
-  nodeId,
+  shareUrl,
   lat,
   lon,
   showRoute,
@@ -25,9 +24,8 @@ export function NodeActions({
   const { user } = useAuth();
 
   const handleShare = async () => {
-    const url = getNodeShareUrl(nodeId);
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl);
       toast.success("Enllaç copiat al porta-retalls");
     } catch {
       toast.error("Error al copiar l'enllaç");
