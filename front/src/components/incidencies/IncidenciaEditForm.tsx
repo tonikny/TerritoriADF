@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Incidencia } from "../../types";
 import { useIncidencies } from "../../hooks/useIncidencies";
+import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
 import {
   inputClass,
@@ -26,6 +27,13 @@ export function IncidenciaEditForm({
   onDone: () => void;
 }) {
   const { addEvent } = useIncidencies();
+  const { user, actualRole } = useAuth();
+  const canChangeVisibility =
+    actualRole === "admin" ||
+    (actualRole === "coordinador" &&
+      user !== null &&
+      user.adf_id !== null &&
+      user.adf_id === incidencia.adf_id);
   const [newTipus, setNewTipus] = useState<string>(incidencia.tipus);
   const [newStatus, setNewStatus] = useState<string>(incidencia.estat);
   const [newPriority, setNewPriority] = useState<string>(incidencia.prioritat);
@@ -75,7 +83,7 @@ export function IncidenciaEditForm({
           nou: newPrecisio,
         });
       }
-      if (newVisibilitat !== incidencia.visibilitat) {
+      if (canChangeVisibility && newVisibilitat !== incidencia.visibilitat) {
         await addEvent(incidencia.id, "CANVI_VISIBILITAT", {
           anterior: incidencia.visibilitat,
           nou: newVisibilitat,
@@ -164,20 +172,24 @@ export function IncidenciaEditForm({
           </select>
         </label>
 
-        <label className="text-[0.8rem] italic flex flex-col gap-1">
-          Visibilitat:
-          <select
-            value={newVisibilitat}
-            onChange={(e) => setNewVisibilitat(e.target.value)}
-            className={selectClass}
-          >
-            {VISIBILITATS_INCIDENCIA.map((visibilitat) => (
-              <option key={visibilitat.value} value={visibilitat.value}>
-                {visibilitat.icon ? `${visibilitat.icon} ${visibilitat.label}` : visibilitat.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {canChangeVisibility && (
+          <label className="text-[0.8rem] italic flex flex-col gap-1">
+            Visibilitat:
+            <select
+              value={newVisibilitat}
+              onChange={(e) => setNewVisibilitat(e.target.value)}
+              className={selectClass}
+            >
+              {VISIBILITATS_INCIDENCIA.map((visibilitat) => (
+                <option key={visibilitat.value} value={visibilitat.value}>
+                  {visibilitat.icon
+                    ? `${visibilitat.icon} ${visibilitat.label}`
+                    : visibilitat.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="text-[0.8rem] italic flex flex-col gap-1">
           Comentari:

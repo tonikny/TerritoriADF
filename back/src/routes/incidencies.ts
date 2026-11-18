@@ -1,6 +1,6 @@
 import { IncidenciesService } from "../services/incidenciesService.js";
 import type { ApiHandler, TipusEvent } from "../types.js";
-import { BadRequestError } from "../errors.js";
+import { BadRequestError, UnauthorizedError } from "../errors.js";
 import { z } from "zod";
 import { appBaseUrl } from "../utils/appUrl.js";
 
@@ -61,6 +61,7 @@ const handler: ApiHandler = async (req, res) => {
       adf_id: adf_id || 0, // Fallback segur per admin
       usuari_id: user?.id || "anonymous",
       nom_usuari: user?.username || "Anònim",
+      rol_usuari: user?.role || "voluntari",
       comentari: parsed.data.comentari,
       clientBaseUrl,
     });
@@ -73,10 +74,12 @@ const handler: ApiHandler = async (req, res) => {
     if (!parsed.success) {
       throw new BadRequestError(parsed.error.message);
     }
+    if (!user) {
+      throw new UnauthorizedError("Cal iniciar sessió");
+    }
     const result = IncidenciesService.addEvent(
       req.params.id,
-      user?.id || "anonymous",
-      user?.username || "Anònim",
+      user,
       parsed.data.tipus_event as TipusEvent,
       parsed.data.dades,
       clientBaseUrl,

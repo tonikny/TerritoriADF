@@ -13,7 +13,7 @@ import type {
   IncidenciaPrecisio,
   IncidenciaVisibilitat,
 } from "../types.js";
-import { NotFoundError } from "../errors.js";
+import { ForbiddenError, NotFoundError } from "../errors.js";
 import { sendTelegramMessage } from "../utils/telegram.js";
 import { sendToAdf } from "./telegramService.js";
 import { assertPointInAdf } from "./adfArea.js";
@@ -33,6 +33,57 @@ type EventDades = {
   nova?: { lat: number; lon: number; precisio: IncidenciaPrecisio };
   comentari?: string;
 };
+
+export type IncidenciaRequester = {
+  id: string;
+  username: string;
+  adf_id: number | null;
+  role: string;
+};
+
+/**
+ * Autoritza un esdeveniment sobre una incidència:
+ * - Només els membres de l'ADF propietària (o un admin) la poden modificar.
+ * - La visibilitat només la pot canviar el coordinador d'aquesta ADF (o un admin).
+ * Si l'usuari ni tan sols pot veure la incidència, es retorna 404 per no revelar-ne l'existència.
+ */
+export function assertCanAddEvent(
+  incidencia: Incidencia,
+  requester: IncidenciaRequester,
+  tipusEvent: TipusEvent,
+): void {
+  if (!canView(incidencia, requester)) {
+    throw new NotFoundError("Incidència no trobada");
+  }
+
+  const isAdmin = requester.role === "admin";
+  const isOwnerMember =
+    incidencia.adf_id !== null &&
+    requester.adf_id !== null &&
+    requester.adf_id === incidencia.adf_id;
+
+  if (!isAdmin && !isOwnerMember) {
+    throw new ForbiddenError("Només els membres de l'ADF de la incidència la poden modificar");
+  }
+
+  if (tipusEvent === "CANVI_VISIBILITAT" && !isAdmin && requester.role !== "coordinador") {
+    throw new ForbiddenError("Només el coordinador de l'ADF pot canviar la visibilitat");
+  }
+}
+
+/**
+ * La visibilitat inicial només la pot triar un coordinador o un admin.
+ * Un voluntari crea sempre la incidència privada per a la seva ADF.
+ */
+export function initialVisibilityForRole(
+  role: string,
+  requested?: IncidenciaVisibilitat,
+): IncidenciaVisibilitat {
+  if (role === "admin" || role === "coordinador") {
+    return requested || "ADF_PRIVADA";
+  }
+  return "ADF_PRIVADA";
+}
 
 export const IncidenciesService = {
   getIncidencies(adfId?: number, includeClosed: boolean = false) {
@@ -92,6 +143,7 @@ export const IncidenciesService = {
     adf_id: number;
     usuari_id: string;
     nom_usuari?: string;
+    rol_usuari: string;
     comentari?: string;
     clientBaseUrl?: string;
   }) {
@@ -113,7 +165,7 @@ export const IncidenciesService = {
       lat: data.lat,
       lon: data.lon,
       precisio: data.precisio || "EXACTA",
-      visibilitat: data.visibilitat || "ADF_PRIVADA",
+      visibilitat: initialVisibilityForRole(data.rol_usuari, data.visibilitat),
       creat_at: timestamp,
       actualitzat_at: timestamp,
     };
@@ -161,8 +213,7 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
 
   addEvent(
     incidenciaId: string,
-    usuariId: string,
-    nomUsuari: string,
+    requester: IncidenciaRequester,
     tipusEvent: TipusEvent,
     dades: EventDades,
     clientBaseUrl?: string,
@@ -172,14 +223,16 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
       throw new NotFoundError("Incidència no trobada");
     }
 
+    assertCanAddEvent(incidencia, requester, tipusEvent);
+
     const eventId = uuidv4();
     const timestamp = new Date().toISOString();
-    const displayUser = nomUsuari || usuariId;
+    const displayUser = requester.username || requester.id;
 
     const event: IncidenciaEvent = {
       id: eventId,
       incidencia_id: incidenciaId,
-      usuari_id: usuariId,
+      usuari_id: requester.id,
       tipus_event: tipusEvent,
       dades: JSON.stringify(dades),
       creat_at: timestamp,

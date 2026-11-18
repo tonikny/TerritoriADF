@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useIncidencies } from "../../hooks/useIncidencies";
+import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
 import {
   inputClass,
@@ -24,6 +25,8 @@ interface NovaIncidenciaFormProps {
 
 export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProps) => {
   const { createIncidencia } = useIncidencies();
+  const { actualRole } = useAuth();
+  const canChooseVisibility = actualRole === "admin" || actualRole === "coordinador";
   const [type, setType] = useState("GENERICA");
   const [priority, setPriority] = useState("MITJANA");
   const [precisio, setPrecisio] = useState("EXACTA");
@@ -42,7 +45,7 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
         tipus: type,
         prioritat: priority,
         precisio,
-        visibilitat,
+        visibilitat: canChooseVisibility ? visibilitat : "ADF_PRIVADA",
         lat,
         lon,
         comentari,
@@ -130,22 +133,28 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
         </select>
       </label>
 
-      {/* Visibilitat */}
-      <label className="text-[0.8rem] italic mb-3">
-        Visibilitat:
-        <select
-          value={visibilitat}
-          onChange={(e) => setVisibilitat(e.target.value)}
-          className={selectClass}
-          required
-        >
-          {VISIBILITATS_INCIDENCIA.map((v) => (
-            <option key={v.value} value={v.value}>
-              {v.icon ? `${v.icon} ${v.label}` : v.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {/* Visibilitat: només la tria qui pot decidir-la (coordinador/admin). */}
+      {canChooseVisibility ? (
+        <label className="text-[0.8rem] italic mb-3">
+          Visibilitat:
+          <select
+            value={visibilitat}
+            onChange={(e) => setVisibilitat(e.target.value)}
+            className={selectClass}
+            required
+          >
+            {VISIBILITATS_INCIDENCIA.map((v) => (
+              <option key={v.value} value={v.value}>
+                {v.icon ? `${v.icon} ${v.label}` : v.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <p className="text-[0.8rem] italic mb-3">
+          Visibilitat: <strong>🔒 Només la pròpia ADF</strong>
+        </p>
+      )}
 
       {/* Comentari inicial */}
       <label className="text-[0.8rem] italic mb-3">
