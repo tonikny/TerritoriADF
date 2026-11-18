@@ -170,6 +170,11 @@ const stream: ApiHandler = (req, res) => {
 
 /** Activa OwnTracks per l'usuari actual: crea l'usuari MQTT (identitat aplanada), guarda la password xifrada, retorna .otrc. */
 const enable: ApiHandler = async (req, res) => {
+  // Rotar credencials és una mutació: mai per GET (prefetch, crawlers, enllaços).
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  res.setHeader("Cache-Control", "no-store");
   const userId = req.user!.id;
   const username = req.user!.username;
   const mqUsername = mqttNameFor(username);
@@ -214,6 +219,11 @@ const enable: ApiHandler = async (req, res) => {
 
 /** Descarrega el .otrc si OwnTracks ja està activat (desxifra la password de la DB). */
 const configHandler: ApiHandler = async (req, res) => {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  // Conté la password MQTT: no ha de quedar en cap caché.
+  res.setHeader("Cache-Control", "no-store");
   const userId = req.user!.id;
   const username = req.user!.username;
   const mqUsername = mqttNameFor(username);

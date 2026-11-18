@@ -10,6 +10,11 @@ import { permissionsFor } from "../permissions.js";
  * Admin pot qualsevol ADF; coordinador només la seva (permís manage_own_adf_sharing).
  */
 const handler: ApiHandler = async (req, res) => {
+  // Endpoint de mutació: només PUT. Un GET no ha de poder desactivar la compartició.
+  if (req.method !== "PUT") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   const user = req.user!;
   const adfId = Number(req.params?.id);
   const shared = req.body?.shared === true;
