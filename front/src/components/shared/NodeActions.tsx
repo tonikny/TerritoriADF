@@ -1,4 +1,5 @@
 import { toast } from "react-toastify";
+import { useAuth } from "../../contexts/AuthContext";
 import { openInNativeMaps } from "../../utils/geoMaps";
 import { ShareIcon } from "./Icons";
 
@@ -21,6 +22,8 @@ export function NodeActions({
   setShowRoute,
   hasLocation,
 }: NodeActionsProps) {
+  const { user } = useAuth();
+
   const handleShare = async () => {
     const url = getNodeShareUrl(nodeId);
     try {
@@ -56,7 +59,7 @@ export function NodeActions({
         <ShareIcon />
       </button>
 
-      {setShowRoute && (
+      {user && setShowRoute && (
         <button
           type="button"
           onClick={(e) => {

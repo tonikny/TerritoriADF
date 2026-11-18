@@ -259,7 +259,7 @@ const routes = [
   { path: "/api/hidrants", handler: hidrants },
   { path: "/api/hidrants/:id", handler: hidrants },
   { path: "/api/sendToTelegram", handler: sendToTelegram },
-  { path: "/api/route", handler: route },
+  { path: "/api/route", handler: route, protected: true },
   { path: "/api/adf", handler: municipi },
   { path: "/api/adfs", handler: municipisList },
   { path: "/api/adfs/:id", handler: municipisList },

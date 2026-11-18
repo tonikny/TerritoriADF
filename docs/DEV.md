@@ -521,9 +521,9 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 
 | Endpoint                             | Mètode | Auth | Descripció                                                                                                                                                                         |
 | ------------------------------------ | ------ | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/overpass`                      | POST   | no   | Proxy Overpass `{ query }` → JSON (`back/src/routes/overpass.ts:4`, CORS `*`)                                                                                                      |
+| `/api/overpass`                      | POST   | no   | Proxy Overpass `{ query }` → JSON; només des de la mateixa web (`Origin`/`Referer` + `Content-Type: application/json`), sense CORS obert (`back/src/routes/overpass.ts`)           |
 | `/api/sendToTelegram`                | POST   | no   | Envia missatge (hidrant nou/incidència/edit) a bot global + bot ADF; si hidrant nou amb `adf_id` el crea a BD (`back/src/routes/sendToTelegram.ts:17`, `ui2Osm()`, `appBaseUrl()`) |
-| `/api/route?from=lat,lon&to=lat,lon` | GET    | no   | Proxy GraphHopper `vehicle=car` (`back/src/routes/route.ts:4`)                                                                                                                     |
+| `/api/route?from=lat,lon&to=lat,lon` | GET    | sí   | Proxy GraphHopper `vehicle=car`; requereix sessió (`back/src/routes/route.ts:4`)                                                                                                   |
 
 ### 10.9 Fre de força bruta (login)
 

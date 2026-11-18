@@ -405,7 +405,7 @@ function MapPanelView() {
       : null;
 
   const route = useRoute({
-    enabled: showRoute && position !== null && routeTarget !== null,
+    enabled: !!user && showRoute && position !== null && routeTarget !== null,
     from: position,
     to: routeTarget,
   });
