@@ -79,6 +79,12 @@ export default defineConfig({
           "**/*.webmanifest",
           // No s'usa enlloc i fa 1 MB.
           "**/images/icons/hydrant-fire-hydrant-pngrepo-com.png",
+          // jspdf i html2canvas (~600 KB) només fan falta per exportar a PDF i es
+          // carreguen amb import() dinàmic: fora del precache per no inflar-lo.
+          // Amb xarxa l'exportació funciona igual; sense xarxa, si el navegador no
+          // té el chunk a la caché HTTP, en surt un avís i no es genera el PDF.
+          "**/jspdf*.js",
+          "**/html2canvas*.js",
         ],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//, /^\/tiles\//],

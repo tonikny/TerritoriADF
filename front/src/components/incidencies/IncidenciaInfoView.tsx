@@ -1,6 +1,7 @@
 import type { Incidencia, IncidenciaEvent } from "../../types";
 import { Timeline } from "./Timeline";
 import { NodeActions } from "../shared/NodeActions";
+import { getIncidenciaShareUrl } from "../../utils/urlParams";
 import {
   ESTATS_INCIDENCIA,
   PRECISIONS_INCIDENCIA,
@@ -69,7 +70,7 @@ export function IncidenciaInfoView({
       )}
 
       <NodeActions
-        nodeId={incidencia.id}
+        shareUrl={getIncidenciaShareUrl(incidencia.id)}
         lat={incidencia.lat}
         lon={incidencia.lon}
         showRoute={showRoute}

@@ -67,7 +67,7 @@ import { createTitle } from "../panel/createTitle";
 import { IncidenciaInfo } from "../incidencies/IncidenciaInfo";
 import { isPointInBoundary } from "../../utils/geo";
 import { emojiPrioritatIncidencia } from "../../utils/incidenciaConstants";
-import { getQueryParam, setNodeUrlParam } from "../../utils/urlParams";
+import { getQueryParam, setIncidenciaUrlParam, setNodeUrlParam } from "../../utils/urlParams";
 import { timeAgo } from "../../utils/time";
 import { MapUIOverlays } from "../controls/MapUIOverlays";
 import type { CreateType, IncidenciaFeature } from "../../types";
@@ -173,7 +173,8 @@ function MapPanelView() {
   const capabilities = ENGINE_CAPABILITIES[engine];
 
   const deepLinkNodeId = useMemo(() => getQueryParam("node"), []);
-  const hasDeepLink = deepLinkNodeId !== null;
+  const deepLinkIncidenciaId = useMemo(() => getQueryParam("incidencia"), []);
+  const hasDeepLink = deepLinkNodeId !== null || deepLinkIncidenciaId !== null;
   const { initialView, hasSavedView, saveView } = useMapViewPersistence({
     adfId: activeAdf?.id ?? null,
     fallbackView: viewForAdf(activeAdf),
@@ -236,6 +237,7 @@ function MapPanelView() {
   const handleSelectNode = useCallback(
     (feature: HidrantFeature) => {
       setNodeUrlParam(feature.id);
+      setIncidenciaUrlParam(null);
       setSelectedNode(feature);
       setSelectedIncidencia(null);
       setEditing(false);
@@ -249,7 +251,8 @@ function MapPanelView() {
 
   const handleSelectIncidencia = useCallback(
     (feature: IncidenciaFeature) => {
-      setNodeUrlParam(feature.id);
+      setIncidenciaUrlParam(feature.id);
+      setNodeUrlParam(null);
       setSelectedIncidencia(feature);
       setSelectedNode(null);
       setEditing(false);
@@ -274,12 +277,27 @@ function MapPanelView() {
       handleSelectNode(hydrant);
       return;
     }
+    // Compatibilitat amb enllaços antics, quan les incidències també feien servir `node`.
     const incidencia = incidenciaFeatures.find((feature) => feature.id === deepLinkNodeId);
     if (incidencia) {
       deepLinkHandled.current = deepLinkNodeId;
       handleSelectIncidencia(incidencia);
     }
   }, [deepLinkNodeId, features, incidenciaFeatures, handleSelectNode, handleSelectIncidencia]);
+
+  // `?incidencia=` s'obre un sol cop, quan les incidències de l'ADF ja són disponibles.
+  const deepLinkIncidenciaHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLinkIncidenciaId || deepLinkIncidenciaHandled.current === deepLinkIncidenciaId) {
+      return;
+    }
+    const incidencia = incidenciaFeatures.find((feature) => feature.id === deepLinkIncidenciaId);
+    if (incidencia) {
+      deepLinkIncidenciaHandled.current = deepLinkIncidenciaId;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- selecció inicial des de la URL
+      handleSelectIncidencia(incidencia);
+    }
+  }, [deepLinkIncidenciaId, incidenciaFeatures, handleSelectIncidencia]);
 
   const handleDeselectNode = () => {
     setNodeUrlParam(null);
@@ -289,7 +307,7 @@ function MapPanelView() {
   };
 
   const handleDeselectIncidencia = () => {
-    setNodeUrlParam(null);
+    setIncidenciaUrlParam(null);
     setSelectedIncidencia(null);
     setEditing(false);
     setDraftPosition(null);
@@ -322,6 +340,7 @@ function MapPanelView() {
         return;
       }
       setNodeUrlParam(null);
+      setIncidenciaUrlParam(null);
       setSelectedNode(null);
       setSelectedIncidencia(null);
       setEditing(false);

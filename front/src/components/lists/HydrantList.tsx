@@ -1,44 +1,68 @@
-import { useMemo, useState } from "react";
 import type { HidrantFeature } from "../../hooks/useHidrantData";
+import type { HidrantEstatFilter, HydrantFilters } from "../../hooks/useListFilters";
+import { HIDRANT_ESTAT_OPTIONS } from "../../hooks/useListFilters";
+import { useAdf } from "../../contexts/AdfContext";
+import { exportHydrantListPdf } from "../../utils/listPdf";
 import { getHydrantStatus, getHydrantIconUrl } from "../../utils/icons";
-import { inputClass } from "../../styles/uiStyles";
+import { inputClass, selectClass } from "../../styles/uiStyles";
+import { PdfExportButton } from "./PdfExportButton";
 
 export function HydrantList({
-  features,
+  filters,
   onSelectNode,
 }: {
-  features: HidrantFeature[];
+  filters: HydrantFilters;
   onSelectNode?: (feature: HidrantFeature) => void;
 }) {
-  const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    if (!search) {
-      return features;
-    }
-    const s = search.toLowerCase();
-    return features.filter((f) => {
-      const ui = f.properties.ui_fields || {};
-      const address = `${ui.street || ""} ${ui.num || ""} ${ui.barri || ""}`.toLowerCase();
-      return address.includes(s);
-    });
-  }, [features, search]);
+  const { activeAdf } = useAdf();
+  const filtered = filters.filtered;
 
   return (
     <div>
-      <input
-        type="text"
-        placeholder="Cerca per carrer/barri..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className={`${inputClass} mb-2 p-2! box-border`}
-      />
+      <div className="flex gap-2 mb-2">
+        <input
+          type="text"
+          placeholder="Cerca per carrer/barri..."
+          aria-label="Cerca hidrants per carrer o barri"
+          value={filters.search}
+          onChange={(e) => filters.setSearch(e.target.value)}
+          className={`${inputClass} flex-1 min-w-0 p-2! box-border`}
+        />
+        <select
+          aria-label="Filtra els hidrants per estat"
+          value={filters.estat}
+          onChange={(e) => filters.setEstat(e.target.value as HidrantEstatFilter)}
+          className={`${selectClass} w-auto! shrink-0 px-1.5 py-2 text-[0.8rem]`}
+        >
+          <option value="">Tots els estats</option>
+          {HIDRANT_ESTAT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <PdfExportButton
+          errorLabel="Error generant el PDF dels hidrants"
+          onExport={() =>
+            exportHydrantListPdf({
+              adf: activeAdf,
+              hydrants: filtered,
+              total: filters.total,
+              filterDescription: filters.description,
+            })
+          }
+        />
+      </div>
       <div className="max-h-[35vh] overflow-y-auto border border-soft rounded">
         {filtered.length === 0 ? (
-          <p className="text-center text-muted p-4 text-[0.85rem]">No s'han trobat hidrants.</p>
+          <p className="text-center text-muted p-4 text-[0.85rem]">
+            {filters.isFiltered
+              ? "Cap hidrant coincideix amb els filtres."
+              : "No s'han trobat hidrants."}
+          </p>
         ) : (
           filtered.map((f) => {
-            const ui = f.properties.ui_fields || {};
+            const ui = f.properties.ui_fields;
             const address = `${ui.street || ""} ${ui.num || ""}`.trim();
             const neighborhood = ui.barri ? `(${ui.barri})` : "";
             const diameters = ui.diameters ? ui.diameters.split(";").join(", ") + " mm" : "";
