@@ -4,7 +4,6 @@ import { HydrantImages } from "./HydrantImages";
 import { QuickStatusButtons } from "./QuickStatusButtons";
 import { HydrantActions } from "./HydrantActions";
 import { HydrantSyncActions } from "./HydrantSyncActions";
-import { TelegramNotifyBox } from "./TelegramNotifyBox";
 
 export function HydrantInfoView({
   feature,
@@ -70,8 +69,6 @@ export function HydrantInfoView({
         setShowRoute={setShowRoute}
         hasLocation={hasLocation}
       />
-
-      <TelegramNotifyBox feature={feature} />
     </>
   );
 }

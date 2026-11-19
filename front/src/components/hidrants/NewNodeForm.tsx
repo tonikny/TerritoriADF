@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../styles/uiStyles";
 import type { HydrantUiFields } from "../../utils/osmConversion";
 import { HydrantFormFields } from "./HydrantFormFields";
+import { logError } from "../../utils/log";
 import { useAdf } from "../../contexts/AdfContext";
 import { CoordinatesLabel } from "../shared/CoordinatesLabel";
 
@@ -60,19 +61,49 @@ export const NewNodeForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!activeAdf) {
+      toast.error("Cal seleccionar una ADF");
+      return;
+    }
+
     try {
-      await sendToTelegram({
-        lat,
-        lon,
-        tags: {
+      // La creació es fa via l'endpoint protegit (valida permís i abast ADF);
+      // sendToTelegram només notifica, ja no escriu a la BD.
+      const createdRes = await fetch(`/api/hidrants?adf=${activeAdf.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat,
+          lon,
           ui_fields: data,
           private_tags: {
             observacions: observacions.trim() || undefined,
           },
-        },
-        message: "Node creat",
-        adf_id: activeAdf?.id,
+        }),
       });
+      if (!createdRes.ok) {
+        throw new Error("Error creant l'hidrant");
+      }
+      const created = (await createdRes.json()) as { id: string };
+
+      try {
+        await sendToTelegram({
+          lat,
+          lon,
+          tags: {
+            id: created.id,
+            ui_fields: data,
+            private_tags: {
+              observacions: observacions.trim() || undefined,
+            },
+          },
+          adf_id: activeAdf.id,
+          action: "create",
+        });
+      } catch (err) {
+        // L'hidrant ja s'ha creat: una fallada de Telegram no ha de fer-ho semblar fallit.
+        logError("Error notificant la creació a Telegram", err);
+      }
       toast.success("Hidrant afegit");
       setObservacions("");
       if (refreshHidrants) {

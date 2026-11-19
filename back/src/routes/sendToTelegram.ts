@@ -1,9 +1,34 @@
+import { z } from "zod";
 import type { ApiHandler } from "../types.js";
-import { ui2Osm } from "../utils/osmConversion.js";
-import { HidrantsService } from "../services/hidrantsService.js";
+import { ui2Osm, type HydrantUiFields } from "../utils/osmConversion.js";
 import { sendTelegramMessage } from "../utils/telegram.js";
 import { sendToAdf } from "../services/telegramService.js";
 import { appBaseUrl } from "../utils/appUrl.js";
+import { permissionsFor } from "../permissions.js";
+import { telegramBlock, registerTelegramHit } from "../services/telegramThrottle.js";
+
+/**
+ * Notificacions de Telegram per a hidrants (creació/edició/esborrat).
+ *
+ * Endurejit: requereix sessió (ruta `protected`), l'ADF notificada ha de ser la
+ * de l'usuari (excepte admin), cal el permís de l'acció (create/edit/delete_hydrant)
+ * i hi ha fre anti-spam per usuari/IP. No escriu a la BD: la creació es fa via
+ * `POST /api/hidrants` i aquí només es notifica. No accepta text lliure (`message`
+ * eliminat): el cos el construeix el servidor a partir de dades estructurades.
+ */
+const payloadSchema = z.object({
+  lat: z.number().finite(),
+  lon: z.number().finite(),
+  adf_id: z.number().int().positive(),
+  tags: z.unknown().optional(),
+  originalData: z.unknown().optional(),
+  changes: z.unknown().optional(),
+  isEdit: z.boolean().optional(),
+  action: z.enum(["create", "delete"]).optional(),
+});
+
+/** Mida màxima del resum estructurat per evitar missatges gegants a Telegram. */
+const MAX_STRUCTURED_BYTES = 10_000;
 
 function escapeHtml(text: string): string {
   return text
@@ -15,60 +40,99 @@ function escapeHtml(text: string): string {
 }
 
 const handler: ApiHandler = async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    res.status(204).end();
-    return;
-  }
-
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
+  // Defensa en profunditat: la ruta ja és `protected` a server.ts, però aquí
+  // també ho exigim perquè un canvi de registre no torni a obrir l'endpoint.
+  const user = req.user;
+  if (!user) {
+    res.status(401).json({ error: "Sessió caducada o no vàlida" });
+    return;
+  }
+
+  const parsed = payloadSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Petició invàlida" });
+    return;
+  }
+  const { lat, lon, adf_id, tags, originalData, changes, isEdit, action } = parsed.data;
+
+  // Abast ADF: només la pròpia (admin exempte). El wrapper genèric ja ho comprova,
+  // però ho repetim aquí perquè la lògica no depengui del registre de rutes.
+  if (user.role !== "admin" && user.adf_id !== adf_id) {
+    res.status(403).json({ error: "No tens permisos per editar aquesta ADF" });
+    return;
+  }
+
+  const tagsRecord =
+    tags && typeof tags === "object" && !Array.isArray(tags)
+      ? (tags as Record<string, unknown>)
+      : {};
+  const hasId = typeof tagsRecord.id === "string" || typeof tagsRecord.osm_id === "number";
+
+  // Permís segons l'acció notificada. El camí "comentari" (id existent sense
+  // isEdit ni action, amb text lliure) s'ha eliminat: ja no és un ús permès.
+  const perms = new Set(permissionsFor(user.role));
+  if (action === "delete") {
+    if (!perms.has("delete_hydrant")) {
+      res.status(403).json({ error: "No tens permisos per realitzar aquesta acció" });
+      return;
+    }
+  } else if (action === "create") {
+    if (!perms.has("create_hydrant")) {
+      res.status(403).json({ error: "No tens permisos per realitzar aquesta acció" });
+      return;
+    }
+  } else if (isEdit) {
+    if (!perms.has("edit_hydrant")) {
+      res.status(403).json({ error: "No tens permisos per realitzar aquesta acció" });
+      return;
+    }
+  } else if (hasId) {
+    res.status(400).json({ error: "Ús no permès" });
+    return;
+  } else {
+    if (!perms.has("create_hydrant")) {
+      res.status(403).json({ error: "No tens permisos per realitzar aquesta acció" });
+      return;
+    }
+  }
+
+  const structuredBytes = Buffer.byteLength(
+    JSON.stringify({ tags, originalData, changes }),
+    "utf8",
+  );
+  if (structuredBytes > MAX_STRUCTURED_BYTES) {
+    res.status(413).json({ error: "Dades massa grans per notificar" });
+    return;
+  }
+
+  const blocked = telegramBlock(user.id, req.ip);
+  if (blocked) {
+    res.setHeader("Retry-After", String(blocked.retryAfterSeconds));
+    res.status(429).json({ error: blocked.error });
+    return;
+  }
+
   try {
-    const { lat, lon, tags, message, originalData, changes, adf_id, isEdit, action } = req.body;
-
     let title = "🗺️ <b>Nou Hidrant:</b>";
-    let isNewHydrant = false;
 
-    if (tags?.type === "incidencia") {
-      title = "⚠️ <b>Nova Incidència:</b>";
-    } else if (action === "delete") {
+    if (action === "delete") {
       title = "🗑️ <b>Hidrant esborrat:</b>";
-    } else if (tags?.osm_id || tags?.id) {
-      // Diferenciar entre edició i comentari
-      title = isEdit ? "✏️ <b>Edició d'hidrant:</b>" : "💬 <b>Comentari de l'hidrant:</b>";
-    } else {
-      isNewHydrant = true;
+    } else if (isEdit) {
+      title = "✏️ <b>Edició d'hidrant:</b>";
     }
 
-    // Si és un nou hidrant i tenim adf_id, el guardem a la BD
-    let dbResult = null;
-    if (isNewHydrant && adf_id) {
-      dbResult = HidrantsService.createLocal(
-        Number(adf_id),
-        lat,
-        lon,
-        tags?.ui_fields,
-        tags?.private_tags || {},
-      );
-    }
-
-    // Preparem una còpia neta per Telegram amb la info de la BD
-    const dbInfo = { ...tags };
-    if (dbResult) {
-      dbInfo.id = dbResult.id;
-      dbInfo.sync_status = dbResult.sync_status;
-    }
+    // Preparem una còpia neta per Telegram (conversió ui_fields → osm_tags).
+    const dbInfo = { ...(tagsRecord as Record<string, unknown>) };
 
     if (dbInfo.ui_fields) {
-      const currentOsmTags = { ...(dbInfo.osm_tags || {}) };
-      const newOsmTags = ui2Osm(dbInfo.ui_fields);
-      if (dbInfo.ui_fields.estat) {
+      const currentOsmTags = { ...((dbInfo.osm_tags as Record<string, string> | undefined) ?? {}) };
+      const newOsmTags = ui2Osm(dbInfo.ui_fields as HydrantUiFields);
+      if ((dbInfo.ui_fields as Record<string, unknown>).estat) {
         delete currentOsmTags["emergency"];
         delete currentOsmTags["disused:emergency"];
       }
@@ -83,16 +147,23 @@ const handler: ApiHandler = async (req, res) => {
       dbInfo.private_tags = privateTags;
     }
 
-    const nodeId = tags?.id || dbResult?.id;
+    const nodeId =
+      typeof tagsRecord.id === "string"
+        ? tagsRecord.id
+        : typeof tagsRecord.osm_id === "number"
+          ? String(tagsRecord.osm_id)
+          : null;
 
-    // Generar URL de l'aplicació utilitzant el Host de la petició,
-    // substituint el buclic (localhost) per la IP LAN
     const base = appBaseUrl(req);
-    const adfParam = adf_id ? `adf=${adf_id}&` : "";
-    const appUrl = nodeId && action !== "delete" ? `${base}/?${adfParam}node=${nodeId}` : null;
+    const appUrl = nodeId && action !== "delete" ? `${base}/?adf=${adf_id}&node=${nodeId}` : null;
 
     let contentSection = "";
-    if (isEdit && originalData && changes && Object.keys(changes).length > 0) {
+    if (
+      isEdit &&
+      originalData !== undefined &&
+      changes !== undefined &&
+      Object.keys((changes as Record<string, unknown>) ?? {}).length > 0
+    ) {
       contentSection = `
 📋 <b>Dades originals:</b>
 <pre>${escapeHtml(JSON.stringify(originalData, null, 2))}</pre>
@@ -103,7 +174,7 @@ const handler: ApiHandler = async (req, res) => {
     } else {
       const dataLabel =
         action === "delete"
-          ? `📋 <b>Dades del node${nodeId ? ` <code>${escapeHtml(String(nodeId))}</code>` : ""} (abans d'esborrar):</b>`
+          ? `📋 <b>Dades del node${nodeId ? ` <code>${escapeHtml(nodeId)}</code>` : ""} (abans d'esborrar):</b>`
           : "🏷️ <b>Info BD:</b>";
       contentSection = `
 ${dataLabel}
@@ -111,28 +182,22 @@ ${dataLabel}
 `;
     }
 
-    const displayUser = req.user?.username || "Anònim";
-    // Només mostrem el comentari si n'hi ha: en edicions sempre arriba buit.
-    const messageLine =
-      typeof message === "string" && message.trim()
-        ? `💬 Missatge: ${escapeHtml(message.trim())}\n`
-        : "";
+    const displayUser = user.username || "Anònim";
 
     const text = `
 ${title}
 
 ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
 📍 Coord: <code>${lat}, ${lon}</code>
-${messageLine}👤 Per: ${escapeHtml(displayUser)}
+👤 Per: ${escapeHtml(displayUser)}
 
 ${contentSection}
     `;
 
     await sendTelegramMessage(text);
     // A més del bot global de l'admin, notifiquem el grup de la mateixa ADF
-    if (adf_id) {
-      await sendToAdf(Number(adf_id), text);
-    }
+    await sendToAdf(adf_id, text);
+    registerTelegramHit(user.id, req.ip);
     res.status(200).json({ ok: true });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message || "Unexpected error" });

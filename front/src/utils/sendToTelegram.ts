@@ -4,12 +4,11 @@ interface SendPayload {
   lat: number;
   lon: number;
   tags?: unknown;
-  message?: string;
   originalData?: unknown;
   changes?: unknown;
   adf_id?: number;
   isEdit?: boolean;
-  action?: "delete";
+  action?: "create" | "delete";
 }
 
 export async function sendToTelegram(data: SendPayload): Promise<void> {
