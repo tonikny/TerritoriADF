@@ -352,8 +352,17 @@ restart_mosquitto_if_needed() {
   docker compose restart mosquitto \
     || die "No s'ha pogut reiniciar mosquitto."
   sleep 3
-  docker compose logs --tail=30 mosquitto 2>/dev/null | grep -q 'Opening TLS.*51823' \
-    || die "mosquitto reiniciat però no obre TLS al 51823; revisa mosquitto.conf i els certs."
+  docker compose logs --tail=30 mosquitto 2>/dev/null | grep -q 'Opening .*51823' \
+    || die "mosquitto reiniciat però no obre el port 51823; revisa mosquitto.conf i els certs."
+  # Mosquitto 2.1.2 registra "Opening ipv4 listen socket on port 51823" tant
+  # en pla com en TLS, així que l'obertura al log no prova TLS. La prova real
+  # és un handshake TLS (en pla falla i no hi ha "Verify return code: 0").
+  if command -v openssl >/dev/null 2>&1; then
+    echo | timeout 8 openssl s_client -connect 127.0.0.1:51823 -tls1_2 2>/dev/null | grep -q 'Verify return code: 0' \
+      || die "mosquitto escolta al 51823 però el handshake TLS falla; revisa mosquitto.conf i els certs."
+  else
+    log_warn "openssl no disponible; no es pot verificar el handshake TLS al 51823."
+  fi
   log_ok "mosquitto reiniciat amb TLS al 51823"
 }
 
