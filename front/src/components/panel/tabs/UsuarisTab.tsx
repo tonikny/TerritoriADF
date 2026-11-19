@@ -297,6 +297,7 @@ export function UsuarisTab() {
           <label className="flex items-center gap-2 mt-2 text-[0.8rem]">
             <span className="text-muted">Veure com:</span>
             <select
+              id="view-role"
               value={viewRole ?? "admin"}
               onChange={(e) =>
                 setViewRole(
@@ -307,7 +308,7 @@ export function UsuarisTab() {
               }
               className={`${selectClass} max-w-36 px-1`}
             >
-              <option value="admin">Admin</option>
+              <option value="admin">Administrador</option>
               <option value="coordinador">Coordinador</option>
               <option value="voluntari">Voluntari</option>
             </select>
