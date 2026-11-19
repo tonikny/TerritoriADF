@@ -88,6 +88,7 @@ export const login: ApiHandler = async (req, res) => {
       username: publicUser.username,
       adf_id: publicUser.adf_id,
       role: publicUser.role,
+      tv: user.token_version ?? 0,
     };
 
     return res.status(200).json({ user: publicUser });
@@ -135,8 +136,22 @@ export const changePassword: ApiHandler = async (req, res) => {
     return res.status(400).json({ error: problem });
   }
 
+  // Invalida totes les altres sessions (inclosa una cookie robada): la sessió
+  // actual se resigna amb la nova versió perquè l'usuari no perdi l'accés.
+  const newVersion = (user.token_version ?? 0) + 1;
   const hash = bcrypt.hashSync(newPassword, 10);
-  db.update(users).set({ password_hash: hash }).where(eq(users.id, userId)).run();
+  db.update(users)
+    .set({ password_hash: hash, token_version: newVersion })
+    .where(eq(users.id, userId))
+    .run();
+
+  res._userToSign = {
+    id: user.id,
+    username: user.username,
+    adf_id: user.adf_id,
+    role: user.role ?? "voluntari",
+    tv: newVersion,
+  };
 
   req.log
     .child({ module: "auth", operation: "changePassword" })

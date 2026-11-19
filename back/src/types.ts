@@ -25,7 +25,13 @@ export type ApiResponse = {
   send: (data: any) => void;
   end: () => void;
   setHeader: (name: string, value: string) => void;
-  _userToSign?: { id: string; username: string; adf_id: number | null; role: string };
+  _userToSign?: {
+    id: string;
+    username: string;
+    adf_id: number | null;
+    role: string;
+    tv: number;
+  };
   _clearCookie?: boolean;
   /** Resposta crua de Fastify, només per a streaming (`/api/tracking/stream`): el handler
    *  fa `hijack()` i escriu directament al socket. */

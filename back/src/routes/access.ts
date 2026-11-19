@@ -86,9 +86,14 @@ const redeem: ApiHandler = async (req, res) => {
 
   const hash = bcrypt.hashSync(password, 10);
   const usedAt = new Date().toISOString();
+  // La nova contrasenya invalida qualsevol sessió anterior d'aquest usuari.
+  const newVersion = (user.token_version ?? 0) + 1;
 
   db.transaction((tx) => {
-    tx.update(users).set({ password_hash: hash }).where(eq(users.id, user.id)).run();
+    tx.update(users)
+      .set({ password_hash: hash, token_version: newVersion })
+      .where(eq(users.id, user.id))
+      .run();
     tx.update(accessTokens)
       .set({ used_at: usedAt })
       .where(eq(accessTokens.id, target.tokenId))
@@ -101,6 +106,7 @@ const redeem: ApiHandler = async (req, res) => {
     username: publicUser.username,
     adf_id: publicUser.adf_id,
     role: publicUser.role,
+    tv: newVersion,
   };
 
   req.log

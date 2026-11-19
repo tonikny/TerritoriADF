@@ -68,6 +68,45 @@ export interface HydrantImage {
   type: "image" | "panoramax";
 }
 
+// UUID estricte (v1–v5): qualsevol altre valor no genera URL de Panoramax.
+// Sense aquesta validació, un tag `panoramax=../../altre` d'OSM (editable per
+// tothom) podria apuntar l'<img> i l'enllaç a una ruta arbitrària.
+const PANORAMAX_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Hosts permesos per a `image=*` d'OSM: només https i allotjaments coneguts
+// (Wikimedia = l'habitual a OSM, més els dominis que la CSP de prod ja permet).
+// OSM l'edita tothom: sense allowlist, un pull sync podria colar un enllaç de
+// phishing o contingut extern tant a l'<img> com a l'<a href> (la CSP no limita href).
+const IMAGE_HOST_EXACT = new Set([
+  "upload.wikimedia.org",
+  "commons.wikimedia.org",
+  "openstreetmap.org",
+  "opentopomap.org",
+  "api.panoramax.xyz",
+  "panoramax.mapcomplete.org",
+]);
+const IMAGE_HOST_SUFFIXES = [".openstreetmap.org", ".opentopomap.org"];
+
+function isAllowedImageUrl(raw: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:") {
+    return false;
+  }
+  if (url.username || url.password) {
+    return false;
+  }
+  const host = url.hostname.toLowerCase();
+  if (IMAGE_HOST_EXACT.has(host)) {
+    return true;
+  }
+  return IMAGE_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
+}
+
 export function getHydrantImages(osmTags: Record<string, string>): HydrantImage[] {
   if (!osmTags) {
     return [];
@@ -75,13 +114,17 @@ export function getHydrantImages(osmTags: Record<string, string>): HydrantImage[
   const images: HydrantImage[] = [];
 
   Object.keys(osmTags).forEach((key) => {
-    const value = osmTags[key];
+    const rawValue = osmTags[key];
+    if (!rawValue) {
+      return;
+    }
+    const value = rawValue.trim();
     if (!value) {
       return;
     }
 
     if (key === "image" || /^image:\d+$/.exec(key)) {
-      if (value.startsWith("http")) {
+      if (isAllowedImageUrl(value)) {
         images.push({
           url: value,
           thumbnail: value,
@@ -89,19 +132,19 @@ export function getHydrantImages(osmTags: Record<string, string>): HydrantImage[
         });
       }
     } else if (key === "panoramax" || /^panoramax:\d+$/.exec(key)) {
-      const uuid = value.trim();
-      // Si és un UUID (no URL)
-      if (uuid && !uuid.startsWith("http")) {
+      // UUID canònic → URLs construïdes per nosaltres (host fix de confiança)
+      if (PANORAMAX_UUID_RE.test(value)) {
+        const uuid = value.toLowerCase();
         images.push({
           url: `https://api.panoramax.xyz/api/pictures/${uuid}/hd.jpg`,
           thumbnail: `https://api.panoramax.xyz/api/pictures/${uuid}/sd.jpg`,
           type: "panoramax",
         });
-      } else if (uuid.startsWith("http")) {
-        // Si ja és una URL, la tractem com a image
+      } else if (isAllowedImageUrl(value)) {
+        // Si ja és una URL permesa, la tractem com a image
         images.push({
-          url: uuid,
-          thumbnail: uuid,
+          url: value,
+          thumbnail: value,
           type: "image",
         });
       }

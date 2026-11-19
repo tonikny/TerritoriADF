@@ -57,6 +57,9 @@ export const users = sqliteTable(
     id: text("id").primaryKey(),
     username: text("username").notNull(),
     password_hash: text("password_hash").notNull(),
+    // Versió del token: s'incrementa a cada canvi de contrasenya i invalida
+    // totes les cookies JWT anteriors (el JWT només porta l'id + aquesta versió).
+    token_version: integer("token_version").notNull().default(0),
     adf_id: integer("adf_id").references(() => adfs.id),
     role: text("role", { enum: ["admin", "coordinador", "voluntari"] }).default("voluntari"),
     created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),

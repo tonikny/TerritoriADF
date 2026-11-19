@@ -110,7 +110,7 @@ server {
         # per /tiles/icgc-terrain/ (mateix origen), així que 'self' el cobreix.
         # img-src deixa fora les URL `image=*` d'OSM que no hi siguin: aquestes
         # fotos no es veuen, i el component les amaga.
-        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.openstreetmap.org https://*.opentopomap.org https://*.idee.es https://maps.effis.emergency.copernicus.eu https://api.panoramax.xyz https://panoramax.mapcomplete.org https://geoserveis.icgc.cat; connect-src 'self' https://maps.effis.emergency.copernicus.eu https://geoserveis.icgc.cat; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self';" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.openstreetmap.org https://*.opentopomap.org https://*.idee.es https://maps.effis.emergency.copernicus.eu https://api.panoramax.xyz https://panoramax.mapcomplete.org https://geoserveis.icgc.cat https://upload.wikimedia.org https://commons.wikimedia.org; connect-src 'self' https://maps.effis.emergency.copernicus.eu https://geoserveis.icgc.cat; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self';" always;
     }
 
     # STREAM SSE DE POSICIONS (Proxy al backend, sense buffering)

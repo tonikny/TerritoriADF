@@ -83,9 +83,38 @@ interface ResAdapter {
   send: (data: any) => void;
   end: () => void;
   setHeader: (name: string, value: string) => void;
-  _userToSign?: { id: string; username: string; adf_id: number | null; role: string };
+  _userToSign?: {
+    id: string;
+    username: string;
+    adf_id: number | null;
+    role: string;
+    tv: number;
+  };
   _clearCookie?: boolean;
   _reply?: FastifyReply;
+}
+
+/**
+ * Atributs de la cookie de sessió (compartits entre login i logout): han de
+ * coincidir perquè el navegador accepti esborrar una cookie `Secure`/`SameSite`.
+ */
+function sessionCookieOptions(request: FastifyRequest): any {
+  const options: any = {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+  };
+
+  // Si estem en producció o l'usuari accedeix per HTTPS, marquem la cookie com a segura
+  if (
+    process.env.NODE_ENV === "production" ||
+    request.protocol === "https" ||
+    request.headers["x-forwarded-proto"] === "https"
+  ) {
+    options.secure = true;
+  }
+
+  return options;
 }
 
 function createRes(reply: FastifyReply, app: any, request: FastifyRequest): ResAdapter {
@@ -105,30 +134,17 @@ function createRes(reply: FastifyReply, app: any, request: FastifyRequest): ResA
         // cookie httpOnly; no es retorna al cos (evita que quedi a localStorage o logs).
         const token = app.jwt.sign(adapter._userToSign, { expiresIn: "30d" });
 
-        const cookieOptions: any = {
-          path: "/",
-          httpOnly: true,
-          sameSite: "lax",
+        reply.setCookie("auth_token", token, {
+          ...sessionCookieOptions(request),
           maxAge: 60 * 60 * 24 * 30, // 30 dies
-        };
-
-        // Si estem en producció o l'usuari accedeix per HTTPS, marquem la cookie com a segura
-        if (
-          process.env.NODE_ENV === "production" ||
-          request.protocol === "https" ||
-          request.headers["x-forwarded-proto"] === "https"
-        ) {
-          cookieOptions.secure = true;
-        }
-
-        reply.setCookie("auth_token", token, cookieOptions);
+        });
       }
 
-      // Si el handler ha demanat esborrar la cookie (cas del logout)
+      // Si el handler ha demanat esborrar la cookie (cas del logout). Els atributs
+      // han de coincidir amb els de creació: sense `secure`/`sameSite` el navegador
+      // conserva la cookie `Secure` i la sessió seguiria viva.
       if (adapter._clearCookie) {
-        reply.clearCookie("auth_token", {
-          path: "/",
-        });
+        reply.clearCookie("auth_token", sessionCookieOptions(request));
       }
 
       reply.send(data);
@@ -151,9 +167,12 @@ function createRes(reply: FastifyReply, app: any, request: FastifyRequest): ResA
 }
 
 /**
- * Usuari de sessió fresc de la BD. El JWT només serveix per identificar l'usuari (id):
- * el rol i l'ADF es llegeixen de `users` a cada petició, així un canvi de rol o un usuari
- * esborrat tenen efecte immediat en lloc d'esperar l'expiració de la cookie (30 dies).
+ * Usuari de sessió fresc de la BD. El JWT només serveix per identificar l'usuari (id +
+ * versió del token): el rol i l'ADF es llegeixen de `users` a cada petició, així un
+ * canvi de rol o un usuari esborrat tenen efecte immediat en lloc d'esperar
+ * l'expiració de la cookie (30 dies). Un canvi de contrasenya incrementa
+ * `token_version` i invalida totes les cookies anteriors (inclosa una robada).
+ * Els tokens antics sense `tv` s'accepten com a versió 0 (migració transparent).
  */
 function sessionUser(payload: any): NonNullable<ApiRequest["user"]> | undefined {
   const id = payload?.id;
@@ -163,6 +182,11 @@ function sessionUser(payload: any): NonNullable<ApiRequest["user"]> | undefined 
 
   const row = db.select().from(usersTable).where(eq(usersTable.id, id)).get();
   if (!row) {
+    return undefined;
+  }
+
+  const tokenVersion = typeof payload?.tv === "number" ? payload.tv : 0;
+  if ((row.token_version ?? 0) !== tokenVersion) {
     return undefined;
   }
 
