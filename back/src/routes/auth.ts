@@ -38,6 +38,13 @@ export function toPublicUser(user: {
 }
 
 /**
+ * Hash sintètic per igualar el cost de bcrypt quan l'usuari no existeix.
+ * Evita enumeració d'usuaris per timing: sempre es fa una comparació bcrypt.
+ * Es genera un cop a l'arrencada (cost ~100 ms, no per petició).
+ */
+const DUMMY_HASH = bcrypt.hashSync("login-timing-mitigation-synthetic-password", 10);
+
+/**
  * Login handler
  * POST /api/auth/login
  * Body: { username, password }
@@ -62,7 +69,12 @@ export const login: ApiHandler = async (req, res) => {
   try {
     const user = db.select().from(users).where(eq(users.username, username)).get();
 
-    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    // Sempre es compara amb bcrypt (hash real o sintètic) perquè un usuari
+    // inexistent no respongui mesurablement més ràpid (enumeració per timing).
+    const hash = user?.password_hash ?? DUMMY_HASH;
+    const ok = bcrypt.compareSync(password, hash);
+
+    if (!user || !ok) {
       registerLoginFailure(username, req.ip);
       return res.status(401).json({ error: "Usuari o contrasenya incorrectes" });
     }
@@ -81,7 +93,7 @@ export const login: ApiHandler = async (req, res) => {
     return res.status(200).json({ user: publicUser });
   } catch (err) {
     req.log.child({ module: "auth", operation: "login" }).error({ err, username }, "Login error");
-    res.status(500).json({ error: `Error intern: ${(err as Error).message}` });
+    res.status(500).json({ error: "Error intern del servidor" });
   }
 };
 

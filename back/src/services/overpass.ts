@@ -23,11 +23,14 @@ export type OverpassResult =
   | { ok: false; status: number; error: string };
 
 /**
- * Execute a query against the Overpass API
+ * Execute a query against the Overpass API.
+ * Accepta un `signal` extern (el proxy hi passa el seu timeout de 25 s);
+ * sense signal s'aplica el timeout intern de 60 s per al pull (sync/boundaries).
  */
-export async function queryOverpass(query: string): Promise<OverpassResult> {
+export async function queryOverpass(query: string, signal?: AbortSignal): Promise<OverpassResult> {
   const response = await fetch(OVERPASS_API_URL, {
     method: "POST",
+    signal: signal ?? AbortSignal.timeout(60000),
     headers: {
       Accept: "*/*",
       "User-Agent": OVERPASS_USER_AGENT,

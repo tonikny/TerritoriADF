@@ -260,7 +260,7 @@ const routes = [
   { path: "/api/auth/password", handler: changePassword, protected: true },
   { path: "/api/auth/access/:token", handler: access },
   { path: "/api/config", handler: appConfig },
-  { path: "/api/overpass", handler: overpass },
+  { path: "/api/overpass", handler: overpass, protected: true },
   { path: "/api/hidrants/sync", handler: hidrants, protected: true },
   { path: "/api/hidrants", handler: hidrants },
   { path: "/api/hidrants/:id", handler: hidrants },

@@ -167,9 +167,12 @@ server {
     }
 
     # CACHE OVERPASS (Proxy al contenidor Backend amb cache al host)
+    # Endpoint només per a usuaris autenticats (sessió); els hidrants públics
+    # surten de la BD i no hi passen. Límit estricte + cos petit per frenar abusos.
     location /api/overpass {
-        limit_req zone=api_general burst=20 nodelay;
+        limit_req zone=api_general burst=5 nodelay;
         limit_conn api_conn 10;
+        client_max_body_size 16k;
 
         proxy_pass http://127.0.0.1:3034/api/overpass;
 
