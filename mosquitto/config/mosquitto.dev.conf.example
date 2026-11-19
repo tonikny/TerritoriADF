@@ -1,3 +1,7 @@
+# Plantilla de dev (TEXT PLA, sense TLS).
+# Només per a desenvolupament local. Es genera amb:
+#   npm run mosquitto:render -- --dev
+
 listener 1883 0.0.0.0
 listener 51823 0.0.0.0
 

@@ -1,8 +1,18 @@
+# Plantilla de producció (amb TLS).
+#
+# NO editis `mosquitto/config/mosquitto.conf` a mà: es genera amb
+#   npm run mosquitto:render
+# i es **sobreescriu** a partir d'aquest fitxer. La font de veritat és
+# aquesta plantilla. Per a dev local: `npm run mosquitto:render -- --dev`.
+
 listener 1883 0.0.0.0
 
 listener 51823 0.0.0.0
 certfile /mosquitto/certs/fullchain.pem
 keyfile /mosquitto/certs/privkey.pem
+# Mínim TLS 1.2 (permet 1.2 i 1.3). El 51823 està publicat a 0.0.0.0:
+# MAI ha d'anar en clar en producció (les credencials OwnTracks hi viatgen).
+tls_version tlsv1.2
 
 persistence true
 persistence_location /mosquitto/data/

@@ -34,6 +34,7 @@ opencode.json
 !/scripts/init-dynsec.py
 !/scripts/copy-mosquitto-certs.sh
 !/scripts/render-nginx.sh
+!/scripts/render-mosquitto.sh
 !/scripts/backup/
 !/scripts/deploy/
 

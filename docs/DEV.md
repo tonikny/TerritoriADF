@@ -33,7 +33,7 @@ Aquesta guia cobreix **desenvolupament local**. Per a altres entorns i temes esp
 
 ```bash
 cp back/.env.example back/.env
-cp mosquitto/config/mosquitto.dev.conf.example mosquitto/config/mosquitto.conf
+npm run mosquitto:render -- --dev   # conf local en clar (mai a producció)
 npm ci                 # instal·la els workspaces front + back des del lock de l'arrel
 npm run db:setup       # db:reset + db:seed + db:import-osm + update:boundaries
 npm run mqtt:sync-dynsec
@@ -138,6 +138,7 @@ Font canònica: `package.json:5` i `back/package.json`. Agrupats per tema.
 | `npm run docker:logs`             | `docker compose logs -f`                                                                                                                                                                                                                             |
 | `npm run docker:clean`            | `docker image prune -f`                                                                                                                                                                                                                              |
 | `npm run nginx:render`            | Genera `config/site-docker.nginx` a partir de la plantilla i de `BASE_DOMAIN_URL` (`back/.env`). No el cridis a prod sense revisar el resultat                                                                                                       |
+| `npm run mosquitto:render`        | Genera `mosquitto/config/mosquitto.conf` de prod (TLS). Amb `-- --dev`, la de dev en clar (només local)                                                                                                                                              |
 | `npm run docker:deploy`           | Actualització en producció: executa `scripts/deploy/update.sh` (còpia prèvia de la BD, `git pull --ff-only`, `npm ci`, `docker compose build` + `up -d`, healthchecks i `update:boundaries` best-effort). Detall i opcions a `docs/DEPLOY.md` §7     |
 | `npm run db:reset`                | Buida BD (`back/data/territoriadf.db`)                                                                                                                                                                                                               |
 | `npm run db:seed`                 | Crea ADFs i usuaris inicials (admin global + coordinador per ADF); la contrasenya inicial és aleatòria i es mostra un sol cop al log                                                                                                                 |

@@ -18,15 +18,16 @@
 #   1. Comprovacions prèvies (git, docker, .env)
 #   2. Còpia de seguretat de back/data a backups/pre-deploy/
 #   3. git pull --ff-only
-#   4. Neteja de node_modules antics (layout --prefix)
-#   5. npm ci (lockfile de l'arrel)
-#   6. docker compose build  (si falla, els contenidors no es toquen)
-#   7. docker compose up -d
-#   8. Espera de healthcheck de backend i frontend
-#   9. npm run update:boundaries (no bloquejant: si falla, només avisa)
-#  10. docker image prune
+#   4. Render de mosquitto.conf de producció (fail-closed, equivalent a npm run mosquitto:render)
+#   5. Neteja de node_modules antics (layout --prefix)
+#   6. npm ci (lockfile de l'arrel)
+#   7. docker compose build  (si falla, els contenidors no es toquen)
+#   8. docker compose up -d + restart de mosquitto si la seva conf ha canviat
+#   9. Espera de healthcheck de backend i frontend
+#  10. npm run update:boundaries (no bloquejant: si falla, només avisa)
+#  11. docker image prune
 #
-# Si una passa falla, l'script s'atura -- excepte la 9, que és best-effort.
+# Si una passa falla, l'script s'atura -- excepte la 10, que és best-effort.
 # Les migracions de la BD s'apliquen automàticament en arrencar el contenidor
 # (node dist/scripts/migrate.js).
 
@@ -35,6 +36,7 @@ set -Eeuo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_DIR"
 
+MOSQUITTO_CONF_CHANGED=0
 BACKEND_CONTAINER="territoriadf-backend"
 FRONTEND_CONTAINER="territoriadf-frontend"
 DATA_DIR="$PROJECT_DIR/back/data"
@@ -122,6 +124,22 @@ check_prerequisites() {
   git rev-parse --git-dir >/dev/null 2>&1 || die "Aquest directori no és un repositori git."
 
   [[ -d "$DATA_DIR" ]] || log_warn "No existeix $DATA_DIR (desplegament inicial?)"
+
+  # Mosquitto: el listener 51823 està publicat a 0.0.0.0 (docker-compose.yml).
+  # En producció ha de servir TLS; si al servidor hi ha la conf de dev (text
+  # pla), les credencials OwnTracks viatjarien desxifrades i cap `git pull`
+  # ho corregiria (mosquitto.conf està ignorat per git). Falla tancat.
+  local mq_conf="mosquitto/config/mosquitto.conf"
+  [[ -f "$mq_conf" ]] || die "Falta $mq_conf. En producció: npm run mosquitto:render (+ certs a mosquitto/certs/)."
+  grep -qE '^[[:space:]]*certfile[[:space:]]+' "$mq_conf" \
+    || die "$mq_conf sense 'certfile': el port 51823 aniria en TEXT PLA. Regenera'l amb npm run mosquitto:render (producció, amb TLS)."
+  grep -qE '^[[:space:]]*keyfile[[:space:]]+' "$mq_conf" \
+    || die "$mq_conf sense 'keyfile': el port 51823 aniria en TEXT PLA. Regenera'l amb npm run mosquitto:render (producció, amb TLS)."
+  [[ -f mosquitto/certs/fullchain.pem && -f mosquitto/certs/privkey.pem ]] \
+    || die "Falten mosquitto/certs/fullchain.pem i/o privkey.pem. Copia'ls des de /etc/letsencrypt/live/<domini>/ (vegeu docs/MQTT_DEPLOY.md#3)."
+  if grep -qE '^[[:space:]]*OTRC_TLS[[:space:]]*=[[:space:]]*(false|0)' back/.env; then
+    log_warn "back/.env porta OTRC_TLS=false: el .otrc dirà als mòbils que vagin en pla. En producció ha de ser true (o no definir-lo)."
+  fi
 
   # Claus de .env.example que falten a .env: només avís, no atura res.
   if [[ -f back/.env.example ]]; then
@@ -257,6 +275,34 @@ pull_changes() {
   log_ok "Codi actualitzat a $(git rev-parse --short HEAD)"
 }
 
+render_mosquitto_config() {
+  log_info "Renderitzant mosquitto.conf de producció"
+  if (( DRY_RUN )); then
+    echo "  [dry-run] bash scripts/render-mosquitto.sh --prod"
+    return 0
+  fi
+  local mq_conf="mosquitto/config/mosquitto.conf"
+  local old_sum="missing"
+  if [[ -f "$mq_conf" ]]; then
+    old_sum=$(sha256sum "$mq_conf" | cut -d' ' -f1)
+  fi
+  bash scripts/render-mosquitto.sh --prod >/dev/null \
+    || die "No s'ha pogut renderitzar $mq_conf de producció."
+  # Fail-closed: el render ja garanteix certfile/keyfile/tls_version a la
+  # plantilla; aquí només cal comprovar els certs reals del host.
+  [[ -f mosquitto/certs/fullchain.pem && -f mosquitto/certs/privkey.pem ]] \
+    || die "Falten mosquitto/certs/fullchain.pem i/o privkey.pem. Copia'ls des de /etc/letsencrypt/live/<domini>/ (vegeu docs/MQTT_DEPLOY.md#3)."
+  local new_sum
+  new_sum=$(sha256sum "$mq_conf" | cut -d' ' -f1)
+  if [[ "$old_sum" != "$new_sum" ]]; then
+    MOSQUITTO_CONF_CHANGED=1
+    log_ok "mosquitto.conf actualitzat (cal reiniciar mosquitto)"
+  else
+    MOSQUITTO_CONF_CHANGED=0
+    log_ok "mosquitto.conf sense canvis"
+  fi
+}
+
 clean_legacy_node_modules() {
   # El desplegament antic (commit 4a00f01 i anteriors) instal·lava amb
   # --prefix back/front, deixant node_modules dins de cada paquet. Amb
@@ -291,6 +337,24 @@ start_services() {
   log_info "Aplicant la nova versió"
   run docker compose up -d
   (( DRY_RUN )) || log_ok "Contenidors recreats"
+}
+
+restart_mosquitto_if_needed() {
+  if (( DRY_RUN )); then
+    echo "  [dry-run] docker compose restart mosquitto (només si mosquitto.conf ha canviat)"
+    return 0
+  fi
+  if (( ! MOSQUITTO_CONF_CHANGED )); then
+    log_info "mosquitto.conf sense canvis; no cal reiniciar"
+    return 0
+  fi
+  log_info "Reiniciant mosquitto amb la nova conf (bind mount: up -d no la recarrega sol)"
+  docker compose restart mosquitto \
+    || die "No s'ha pogut reiniciar mosquitto."
+  sleep 3
+  docker compose logs --tail=30 mosquitto 2>/dev/null | grep -q 'Opening TLS.*51823' \
+    || die "mosquitto reiniciat però no obre TLS al 51823; revisa mosquitto.conf i els certs."
+  log_ok "mosquitto reiniciat amb TLS al 51823"
 }
 
 wait_for() {
@@ -388,10 +452,12 @@ main() {
 
   create_predeploy_backup
   pull_changes
+  render_mosquitto_config
   clean_legacy_node_modules
   install_dependencies
   build_images
   start_services
+  restart_mosquitto_if_needed
   verify_services
 
   # Després dels healthchecks: si això falla, el desplegament ja ha acabat bé.

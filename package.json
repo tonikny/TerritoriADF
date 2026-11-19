@@ -29,6 +29,7 @@
     "docker:clean": "docker image prune -f",
     "docker:deploy": "bash scripts/deploy/update.sh",
     "nginx:render": "bash scripts/render-nginx.sh",
+    "mosquitto:render": "bash scripts/render-mosquitto.sh",
     "prepare": "husky"
   },
   "devDependencies": {

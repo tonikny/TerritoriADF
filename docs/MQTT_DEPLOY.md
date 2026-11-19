@@ -19,11 +19,13 @@ L'usuari que desplega (`<usuari-deploy>`) **no té sudo**. Els passos que toquen
 
 ### `mosquitto/config/mosquitto.conf`
 
-Copiar el template de producció:
+Generar la conf de producció (equivalent a `npm run nginx:render`):
 
 ```bash
-cp mosquitto/config/mosquitto.conf.example mosquitto/config/mosquitto.conf
+npm run mosquitto:render
 ```
+
+Genera `mosquitto/config/mosquitto.conf` (ignorat per git) a partir de `mosquitto.conf.example` i comprova que porta `certfile`/`keyfile`/`tls_version`.
 
 El fitxer conté:
 
@@ -32,6 +34,7 @@ listener 1883 0.0.0.0
 listener 51823 0.0.0.0
 certfile /mosquitto/certs/fullchain.pem
 keyfile /mosquitto/certs/privkey.pem
+tls_version tlsv1.2
 persistence true
 persistence_location /mosquitto/data/
 log_dest stdout
@@ -170,10 +173,13 @@ Actualitza `admin` i `backend` amb les contrasenyes de `back/.env` i neteja el r
 npm run mqtt:sync-dynsec
 ```
 
-Després de qualsevol de les dues, verifica:
+Després de qualsevol de les dues, verifica que el 51823 va amb TLS (no en clar). El listener està publicat a 0.0.0.0: si la conf fos la de dev, les credencials OwnTracks viatjarien en text pla. El log ha de dir TLS (mai pla) i s_client ha de reportar Verify return code 0 (ok):
 
 ```bash
-docker compose logs mosquitto   # Comprovar "Opening TLS listening socket on port 51823"
+docker compose logs mosquitto          # Ha de dir Opening TLS listening socket (mai pla)
+openssl s_client -connect 127.0.0.1:51823 -tls1_2  # Ha de dir Verify return code: 0 (ok)
+# Si no: el mosquitto.conf del servidor és el de dev. Regenera'l amb npm run mosquitto:render i fes docker compose restart mosquitto. El docker:deploy ja ho comprova abans de continuar.
+# Ref: missatge esperat al log "Opening TLS listening socket on port 51823"
 ```
 
 ---

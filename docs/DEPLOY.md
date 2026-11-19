@@ -102,7 +102,7 @@ Ports del broker:
 - `1883`: intern/dev, només al host (`127.0.0.1`).
 - `51823`: TLS públic per OwnTracks (cal obrir-lo a firewall/NAT).
 
-Configuració: copiar `mosquitto/config/mosquitto.conf.example` → `mosquitto.conf` (amb certs `fullchain.pem`/`privkey.pem` dins el contenidor). Per a desenvolupament local, usa `mosquitto.dev.conf.example` (sense TLS).
+Configuració: `npm run mosquitto:render` genera `mosquitto/config/mosquitto.conf` des de `mosquitto.conf.example` (amb certs `fullchain.pem`/`privkey.pem` dins el contenidor). `npm run docker:deploy` ja ho fa sol després del `git pull` (fail-closed si falten certs, i reinicia mosquitto si la conf ha canviat). Per a desenvolupament local, `npm run mosquitto:render -- --dev` (sense TLS).
 
 Backend: per defecte connecta a `mqtt://mosquitto:1883`. El fitxer `.otrc` que genera la UI apunta a `OTRC_HOST` si està definit i, si no, a `BASE_DOMAIN_URL`, amb `OTRC_PORT=51823`, `OTRC_TLS=true`. `BASE_DOMAIN_URL` és l'única font del domini per a nginx (`npm run nginx:render`) i per als certificats de Mosquitto.
 
@@ -144,13 +144,14 @@ L'script (`scripts/deploy/update.sh`) fa, en aquest ordre i aturant-se al primer
 1. Comprovacions prèvies: `back/.env` present, Docker i `docker compose` operatius, branca amb upstream, i avís si `back/.env` no té alguna clau de `back/.env.example`.
 2. **Còpia de seguretat prèvia** de `back/data/` a `backups/pre-deploy/` (es conserven les 5 últimes). Atura el backend uns segons perquè la còpia sigui coherent.
 3. `git pull --ff-only`. Si hi ha canvis locals, **s'atura** i t'ho diu; per forçar-ho, `--allow-dirty` (fa servir `--autostash`).
-4. Neteja de `back/node_modules` i `front/node_modules` heretats del layout antic (`--prefix`), que podrien ombrejar les dependències noves.
-5. `npm ci` amb el `package-lock.json` de l'arrel (reproducible; falla si el lock no quadra amb els `package.json`).
-6. `docker compose build`. Si el build falla, **els contenidors en marxa no es toquen**.
-7. `docker compose up -d` (les migracions s'apliquen en arrencar el contenidor).
-8. Espera del healthcheck del backend (fins a 180 s) i del frontend, i comprovació HTTP de `127.0.0.1:3034/api/adfs` i `127.0.0.1:8080`.
-9. `npm run update:boundaries` (Overpass/Nominatim). **No bloqueja**: si OSM no respon, avisa i el desplegament es dóna per bo.
-10. `docker image prune -f` només si tot ha anat bé.
+4. Render de `mosquitto/config/mosquitto.conf` de producció (equivalent a `npm run mosquitto:render`, fail-closed si falten certs o la plantilla no porta TLS).
+5. Neteja de `back/node_modules` i `front/node_modules` heretats del layout antic (`--prefix`), que podrien ombrejar les dependències noves.
+6. `npm ci` amb el `package-lock.json` de l'arrel (reproducible; falla si el lock no quadra amb els `package.json`).
+7. `docker compose build`. Si el build falla, **els contenidors en marxa no es toquen**.
+8. `docker compose up -d` (les migracions s'apliquen en arrencar el contenidor) + `docker compose restart mosquitto` només si la seva conf ha canviat (`up -d` sol no recarrega un bind mount).
+9. Espera del healthcheck del backend (fins a 180 s) i del frontend, i comprovació HTTP de `127.0.0.1:3034/api/adfs` i `127.0.0.1:8080`.
+10. `npm run update:boundaries` (Overpass/Nominatim). **No bloqueja**: si OSM no respon, avisa i el desplegament es dóna per bo.
+11. `docker image prune -f` només si tot ha anat bé.
 
 Opcions:
 
@@ -587,6 +588,7 @@ Resum del que demana cada canvi d'aquesta versió:
 - [ ] `docker compose ps` amb tots els serveis `healthy` i `npm run docker:logs` sense errors.
 - [ ] Stream SSE: `curl -sN --max-time 40 -b "auth_token=<cookie-de-sessio>" https://<domini>/api/tracking/stream` ha de mostrar `retry: 3000`, un `event: positions` i un `event: ping` cap als 25 s, sense tancar-se (§8.4).
 - [ ] Telegram: registrar el bot d'una ADF de prova i comprovar que la vinculació al grup arriba (webhook HTTPS públic).
+- [ ] MQTT amb TLS al 51823 (publicat a 0.0.0.0, mai en clar): el log ha de dir Opening TLS listening socket i s_client ha de dir Verify return code: 0 (ok). Detall a docs/MQTT_DEPLOY.md.
 - [ ] Backups actius: `./scripts/backup/setup-cron.sh status`.
 
 > El comptador del fre de força bruta viu **en memòria**: reiniciar el backend l'esborra i no queda cap rastre de les contrasenyes provades. Si una prova del `429` et deixa fora, espera't els 15 min de la finestra o reinicia'l (`docker compose restart backend`); aquest fre no pot bloquejar SSH ni la resta del lloc, només el login. Amb una sola instància n'hi ha prou; si un dia escales el backend a diverses rèpliques, cada una comptaria els seus propis intents.
