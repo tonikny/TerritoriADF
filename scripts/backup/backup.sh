@@ -134,8 +134,11 @@ sqlite_checkpoint() {
     log_info "Fent checkpoint de SQLite per consolidar el WAL..."
     
     if command -v sqlite3 &> /dev/null; then
-        sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" > /dev/null 2>&1
-        log_success "Checkpoint completat"
+        if sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" > /dev/null 2>&1; then
+            log_success "Checkpoint completat"
+        else
+            log_warning "Checkpoint fallit: es continua amb el backup (el WAL queda al tar)"
+        fi
     else
         log_warning "sqlite3 no està instal·lat, saltant checkpoint"
     fi

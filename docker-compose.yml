@@ -45,6 +45,9 @@ services:
       context: .
       dockerfile: back/Dockerfile
     container_name: territoriadf-backend
+    # UID/GID de deployuser: els fitxers de back/data surten sempre seus.
+    # Vegeu scripts/security/fix-data-perms.sh (TerritoriADF).
+    user: "1000:1000"
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -61,6 +64,10 @@ services:
       - /root/.npm:rw,noexec,nosuid,size=16m
     ports:
       - "127.0.0.1:3034:3033"
+    environment:
+      # Amb user: no hi ha HOME escrivible; npm necessita un cache.
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm
     env_file:
       - ./back/.env
     volumes:
