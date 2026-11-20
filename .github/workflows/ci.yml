@@ -28,6 +28,8 @@ jobs:
 
       - run: npm run db:check -w back
 
+      - run: npm run test:coverage -w back
+
       - run: npm test -w front
 
       - run: npm run build

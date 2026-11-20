@@ -5,7 +5,7 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    ignores: ["dist", "node_modules", "eslint.config.mjs", "drizzle.config.ts"],
+    ignores: ["dist", "node_modules", "coverage", "eslint.config.mjs", "drizzle.config.ts"],
   },
 
   js.configs.recommended,
@@ -19,7 +19,9 @@ export default tseslint.config(
 
     languageOptions: {
       parserOptions: {
-        project: "./tsconfig.json",
+        // Inclou `src`, `tests` i la config de Vitest: si el projecte només
+        // apuntés a `src`, ESLint no podria analitzar els fitxers de test.
+        project: "./tsconfig.test.json",
         tsconfigRootDir: import.meta.dirname,
       },
 

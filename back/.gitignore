@@ -4,3 +4,6 @@
 
 # Dades Persistents i Catàlegs
 data/
+
+# Informes de cobertura (si es genera l'informe HTML)
+coverage/

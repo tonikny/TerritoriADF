@@ -10,7 +10,10 @@
     "build": "tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
     "update:boundaries": "tsx src/scripts/updateBoundaries.ts",
     "create:user": "tsx src/scripts/createUser.ts",
     "db:reset": "tsx src/scripts/resetDb.ts",
@@ -43,8 +46,10 @@
     "@types/geojson": "^7946.0.16",
     "@types/node": "^26.6.6",
     "@types/uuid": "^10.0.0",
+    "@vitest/coverage-v8": "^5.1.1",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
   }
 }
