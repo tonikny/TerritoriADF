@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HidrantsRepository } from "../src/db/repositories/hidrantsRepository.js";
 import * as osmApi from "../src/services/osmApi.js";
@@ -19,15 +19,6 @@ vi.mock("../src/services/osmApi.js", () => ({
   deleteNode: vi.fn(),
   getNode: vi.fn(async () => null),
 }));
-
-beforeAll(() => {
-  resetDatabase();
-  seedStandardWorld();
-});
-
-afterAll(() => {
-  resetDatabase();
-});
 
 beforeEach(() => {
   resetDatabase();
@@ -94,6 +85,22 @@ describe("pushSyncToOSM: creació", () => {
     expect(row.sync_error).toContain("Dades invàlides");
   });
 
+  it("un error de xarxa en crear deixa l'hidrant en ERROR", async () => {
+    createHydrant({
+      id: "network-error",
+      sync_status: "PENDING_CREATE",
+      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+    });
+    vi.mocked(osmApi.createNode).mockRejectedValueOnce(new Error("OSM timeout"));
+
+    const result = await pushSyncToOSM({ adfId: 278 });
+
+    expect(result.errors).toBe(1);
+    const row = HidrantsRepository.findByIds(["network-error"])[0];
+    expect(row.sync_status).toBe("ERROR");
+    expect(row.sync_error).toContain("OSM timeout");
+  });
+
   it("un warning deixa l'hidrant en REVIEW sense cridar OSM", async () => {
     createHydrant({
       id: "review-hydrant",
@@ -138,6 +145,42 @@ describe("pushSyncToOSM: actualització", () => {
     expect(error.diffFields.join(" ")).toContain("addr:street");
   });
 
+  it("un 400 d'OSM deixa l'hidrant en ERROR", async () => {
+    createHydrant({
+      id: "update-400",
+      osm_id: 702,
+      osm_version: 2,
+      sync_status: "PENDING_UPDATE",
+      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+    });
+    vi.mocked(osmApi.updateNode).mockResolvedValue({
+      ok: false,
+      status: 400,
+      error: "invalid tag",
+    });
+
+    const result = await pushSyncToOSM({ adfId: 278 });
+
+    expect(result.errors).toBe(1);
+    expect(HidrantsRepository.findByIds(["update-400"])[0].sync_status).toBe("ERROR");
+  });
+
+  it("una actualització amb warnings queda en REVIEW", async () => {
+    createHydrant({
+      id: "update-review",
+      osm_id: 703,
+      osm_version: 2,
+      sync_status: "PENDING_UPDATE",
+      osm_tags: JSON.stringify({ emergency: "fire_hydrant", "addr:street": "CARRER GRAN" }),
+    });
+
+    const result = await pushSyncToOSM({ adfId: 278 });
+
+    expect(result.reviewed).toBe(1);
+    expect(osmApi.updateNode).not.toHaveBeenCalled();
+    expect(HidrantsRepository.findByIds(["update-review"])[0].sync_status).toBe("REVIEW");
+  });
+
   it("una actualització correcta → SYNCED amb la versió nova", async () => {
     createHydrant({
       id: "update-hydrant",
@@ -171,6 +214,38 @@ describe("pushSyncToOSM: esborrat", () => {
 
     expect(result.synced).toBe(1);
     expect(HidrantsRepository.findByIds(["delete-hydrant"])).toHaveLength(0);
+  });
+
+  it("PENDING_DELETE sense osm_id només s'esborra de la BD", async () => {
+    createHydrant({ id: "delete-local", sync_status: "PENDING_DELETE" });
+
+    const result = await pushSyncToOSM({ adfId: 278 });
+
+    expect(result.synced).toBe(1);
+    expect(osmApi.deleteNode).not.toHaveBeenCalled();
+    expect(HidrantsRepository.findByIds(["delete-local"])).toHaveLength(0);
+  });
+
+  it("un 409 en esborrar deixa l'hidrant en CONFLICT i no l'esborra", async () => {
+    createHydrant({
+      id: "delete-conflict",
+      osm_id: 801,
+      osm_version: 3,
+      sync_status: "PENDING_DELETE",
+    });
+    vi.mocked(osmApi.deleteNode).mockResolvedValue({
+      ok: false,
+      status: 409,
+      osmVersion: 4,
+      osmLat: 41.6,
+      osmLon: 1.6,
+      osmTags: FULL_OSM_TAGS,
+    });
+
+    const result = await pushSyncToOSM({ adfId: 278 });
+
+    expect(result.conflicts).toBe(1);
+    expect(HidrantsRepository.findByIds(["delete-conflict"])[0].sync_status).toBe("CONFLICT");
   });
 });
 

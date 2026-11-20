@@ -34,5 +34,4 @@ export const testEnv: Record<string, string> = {
   OSM_ACCESS_TOKEN: "",
   TELEGRAM_BOT_TOKEN: "",
   TELEGRAM_CHAT_ID: "",
-  TELEGRAM_CHAT_ID_ADMIN: "",
 };

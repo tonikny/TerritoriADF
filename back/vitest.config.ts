@@ -30,13 +30,13 @@ export default defineConfig({
       // Scripts d'operació i el punt d'entrada no formen part de la superfície
       // que es prova; `types.ts` només té tipus (0 % executable).
       exclude: ["src/scripts/**", "src/server.ts", "src/types.ts"],
-      // Llindar de partida (mesura actual: ~46,5 % línies). És un ratchet:
-      // pot apujar-se, però no ha de baixar sense justificar-ho.
+      // Ratchet per sobre de l'objectiu del 50 % de domini (mesura actual:
+      // ~61 % línies). Pot apujar-se, però no ha de baixar sense justificar-ho.
       thresholds: {
-        statements: 45,
-        branches: 35,
-        functions: 50,
-        lines: 45,
+        statements: 55,
+        branches: 45,
+        functions: 60,
+        lines: 55,
       },
     },
   },
