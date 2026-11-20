@@ -4,7 +4,7 @@ import { ui2Osm, type HydrantUiFields } from "../utils/osmConversion.js";
 import { sendTelegramMessage } from "../utils/telegram.js";
 import { sendToAdf } from "../services/telegramService.js";
 import { appBaseUrl } from "../utils/appUrl.js";
-import { permissionsFor } from "../permissions.js";
+import type { Permission } from "../permissions.js";
 import { telegramBlock, registerTelegramHit } from "../services/telegramThrottle.js";
 
 /**
@@ -30,6 +30,30 @@ const payloadSchema = z.object({
 /** Mida màxima del resum estructurat per evitar missatges gegants a Telegram. */
 const MAX_STRUCTURED_BYTES = 10_000;
 
+/**
+ * Capacitat que exigeix la notificació segons l'acció del cos. Es declara a la
+ * ruta amb `requireComputedPermission`, així el handler no comprova rols.
+ * `null` vol dir que no cal cap permís: el cos no és cap ús permès i el handler
+ * respon 400.
+ */
+export function notificationPermission(body: unknown): Permission | null {
+  const data = (body ?? {}) as { action?: unknown; isEdit?: unknown; tags?: unknown };
+
+  if (data.action === "delete") {
+    return "delete_hydrant";
+  }
+  if (data.action === "create") {
+    return "create_hydrant";
+  }
+  if (data.isEdit === true) {
+    return "edit_hydrant";
+  }
+
+  const tags = data.tags as { id?: unknown; osm_id?: unknown } | undefined;
+  const hasId = typeof tags?.id === "string" || typeof tags?.osm_id === "number";
+  return hasId ? null : "create_hydrant";
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -45,13 +69,9 @@ const handler: ApiHandler = async (req, res) => {
     return;
   }
 
-  // Defensa en profunditat: la ruta ja és `protected` a server.ts, però aquí
-  // també ho exigim perquè un canvi de registre no torni a obrir l'endpoint.
-  const user = req.user;
-  if (!user) {
-    res.status(401).json({ error: "Sessió caducada o no vàlida" });
-    return;
-  }
+  // Sessió, abast ADF i permís segons l'acció: resolts als `preHandler` declarats
+  // a `routes/index.ts` (`auth`, `adfScope` i `requireComputedPermission`).
+  const user = req.user!;
 
   const parsed = payloadSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -60,45 +80,17 @@ const handler: ApiHandler = async (req, res) => {
   }
   const { lat, lon, adf_id, tags, originalData, changes, isEdit, action } = parsed.data;
 
-  // Abast ADF: només la pròpia (admin exempte). El wrapper genèric ja ho comprova,
-  // però ho repetim aquí perquè la lògica no depengui del registre de rutes.
-  if (user.role !== "admin" && user.adf_id !== adf_id) {
-    res.status(403).json({ error: "No tens permisos per editar aquesta ADF" });
-    return;
-  }
-
   const tagsRecord =
     tags && typeof tags === "object" && !Array.isArray(tags)
       ? (tags as Record<string, unknown>)
       : {};
   const hasId = typeof tagsRecord.id === "string" || typeof tagsRecord.osm_id === "number";
 
-  // Permís segons l'acció notificada. El camí "comentari" (id existent sense
-  // isEdit ni action, amb text lliure) s'ha eliminat: ja no és un ús permès.
-  const perms = new Set(permissionsFor(user.role));
-  if (action === "delete") {
-    if (!perms.has("delete_hydrant")) {
-      res.status(403).json({ error: "No tens permisos per realitzar aquesta acció" });
-      return;
-    }
-  } else if (action === "create") {
-    if (!perms.has("create_hydrant")) {
-      res.status(403).json({ error: "No tens permisos per realitzar aquesta acció" });
-      return;
-    }
-  } else if (isEdit) {
-    if (!perms.has("edit_hydrant")) {
-      res.status(403).json({ error: "No tens permisos per realitzar aquesta acció" });
-      return;
-    }
-  } else if (hasId) {
+  // El camí "comentari" (id existent sense isEdit ni action, amb text lliure)
+  // ja no és un ús permès; el permís de la resta d'accions el resol el guard.
+  if (!action && !isEdit && hasId) {
     res.status(400).json({ error: "Ús no permès" });
     return;
-  } else {
-    if (!perms.has("create_hydrant")) {
-      res.status(403).json({ error: "No tens permisos per realitzar aquesta acció" });
-      return;
-    }
   }
 
   const structuredBytes = Buffer.byteLength(

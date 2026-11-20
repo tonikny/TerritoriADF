@@ -1,6 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- adapter Express simplificat, tipejar tot seria cerimònia */
+/* eslint-disable @typescript-eslint/no-explicit-any -- contracte de l'adapter antic (routes/index.ts); les rutes ja migrades fan servir els tipus de Fastify i esquemes Zod */
 import type { FastifyBaseLogger, FastifyReply } from "fastify";
 
+/**
+ * Contracte dels handlers antics (estil Express). Només el fan servir les rutes
+ * que encara passen per `plugins/legacy.ts`; les rutes noves reben
+ * `FastifyRequest`/`FastifyReply` i declaren esquemes Zod.
+ *
+ * @deprecated Només per a les rutes pendents de migrar (`routes/index.ts`).
+ */
 export type ApiRequest = {
   method: string;
   query?: any;

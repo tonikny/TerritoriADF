@@ -6,6 +6,7 @@ import { users, adfs, mqttUsers } from "../db/schema.js";
 import { eq, and, ne } from "drizzle-orm";
 import type { ApiHandler, ApiRequest } from "../types.js";
 import { BadRequestError } from "../errors.js";
+import { hasPermission } from "../permissions.js";
 import { createMqttUser, deleteMqttUser, mqttNameFor } from "../services/mqtt.js";
 import { decrypt } from "../utils/crypto.js";
 import { appBaseUrl } from "../utils/appUrl.js";
@@ -52,28 +53,37 @@ function accessPayload(
   return { access_url: `${appBaseUrl(req)}/acces/${token}`, access_expires_at: expires_at };
 }
 
-/** GET /api/users: admin veu tots; coordinador els de la seva ADF. */
-const list: ApiHandler = async (req, res) => {
+/**
+ * GET /api/users: abast global (`manage_all_users`) o només la pròpia ADF.
+ * El permís `manage_users` i l'abast els declara `routes/index.ts`.
+ */
+export const list: ApiHandler = async (req, res) => {
   const user = req.user!;
-  if (user.role === "admin") {
+
+  if (hasPermission(user.role, "manage_all_users")) {
     const rows = db.select(PUBLIC_FIELDS).from(users).orderBy(users.username).all();
     return res.json(rows);
   }
-  if (user.role === "coordinador" && user.adf_id !== null) {
-    const rows = db
-      .select(PUBLIC_FIELDS)
-      .from(users)
-      .where(eq(users.adf_id, user.adf_id))
-      .orderBy(users.username)
-      .all();
-    return res.json(rows);
+
+  // Un coordinador sense ADF no té res a llistar: és una dada inconsistents a la BD.
+  if (user.adf_id === null) {
+    return res.json([]);
   }
-  return res.status(403).json({ error: "No tens permisos per gestionar usuaris" });
+
+  const rows = db
+    .select(PUBLIC_FIELDS)
+    .from(users)
+    .where(eq(users.adf_id, user.adf_id))
+    .orderBy(users.username)
+    .all();
+  return res.json(rows);
 };
 
-/** POST /api/users: crear usuari personal. */
-const create: ApiHandler = async (req, res) => {
-  const caller = req.user!;
+/**
+ * POST /api/users: crear usuari personal.
+ * L'ADF del username i el rol `admin` ja s'han validat als guards de la ruta.
+ */
+export const create: ApiHandler = async (req, res) => {
   const { username, role } = req.body ?? {};
 
   if (!username || !role) {
@@ -81,12 +91,6 @@ const create: ApiHandler = async (req, res) => {
   }
   if (!ROLES.includes(role)) {
     throw new BadRequestError(`Rol invàlid: ${role}`);
-  }
-  if (role === "admin" && caller.role !== "admin") {
-    return res.status(403).json({ error: "Només l'admin pot crear administradors" });
-  }
-  if (caller.role !== "admin" && caller.role !== "coordinador") {
-    return res.status(403).json({ error: "No tens permisos per crear usuaris" });
   }
 
   const parsed = parseUsername(username);
@@ -97,10 +101,6 @@ const create: ApiHandler = async (req, res) => {
   }
   if (!adfExists(parsed.adfId)) {
     throw new BadRequestError(`L'ADF ${parsed.adfId} no existeix`);
-  }
-  // El coordinador només pot crear usuaris de la seva pròpia ADF
-  if (caller.role !== "admin" && caller.adf_id !== parsed.adfId) {
-    return res.status(403).json({ error: "No tens permisos per crear usuaris d'aquesta ADF" });
   }
   if (db.select({ id: users.id }).from(users).where(eq(users.username, username)).get()) {
     throw new BadRequestError(`El nom d'usuari ${username} ja existeix`);
@@ -143,25 +143,18 @@ async function propagateMqttRename(userId: string, newUsername: string): Promise
   db.update(mqttUsers).set({ mqtt_username: newMqName }).where(eq(mqttUsers.id, row.id)).run();
 }
 
-/** PUT /api/users/:id: editar rol, contrasenya (reset) o username. */
-const update: ApiHandler = async (req, res) => {
-  const caller = req.user!;
+/**
+ * PUT /api/users/:id: editar rol, contrasenya (reset) o username.
+ * L'abast (ADF, administradors, un mateix) i el rol `admin` ja s'han validat als
+ * guards de la ruta; aquí només queden les validacions de dades.
+ */
+export const update: ApiHandler = async (req, res) => {
   const targetId = req.params?.id;
   const { username, role } = req.body ?? {};
 
   const target = db.select().from(users).where(eq(users.id, targetId)).get();
   if (!target) {
     throw new BadRequestError("Usuari no trobat");
-  }
-
-  // Abast: admin qualsevol; coordinador només la seva ADF
-  if (caller.role !== "admin") {
-    if (caller.role !== "coordinador" || caller.adf_id !== target.adf_id) {
-      return res.status(403).json({ error: "No tens permisos per editar aquest usuari" });
-    }
-    if (target.id === caller.id) {
-      return res.status(403).json({ error: "No et pots editar a tu mateix" });
-    }
   }
 
   const updates: Record<string, unknown> = {};
@@ -173,9 +166,6 @@ const update: ApiHandler = async (req, res) => {
     }
     if (!adfExists(parsed.adfId)) {
       throw new BadRequestError(`L'ADF ${parsed.adfId} no existeix`);
-    }
-    if (caller.role !== "admin" && parsed.adfId !== caller.adf_id) {
-      return res.status(403).json({ error: "No pots moure l'usuari a una altra ADF" });
     }
     const dup = db
       .select({ id: users.id })
@@ -193,12 +183,6 @@ const update: ApiHandler = async (req, res) => {
     if (!ROLES.includes(role)) {
       throw new BadRequestError(`Rol invàlid: ${role}`);
     }
-    if (role === "admin" && caller.role !== "admin") {
-      return res.status(403).json({ error: "Només l'admin pot assignar el rol admin" });
-    }
-    if (caller.role !== "admin" && target.role === "admin") {
-      return res.status(403).json({ error: "No pots modificar un administrador" });
-    }
     updates.role = role;
   }
 
@@ -212,23 +196,17 @@ const update: ApiHandler = async (req, res) => {
   return res.json(row);
 };
 
-/** DELETE /api/users/:id: eliminar usuari (mai a un mateix). */
-const remove: ApiHandler = async (req, res) => {
-  const caller = req.user!;
+/**
+ * DELETE /api/users/:id: eliminar usuari (mai a un mateix: ho comprova el guard).
+ */
+export const remove: ApiHandler = async (req, res) => {
   const targetId = req.params?.id;
 
   const target = db.select().from(users).where(eq(users.id, targetId)).get();
   if (!target) {
     throw new BadRequestError("Usuari no trobat");
   }
-  if (target.id === caller.id) {
-    return res.status(403).json({ error: "No et pots eliminar a tu mateix" });
-  }
-  if (caller.role !== "admin") {
-    if (caller.role !== "coordinador" || caller.adf_id !== target.adf_id) {
-      return res.status(403).json({ error: "No tens permisos per eliminar aquest usuari" });
-    }
-  }
+
   // Els fills de l'usuari els resol la BD amb les accions ON DELETE de
   // l'esquema: `mqtt_users` i `access_tokens` cauen en cascada i
   // `incidencia_events.usuari_id` queda a NULL. Només cal llegir la identitat
@@ -252,20 +230,16 @@ const remove: ApiHandler = async (req, res) => {
   return res.json({ success: true });
 };
 
-/** POST /api/users/:id/access-link: enllaç nou perquè l'usuari triï la seva contrasenya. */
+/**
+ * POST /api/users/:id/access-link: enllaç nou perquè l'usuari triï la seva contrasenya.
+ * L'abast el declara el guard `requireTargetUserScope` a `routes/index.ts`.
+ */
 export const accessLink: ApiHandler = async (req, res) => {
-  const caller = req.user!;
   const targetId = req.params?.id;
 
   const target = db.select().from(users).where(eq(users.id, targetId)).get();
   if (!target) {
     throw new BadRequestError("Usuari no trobat");
-  }
-  if (
-    caller.role !== "admin" &&
-    (caller.role !== "coordinador" || caller.adf_id !== target.adf_id)
-  ) {
-    return res.status(403).json({ error: "No tens permisos per generar enllaços d'aquest usuari" });
   }
 
   return res.json({
@@ -274,24 +248,3 @@ export const accessLink: ApiHandler = async (req, res) => {
     ...accessPayload(req, target.id, ACCESS_TTL_RESET_MS),
   });
 };
-
-const handler: ApiHandler = async (req, res) => {
-  if (req.params?.id) {
-    if (req.method === "PUT") {
-      return update(req, res);
-    }
-    if (req.method === "DELETE") {
-      return remove(req, res);
-    }
-  }
-  if (req.method === "GET") {
-    return list(req, res);
-  }
-  if (req.method === "POST") {
-    return create(req, res);
-  }
-  res.status(405).json({ error: "Method not allowed" });
-};
-
-export default handler;
-export { list, create, update, remove };

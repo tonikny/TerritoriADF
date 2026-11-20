@@ -18,6 +18,9 @@ export type Permission =
   | "view_all_positions"
   | "manage_own_adf_sharing"
   | "manage_telegram"
+  | "manage_users"
+  | "manage_all_users"
+  | "manage_adfs"
   | "create_incidencia";
 
 const ALL: Permission[] = [
@@ -32,6 +35,9 @@ const ALL: Permission[] = [
   "view_all_positions",
   "manage_own_adf_sharing",
   "manage_telegram",
+  "manage_users",
+  "manage_all_users",
+  "manage_adfs",
   "create_incidencia",
 ];
 
@@ -45,6 +51,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "view_shared_positions",
     "manage_own_adf_sharing",
     "manage_telegram",
+    "manage_users",
     "create_incidencia",
   ],
   voluntari: ["create_hydrant", "edit_hydrant", "view_own_adf_positions", "create_incidencia"],
@@ -61,4 +68,9 @@ export function permissionsFor(role: string): Permission[] {
   }
 
   return [...perms];
+}
+
+/** Comprovació puntual per a regles que depenen de dades (p. ex. l'usuari objectiu). */
+export function hasPermission(role: string, permission: Permission): boolean {
+  return permissionsFor(role).includes(permission);
 }

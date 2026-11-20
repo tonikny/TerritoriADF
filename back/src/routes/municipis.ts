@@ -1,6 +1,6 @@
 import { db } from "../db/index.js";
 import { adfs, hidrants, incidencies, telegramBots, users } from "../db/schema.js";
-import type { ApiHandler, ApiRequest, ApiResponse } from "../types.js";
+import type { ApiHandler } from "../types.js";
 import { count, eq } from "drizzle-orm";
 import { BadRequestError } from "../errors.js";
 
@@ -47,39 +47,27 @@ function parseNom(value: unknown): string | null {
   return value.trim();
 }
 
-/** Només l'admin pot crear, modificar o eliminar ADFs. */
-function requireAdmin(req: ApiRequest, res: ApiResponse): boolean {
-  if (!req.user || req.user.role !== "admin") {
-    res.status(403).json({ error: "Només l'administrador pot gestionar les ADFs" });
-    return false;
-  }
-  return true;
-}
-
 /** GET /api/adfs: llista d'ADFs. */
-const list: ApiHandler = async (_req, res) => {
+export const list: ApiHandler = async (_req, res) => {
   const rows = db.select().from(adfs).all();
   return res.json(rows.map(serialize));
 };
 
 /** GET /api/adfs/:id: detall d'una ADF. */
-const detail: ApiHandler = async (req, res) => {
-  const adf = db
-    .select()
-    .from(adfs)
-    .where(eq(adfs.id, Number(req.params?.id)))
-    .get();
+export const detail: ApiHandler = async (req, res) => {
+  const adfId = parseAdfId(req.params?.id);
+  if (adfId === null) {
+    return res.status(400).json({ error: "ID d'ADF no vàlid" });
+  }
+  const adf = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
   if (!adf) {
     return res.status(404).json({ error: "ADF no trobada" });
   }
   return res.json(serialize(adf));
 };
 
-/** POST /api/adfs: crear una ADF. */
-const create: ApiHandler = async (req, res) => {
-  if (!requireAdmin(req, res)) {
-    return;
-  }
+/** POST /api/adfs: crear una ADF (permís `manage_adfs`, només admin). */
+export const create: ApiHandler = async (req, res) => {
   const { id, nom, osm_relations } = req.body ?? {};
 
   const adfId = parseAdfId(id);
@@ -110,12 +98,12 @@ const create: ApiHandler = async (req, res) => {
   return res.status(201).json(serialize(row));
 };
 
-/** PUT /api/adfs/:id: modificar nom i/o relacions OSM. */
-const update: ApiHandler = async (req, res) => {
-  if (!requireAdmin(req, res)) {
-    return;
+/** PUT /api/adfs/:id: modificar nom i/o relacions OSM (permís `manage_adfs`). */
+export const update: ApiHandler = async (req, res) => {
+  const adfId = parseAdfId(req.params?.id);
+  if (adfId === null) {
+    return res.status(400).json({ error: "ID d'ADF no vàlid" });
   }
-  const adfId = Number(req.params?.id);
   const target = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
   if (!target) {
     return res.status(404).json({ error: "ADF no trobada" });
@@ -154,12 +142,12 @@ const update: ApiHandler = async (req, res) => {
   return res.json(serialize(row));
 };
 
-/** DELETE /api/adfs/:id: eliminar una ADF sense dades associades. */
-const remove: ApiHandler = async (req, res) => {
-  if (!requireAdmin(req, res)) {
-    return;
+/** DELETE /api/adfs/:id: eliminar una ADF sense dades associades (permís `manage_adfs`). */
+export const remove: ApiHandler = async (req, res) => {
+  const adfId = parseAdfId(req.params?.id);
+  if (adfId === null) {
+    return res.status(400).json({ error: "ID d'ADF no vàlid" });
   }
-  const adfId = Number(req.params?.id);
   const target = db.select({ id: adfs.id }).from(adfs).where(eq(adfs.id, adfId)).get();
   if (!target) {
     return res.status(404).json({ error: "ADF no trobada" });
@@ -186,31 +174,3 @@ const remove: ApiHandler = async (req, res) => {
   db.delete(adfs).where(eq(adfs.id, adfId)).run();
   return res.json({ success: true });
 };
-
-const handler: ApiHandler = async (req, res) => {
-  if (req.params?.id) {
-    if (parseAdfId(req.params.id) === null) {
-      return res.status(400).json({ error: "ID d'ADF no vàlid" });
-    }
-    if (req.method === "GET") {
-      return detail(req, res);
-    }
-    if (req.method === "PUT") {
-      return update(req, res);
-    }
-    if (req.method === "DELETE") {
-      return remove(req, res);
-    }
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-  if (req.method === "GET") {
-    return list(req, res);
-  }
-  if (req.method === "POST") {
-    return create(req, res);
-  }
-  return res.status(405).json({ error: "Method not allowed" });
-};
-
-export default handler;
-export { create, detail, list, remove, update };

@@ -162,11 +162,11 @@ Per paquet: `front/` (`dev`, `build`, `preview`, `test`, `lint`, `typecheck`), `
 - **Estructura de fitxers:** arbre complet del repositori, responsabilitats de `front/src/map` i convencions per afegir funcionalitats a [`docs/ARCHITECTURE.md`](ARCHITECTURE.md#2-estructura-del-repositori).
 - **Model ADF-centric:** `adfs` és la unitat principal (no municipis). Una ADF agrupa `osm_relations`; `bbox`, `center` i `boundary_geojson` es desen a `adfs`. `users.adf_id` vincula usuari a ADF; admin `adf_id = null`.
 - **SPA:** Un domini, canvi ADF via `AdfContext` i selector. Flux dades: `GET /api/adf?adf=ID`, `GET /api/adf/boundary?adf=ID` (GeoJSON), `GET /api/hidrants?adf=ID` (GeoJSON).
-- **Rols i permisos:** `admin` (tot) / `coordinador` (ADF pròpia) / `voluntari` (edició camp) / `public` (només lectura). Matriu central `back/src/permissions.ts: rol → capacitats` (`create_hydrant`, `delete_hydrant`, `sync_osm`, `create_incidencia`, `view_all_positions`, `manage_telegram`, etc.). Middleware `back/src/server.ts:164` valida capacitat i abast ADF amb el rol i l'ADF **rellegits de la BD** a cada petició (el JWT només identifica l'usuari, així un canvi de rol o un usuari esborrat té efecte immediat); `permissionsFor()` avisa al log si el rol no és a la matriu. `POST /api/auth/login` i `GET /api/auth/me` retornen el `user` amb `permissions[]` i `mqtt_enabled`; `GET /api/config` publica `role_permissions` (matriu rol → permisos) perquè el front no la dupliqui (vista "veure com"), i `min_password_length` per al `minLength` dels formularis de contrasenya. Username no-admin: `XXX/YYY` o `XXX/GI/YYY` (`back/src/routes/users.ts:12`).
+- **Rols i permisos:** `admin` (tot) / `coordinador` (ADF pròpia) / `voluntari` (edició camp) / `public` (només lectura). Matriu central `back/src/permissions.ts: rol → capacitats` (`create_hydrant`, `delete_hydrant`, `sync_osm`, `create_incidencia`, `view_all_positions`, `manage_telegram`, `manage_users`, `manage_all_users`, `manage_adfs`, etc.). Els guards de `back/src/plugins/authorize.ts` (`requirePermission`, `requireAdfScope`, `requireTargetUserScope`, `requireUsernameAdfScope`, `requireBodyRolePermission`, `requireComputedPermission`) validen capacitat, abast ADF i regles sobre les dades, declarats per ruta a `back/src/routes/index.ts`; cap handler comprova rols. El rol i l'ADF es **rellegeixen de la BD** a cada petició (el JWT només identifica l'usuari, així un canvi de rol o un usuari esborrat té efecte immediat); `permissionsFor()` avisa al log si el rol no és a la matriu. `POST /api/auth/login` i `GET /api/auth/me` retornen el `user` amb `permissions[]` i `mqtt_enabled`; `GET /api/config` publica `role_permissions` (matriu rol → permisos) perquè el front no la dupliqui (vista "veure com"), i `min_password_length` per al `minLength` dels formularis de contrasenya. Username no-admin: `XXX/YYY` o `XXX/GI/YYY` (`back/src/routes/users.ts:12`).
 - **Seguretat:** JWT a cookie `httpOnly` (`secure` en prod), validació per capacitat + propietat ADF.
 - **Incidències:** `incidencies.visibilitat` (`PUBLICA` | `TOTES_ADFS` | `ADF_PRIVADA`). Públic veu només `PUBLICA`; loguejat veu seves + globals; admin tot.
 - **Tracking compartit:** `adfs.tracking_shared` boolean opt-in; `PUT /api/adfs/:id/tracking-sharing` (admin qualsevol, coordinador la seva).
-- **Resiliència MQTT:** backend funciona encara que Mosquitto no disponible (`startMqttService().catch` a `back/src/server.ts:276`).
+- **Resiliència MQTT:** backend funciona encara que Mosquitto no disponible (`startMqttService().catch` a `back/src/server.ts`).
 - **Proxy:** Nginx cap a contenidors; tiles i Overpass cachejats.
 
 > Detall complet d'arquitectura i lògica: `AGENTS.md`. Estructura de fitxers, motors i tests: [`docs/ARCHITECTURE.md`](ARCHITECTURE.md).
@@ -443,7 +443,7 @@ Fitxers clau: `back/src/services/osmSync.ts` (pull Overpass), `back/src/services
 
 ## 10. API — Referència ràpida (endpoints no OSM)
 
-Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_token` httpOnly, 30 dies, `sameSite=lax`, `secure` en prod). El JWT es signa amb `expiresIn: '30d'` i només viatja dins la cookie: el login no el retorna al cos de la resposta. El middleware `wrap()` a `back/src/server.ts:164` aplica capacitat (`permissionsFor()` a `back/src/permissions.ts`) i abast ADF (no-admin només la seva ADF) amb el rol i l'ADF llegits de la BD a cada petició (el JWT només identifica l'usuari); les rutes amb `protected: true` exigeixen sessió vàlida sempre. Per OSM vegeu §9.8 i `docs/OSM_SYNC.md#9`. Definició i protecció a `back/src/server.ts:239`.
+Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_token` httpOnly, 30 dies, `sameSite=lax`, `secure` en prod). El JWT es signa amb `expiresIn: '30d'` i només viatja dins la cookie: el login no el retorna al cos de la resposta. Els guards de `back/src/plugins/authorize.ts` apliquen la capacitat (`permissionsFor()` a `back/src/permissions.ts`) i l'abast ADF (no-admin només la seva ADF) amb el rol i l'ADF llegits de la BD a cada petició (el JWT només identifica l'usuari); cada ruta declara `auth`, `permission` i `adfScope` a `back/src/routes/index.ts`, i les rutes d'hidrants/incidències ho fan als seus `preHandler` natius. Per OSM vegeu §9.8 i `docs/OSM_SYNC.md#9`.
 
 ### 10.1 Auth / Config
 
@@ -460,12 +460,17 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 
 ### 10.2 ADFs / Boundaries
 
-| Endpoint                         | Mètode | Auth | Descripció                                                                                                                                                                   |
-| -------------------------------- | ------ | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/adfs`                      | GET    | no   | Llista ADFs amb `osm_relations`, `bbox`, `center` (`back/src/routes/municipis.ts:5`)                                                                                         |
-| `/api/adf?adf=ID`                | GET    | no   | Detall ADF per ID (`back/src/routes/municipi.ts:6`)                                                                                                                          |
-| `/api/adf/boundary?adf=ID`       | GET    | no   | Només `boundary_geojson` GeoJSON (`back/src/routes/boundary.ts:6`)                                                                                                           |
-| `/api/adfs/:id/tracking-sharing` | PUT    | sí   | `{ shared: boolean }` — comparteix tracking amb altres ADFs; admin qualsevol, coordinador la seva (`back/src/routes/trackingSharing.ts:12`, permís `manage_own_adf_sharing`) |
+| Endpoint                         | Mètode | Auth                          | Descripció                                                                                                                                                     |
+| -------------------------------- | ------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/adfs`                      | GET    | no                            | Llista ADFs amb `osm_relations`, `bbox`, `center` (`back/src/routes/municipis.ts:5`)                                                                           |
+| `/api/adf?adf=ID`                | GET    | no                            | Detall ADF per ID (`back/src/routes/municipi.ts:6`)                                                                                                            |
+| `/api/adf/boundary?adf=ID`       | GET    | no                            | Només `boundary_geojson` GeoJSON (`back/src/routes/boundary.ts:6`)                                                                                             |
+| `/api/adfs`                      | POST   | sí (`manage_adfs`)            | Crea una ADF `{ id, nom, osm_relations }` — només admin (`back/src/routes/municipis.ts`)                                                                       |
+| `/api/adfs/:id`                  | GET    | no                            | Detall d'una ADF (`back/src/routes/municipis.ts`)                                                                                                              |
+| `/api/adfs/:id`                  | PUT    | sí (`manage_adfs`)            | Modifica `{ nom?, osm_relations? }`; si canvien les relacions, buida `bbox`/`center`/`boundary_geojson` fins a recalcular-los (`back/src/routes/municipis.ts`) |
+| `/api/adfs/:id`                  | DELETE | sí (`manage_adfs`)            | Elimina una ADF sense usuaris, hidrants, incidències ni bots associats (`409` si en té) (`back/src/routes/municipis.ts`)                                       |
+| `/api/adfs/:id/boundaries`       | POST   | sí (`manage_adfs`)            | Recalcula `bbox`/`center`/`boundary_geojson` des d'OSM/Nominatim (`back/src/routes/adfBoundaries.ts`)                                                          |
+| `/api/adfs/:id/tracking-sharing` | PUT    | sí (`manage_own_adf_sharing`) | `{ shared: boolean }` — comparteix tracking amb altres ADFs; admin qualsevol, coordinador la seva (`back/src/routes/trackingSharing.ts:12`)                    |
 
 ### 10.3 Hidrants
 
@@ -493,13 +498,13 @@ Username `XXX/YYY` o `XXX/GI/YYY` (3 dígits, `back/src/routes/users.ts:12`), ro
 
 **Contrasenyes:** ningú no en tria per un altre. En crear un usuari o en demanar un enllaç, el backend guarda el `sha256` del token a `access_tokens` i retorna **una sola vegada** `access_url` (`/acces/<token>`, TTL 7 dies en alta i 24 h en restabliment). L'usuari obre l'enllaç, hi tria la seva contrasenya i queda amb la sessió oberta. Un sol enllaç viu per usuari (`back/src/services/accessTokens.ts`). El backend exigeix **mínim 8 caràcters**, que combinin lletres i xifres, i rebutja les d'un sol caràcter repetit i les que contenen el nom d'usuari o el de l'ADF (`back/src/utils/password.ts`); la mateixa validació s'aplica a `PUT /api/auth/password` i a `npm run create:user`. El mínim no es duplica al front: es publica a `GET /api/config` (`min_password_length`) i els formularis el fan servir per a l'atribut `minLength`.
 
-| Endpoint                     | Mètode | Auth | Descripció                                                                                                             |
-| ---------------------------- | ------ | ---- | ---------------------------------------------------------------------------------------------------------------------- |
-| `/api/users`                 | GET    | sí   | Llista (abast per rol: admin tots, coordinador ADF pròpia)                                                             |
-| `/api/users`                 | POST   | sí   | Crea `{ username, role }` + retorna `access_url`/`access_expires_at` (coordinador no pot crear `admin` ni d'altra ADF) |
-| `/api/users/:id`             | PUT    | sí   | Edita `{ username?, role? }` — re-alinia identitat MQTT si cal (`propagateMqttRename()`)                               |
-| `/api/users/:id`             | DELETE | sí   | Elimina (neteja `access_tokens`, `mqtt_users`, `incidencia_events.usuari_id→null`, `deleteMqttUser`)                   |
-| `/api/users/:id/access-link` | POST   | sí   | Genera un enllaç d'accés nou (24 h) i invalida l'anterior                                                              |
+| Endpoint                     | Mètode | Auth                | Descripció                                                                                                                                                                                           |
+| ---------------------------- | ------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/users`                 | GET    | sí (`manage_users`) | Llista: `manage_all_users` (admin) tots, la resta només la seva ADF                                                                                                                                  |
+| `/api/users`                 | POST   | sí (`manage_users`) | Crea `{ username, role }` + retorna `access_url`/`access_expires_at`; l'ADF surt del `username` (guard `requireUsernameAdfScope`) i `role: "admin"` demana `manage_all_users`                        |
+| `/api/users/:id`             | PUT    | sí (`manage_users`) | Edita `{ username?, role? }` — re-alinia identitat MQTT si cal (`propagateMqttRename()`); `requireTargetUserScope({ denySelf: true })` impedeix tocar-se a un mateix, administradors o una altra ADF |
+| `/api/users/:id`             | DELETE | sí (`manage_users`) | Elimina (neteja `access_tokens`, `mqtt_users`, `incidencia_events.usuari_id→null`, `deleteMqttUser`); mateix abast que el PUT                                                                        |
+| `/api/users/:id/access-link` | POST   | sí (`manage_users`) | Genera un enllaç d'accés nou (24 h) i invalida l'anterior; mateix abast (`requireTargetUserScope()`)                                                                                                 |
 
 ### 10.6 Tracking / MQTT (OwnTracks)
 
@@ -544,7 +549,7 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 
 ## 11. Qualitat de codi: ESLint, Husky i CI
 
-- **ESLint** (flat `eslint.config.mjs`, un per `front/` i `back/`): `npm run lint` / `lint:fix` a arrel o paquet. Stack `typescript-eslint` (recommended) + `eslint-config-prettier`, `eslint-plugin-react-hooks` i `react-refresh` (front). Objectiu **0 errors, 0 warnings**. `no-console` via `front/src/utils/log.ts`; `no-explicit-any` adapter Fastify amb `eslint-disable` justificat (`back/src/server.ts:1`).
+- **ESLint** (flat `eslint.config.mjs`, un per `front/` i `back/`): `npm run lint` / `lint:fix` a arrel o paquet. Stack `typescript-eslint` (recommended) + `eslint-config-prettier`, `eslint-plugin-react-hooks` i `react-refresh` (front). Objectiu **0 errors, 0 warnings**. `no-console` via `front/src/utils/log.ts`; `no-explicit-any` de l'adapter antic amb `eslint-disable` justificat (`back/src/types.ts:1`).
 - **Husky + lint-staged** (hook pre-commit): `.husky/pre-commit` → `npx lint-staged` (ESLint `--fix` als staged). **No `--no-verify`** sense justificació. Config a `package.json:51` (`*.{ts,tsx,js,jsx}` → `eslint --fix` + `prettier`, `*.{json,md,yml}` → `prettier`).
 - **Tests del front:** Vitest a `front/src/map/core/` (`zoom`, `geometry` i `engineSelection`). Comanda: `npm test -w front`; CI també els executa. Detall a [`docs/ARCHITECTURE.md`](ARCHITECTURE.md#4-tests-i-comprovacions).
 - **CI** (`.github/workflows/ci.yml`): `push` a `main`/`develop` i `pull_request`. Pipeline amb la versió de `.nvmrc` (Node 26.13.0): `npm ci` → `typecheck` → `lint` → `npm test -w front` → `build`. No publica artefactes ni desplega.
@@ -566,4 +571,4 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 
 ---
 
-_Darrera actualització: generat des de `back/src/server.ts:211` (rutes), `back/.env.example`, `package.json:5`, `docs/ARCHITECTURE.md` i `docs/OSM_SYNC.md` / `docs/MQTT_DEPLOY.md` / `docs/DEPLOY.md`._
+_Darrera actualització: generat des de `back/src/routes/` (rutes), `back/.env.example`, `package.json:5`, `docs/ARCHITECTURE.md` i `docs/OSM_SYNC.md` / `docs/MQTT_DEPLOY.md` / `docs/DEPLOY.md`._
