@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+
 import sqlite from "../db/index.js";
 import { mqttService } from "../services/mqtt.js";
 import { logger } from "../utils/logger.js";
-import type { ApiHandler } from "../types.js";
 
 /**
  * Salut (`/healthz`) i preparació (`/readyz`).
@@ -113,35 +115,45 @@ function mqttCheck(): Check {
     : { status: "down", optional: true, detail: "broker MQTT no connectat" };
 }
 
-/** GET /healthz — el procés viu i respon; no consulta la BD. */
-export const healthz: ApiHandler = (req, res) => {
-  if (req.method !== "GET") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-  res.setHeader("Cache-Control", "no-store");
-  res.json({ status: "ok", uptime_s: Math.round(process.uptime()) });
-};
+export function registerHealthRoutes(app: FastifyInstance): void {
+  const typed = app.withTypeProvider<ZodTypeProvider>();
 
-/** GET /readyz — 200 només si la BD és oberta i l'esquema està al dia; 503 si no. */
-export const readyz: ApiHandler = (req, res) => {
-  if (req.method !== "GET") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
+  // GET /healthz — el procés viu i respon; no consulta la BD.
+  typed.get(
+    "/healthz",
+    { schema: { tags: ["health"], summary: "Liveness: el procés respon" } },
+    async (_request, reply) =>
+      reply
+        .header("Cache-Control", "no-store")
+        .send({ status: "ok", uptime_s: Math.round(process.uptime()) }),
+  );
 
-  const checks = {
-    database: databaseCheck(),
-    migrations: migrationsCheck(),
-    mqtt: mqttCheck(),
-  };
+  // GET /readyz — 200 només si la BD és oberta i l'esquema està al dia; 503 si no.
+  typed.get(
+    "/readyz",
+    {
+      schema: {
+        tags: ["health"],
+        summary: "Readiness: BD oberta, migracions aplicades i foreign_keys actiu",
+      },
+    },
+    async (_request, reply) => {
+      const checks = {
+        database: databaseCheck(),
+        migrations: migrationsCheck(),
+        mqtt: mqttCheck(),
+      };
 
-  const ready = checks.database.status === "ok" && checks.migrations.status === "ok";
+      const ready = checks.database.status === "ok" && checks.migrations.status === "ok";
 
-  res.setHeader("Cache-Control", "no-store");
-  res.status(ready ? 200 : 503).json({
-    status: ready ? "ok" : "unavailable",
-    checks,
-    uptime_s: Math.round(process.uptime()),
-  });
-};
+      return reply
+        .header("Cache-Control", "no-store")
+        .code(ready ? 200 : 503)
+        .send({
+          status: ready ? "ok" : "unavailable",
+          checks,
+          uptime_s: Math.round(process.uptime()),
+        });
+    },
+  );
+}

@@ -4,7 +4,10 @@ import { logger } from "./utils/logger.js";
 
 const log = logger.child({ module: "permissions" });
 
-export type Role = "admin" | "coordinador" | "voluntari";
+/** Rols de l'aplicació: font única per a la matriu, els esquemes Zod i la BD. */
+export const ROLES = ["admin", "coordinador", "voluntari"] as const;
+
+export type Role = (typeof ROLES)[number];
 
 export type Permission =
   | "create_hydrant"

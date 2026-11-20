@@ -1,30 +1,44 @@
+import { eq } from "drizzle-orm";
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+
 import { db } from "../db/index.js";
 import { adfs } from "../db/schema.js";
-import { eq } from "drizzle-orm";
-import type { ApiHandler } from "../types.js";
+import { requireAuth, requirePermission } from "../plugins/authorize.js";
 import { updateAdfBoundaries } from "../services/adfBoundaries.js";
+import { adfIdParamsSchema } from "../utils/identifiers.js";
 
 /**
  * POST /api/adfs/:id/boundaries
  * Recalcula `bbox`, `center` i `boundary_geojson` a partir de les relacions OSM
- * de l'ADF (Nominatim). Només admin: el permís `manage_adfs` es declara a
- * `routes/index.ts`; és una operació costosa i externa.
+ * de l'ADF (Nominatim). Només admin (permís `manage_adfs`): és una operació
+ * costosa i externa.
  */
-const handler: ApiHandler = async (req, res) => {
-  const adfId = Number(req.params?.id);
-  if (!Number.isInteger(adfId) || adfId < 1 || adfId > 999) {
-    return res.status(400).json({ error: "ID d'ADF no vàlid" });
-  }
+export function registerAdfBoundaryRoutes(app: FastifyInstance): void {
+  const typed = app.withTypeProvider<ZodTypeProvider>();
 
-  await updateAdfBoundaries(adfId);
+  typed.post(
+    "/api/adfs/:id/boundaries",
+    {
+      preHandler: [requireAuth, requirePermission("manage_adfs")],
+      schema: {
+        tags: ["adfs"],
+        summary: "Recalcula els límits territorials de l'ADF des d'OSM",
+        params: adfIdParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const adfId = request.params.id;
 
-  const row = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
-  return res.json({
-    success: true,
-    adf_id: adfId,
-    bbox: row?.bbox ? JSON.parse(row.bbox) : null,
-    center: row?.center ? JSON.parse(row.center) : null,
-  });
-};
+      await updateAdfBoundaries(adfId);
 
-export default handler;
+      const row = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
+      return reply.send({
+        success: true,
+        adf_id: adfId,
+        bbox: row?.bbox ? JSON.parse(row.bbox) : null,
+        center: row?.center ? JSON.parse(row.center) : null,
+      });
+    },
+  );
+}

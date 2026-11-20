@@ -4,9 +4,7 @@ import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod
 import { registerAuth } from "./plugins/auth.js";
 import { registerErrorHandler, registerNotFound } from "./plugins/errors.js";
 import { registerOpenApi } from "./plugins/openapi.js";
-import { registerHidrantRoutes } from "./routes/hidrants.js";
-import { registerIncidenciaRoutes } from "./routes/incidencies.js";
-import { registerLegacyRoutes } from "./routes/index.js";
+import { registerRoutes } from "./routes/index.js";
 import { config } from "./utils/config.js";
 import { logger } from "./utils/logger.js";
 
@@ -48,13 +46,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerErrorHandler(app);
   await registerOpenApi(app);
 
-  // Rutes natives: esquema Zod a la frontera i auth/permís declarats per ruta.
-  registerHidrantRoutes(app);
-  registerIncidenciaRoutes(app);
-
-  // Rutes que encara fan servir l'adapter antic, amb auth/permís igualment
-  // declarats a la taula (ja no s'hereten per coincidència de text a la URL).
-  registerLegacyRoutes(app);
+  // Totes les rutes: natives (Zod + `preHandler` declaratiu) i les poques que
+  // encara passen per l'adapter antic, amb auth/permís igualment declarats.
+  registerRoutes(app);
 
   registerNotFound(app);
 

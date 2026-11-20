@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { users as usersTable } from "../db/schema.js";
 import { hasPermission, permissionsFor, type Permission } from "../permissions.js";
+import { adfIdFromUsername } from "../utils/identifiers.js";
 
 /**
  * D'on surt l'ADF a la qual apunta una petició. Es declara per ruta, així que
@@ -127,16 +128,13 @@ export async function requireUsernameAdfScope(
     return undefined;
   }
 
+  // El format del username ja el valida l'esquema Zod de la ruta.
   const username = (request.body as { username?: unknown } | undefined)?.username;
   if (typeof username !== "string") {
     return undefined;
   }
-  const prefix = /^(\d{3})\//.exec(username);
-  if (!prefix) {
-    return undefined;
-  }
 
-  if (user.adf_id === null || Number(prefix[1]) !== user.adf_id) {
+  if (user.adf_id === null || adfIdFromUsername(username) !== user.adf_id) {
     return reply.code(403).send(FORBIDDEN_USER);
   }
 
