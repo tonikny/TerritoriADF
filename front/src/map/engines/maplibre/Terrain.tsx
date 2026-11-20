@@ -89,15 +89,27 @@ export function MaplibreTerrain({
       native.easeTo({ pitch: 0, duration: 600 });
     };
 
-    if (native.isStyleLoaded()) {
-      apply();
-    } else {
-      native.once("load", apply);
-    }
+    // `isStyleLoaded()` no serveix aquí: retorna false mentre hi ha tessel·les
+    // pendents (gairebé sempre), i desar el canvi fins a un `load` que ja no es
+    // torna a disparar deixava el hillshade i el terreny enganxats en desactivar
+    // el relleu. Els mètodes de l'estil només llancen «Style is not done
+    // loading» abans del primer `style.load`, així que s'aplica de seguida i,
+    // només si falla, es reintenta quan l'estil estigui a punt.
+    const applyOrDefer = () => {
+      if (cancelled) {
+        return;
+      }
+      try {
+        apply();
+      } catch {
+        native.once("style.load", applyOrDefer);
+      }
+    };
+    applyOrDefer();
 
     return () => {
       cancelled = true;
-      native.off("load", apply);
+      native.off("style.load", applyOrDefer);
     };
   }, [map, enabled, exaggeration]);
 
