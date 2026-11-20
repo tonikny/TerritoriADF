@@ -1,3 +1,4 @@
+import { apiFetch } from "../../../utils/api";
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdf } from "../../../contexts/AdfContext";
@@ -88,7 +89,7 @@ export function UsuarisTab() {
 
   async function load() {
     try {
-      const r = await fetch("/api/users", { credentials: "same-origin" });
+      const r = await apiFetch("/api/users", { credentials: "same-origin" });
       if (!r.ok) {
         throw new Error(`API ${r.status}`);
       }
@@ -151,7 +152,7 @@ export function UsuarisTab() {
   }
 
   async function doRequest<T = unknown>(url: string, method: string, body: unknown): Promise<T> {
-    const r = await fetch(url, {
+    const r = await apiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",

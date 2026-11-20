@@ -1,3 +1,4 @@
+import { apiFetch } from "../../../utils/api";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdf } from "../../../contexts/AdfContext";
@@ -71,7 +72,7 @@ export function SeguimentTab({
     setShared(checked);
     setSaving(true);
     try {
-      const r = await fetch(`/api/adfs/${activeAdf.id}/tracking-sharing`, {
+      const r = await apiFetch(`/api/adfs/${activeAdf.id}/tracking-sharing`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -99,7 +100,7 @@ export function SeguimentTab({
   useEffect(() => {
     const poll = async () => {
       try {
-        const res = await fetch("/api/tracking/status", { credentials: "same-origin" });
+        const res = await apiFetch("/api/tracking/status", { credentials: "same-origin" });
         if (res.ok) {
           const data = await res.json();
           setAvailable(data.available);
@@ -119,7 +120,7 @@ export function SeguimentTab({
   const handleEnable = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/tracking/enable", {
+      const res = await apiFetch("/api/tracking/enable", {
         method: "POST",
         credentials: "same-origin",
       });
@@ -137,7 +138,7 @@ export function SeguimentTab({
   };
 
   const loadOtrc = async (): Promise<Record<string, unknown> | null> => {
-    const res = await fetch("/api/tracking/config", { credentials: "same-origin" });
+    const res = await apiFetch("/api/tracking/config", { credentials: "same-origin" });
     if (!res.ok) {
       const err = await res.json();
       toast.error(err.error || "Error descarregant config");

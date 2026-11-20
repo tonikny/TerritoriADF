@@ -1,3 +1,4 @@
+import { apiFetch } from "../utils/api";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAdf } from "../contexts/AdfContext";
 import { markDataSynced } from "../utils/offlineData";
@@ -69,7 +70,7 @@ export function useHydrantData() {
       setLoading(true);
       // Sense cache-buster: la URL ha de ser estable perquè el service worker
       // pugui servir la còpia quan no hi hagi xarxa.
-      const response = await fetch(`/api/hidrants?adf=${adfId}`);
+      const response = await apiFetch(`/api/hidrants?adf=${adfId}`);
       if (!response.ok) {
         throw new Error("Error al carregar hidrants");
       }

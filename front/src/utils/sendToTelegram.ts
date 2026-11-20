@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 import { logError } from "./log";
 
 interface SendPayload {
@@ -13,7 +14,7 @@ interface SendPayload {
 
 export async function sendToTelegram(data: SendPayload): Promise<void> {
   try {
-    const res = await fetch("/api/sendToTelegram", {
+    const res = await apiFetch("/api/sendToTelegram", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

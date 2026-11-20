@@ -1,3 +1,4 @@
+import { apiFetch } from "../../../utils/api";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import * as turf from "@turf/turf";
@@ -132,7 +133,7 @@ export function MapaTab({
         draftMode === "create"
           ? { id: adfId, nom, osm_relations: relations }
           : { nom, osm_relations: relations };
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: draftMode === "create" ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -162,7 +163,7 @@ export function MapaTab({
   async function recalculateBoundaries(adfId: number) {
     setRecalculating(true);
     try {
-      const res = await fetch(`/api/adfs/${adfId}/boundaries`, {
+      const res = await apiFetch(`/api/adfs/${adfId}/boundaries`, {
         method: "POST",
         credentials: "same-origin",
       });
@@ -195,7 +196,7 @@ export function MapaTab({
     }
     setDeleting(true);
     try {
-      const res = await fetch(`/api/adfs/${activeAdf.id}`, {
+      const res = await apiFetch(`/api/adfs/${activeAdf.id}`, {
         method: "DELETE",
         credentials: "same-origin",
       });

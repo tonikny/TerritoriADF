@@ -1,3 +1,4 @@
+import { apiFetch } from "../utils/api";
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "./AuthContext";
@@ -54,7 +55,7 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   /** Torna a carregar la llista d'ADFs (després de crear, editar o eliminar-ne una). */
   const refreshAdfs = useCallback(async () => {
-    const response = await fetch("/api/adfs");
+    const response = await apiFetch("/api/adfs");
     if (!response.ok) {
       throw new Error("Error carregant ADFs");
     }
@@ -68,7 +69,7 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const fetchAdfs = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/adfs");
+        const response = await apiFetch("/api/adfs");
         if (!response.ok) {
           throw new Error("Error carregant ADFs");
         }
@@ -122,7 +123,7 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!activeAdf) {
       return;
     }
-    void fetch(`/api/adf/boundary?adf=${activeAdf.id}`)
+    void apiFetch(`/api/adf/boundary?adf=${activeAdf.id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((gj) => setBoundaryGeojsonRaw(gj ? JSON.stringify(gj) : null))
       .catch(() => setBoundaryGeojsonRaw(null));

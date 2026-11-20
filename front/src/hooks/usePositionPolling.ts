@@ -1,3 +1,4 @@
+import { apiFetch } from "../utils/api";
 // Hook que polla GET /api/tracking/positions cada intervalMs i retorna les posicions.
 import { useState, useEffect, useRef } from "react";
 import { storageKey } from "../utils/storageKeys";
@@ -33,7 +34,7 @@ export function usePositionPolling(
     }
     const poll = async () => {
       try {
-        const res = await fetch(`/api/tracking/positions?_=${Date.now()}`, {
+        const res = await apiFetch(`/api/tracking/positions?_=${Date.now()}`, {
           credentials: "same-origin",
         });
         if (res.ok) {

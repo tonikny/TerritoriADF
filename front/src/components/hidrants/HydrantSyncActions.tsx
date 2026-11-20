@@ -1,3 +1,4 @@
+import { apiFetch } from "../../utils/api";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "../../hooks/useHidrantData";
@@ -140,7 +141,7 @@ export function HydrantSyncActions({
     const load = async () => {
       setDiffLoading(true);
       try {
-        const res = await fetch(`/api/osm/diff/${id}`);
+        const res = await apiFetch(`/api/osm/diff/${id}`);
         const data = await res.json();
         if (!cancelled && data.diff) {
           // Mapejar la resposta del backend (osmTags=local, remoteOsmTags=remote) a la interfície frontend (localTags, osmTags)
@@ -198,7 +199,7 @@ export function HydrantSyncActions({
   const handlePush = async () => {
     setBusy(true);
     try {
-      const res = await fetch("/api/osm/push-selected", {
+      const res = await apiFetch("/api/osm/push-selected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: [id] }),
@@ -233,7 +234,7 @@ export function HydrantSyncActions({
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/osm/pull-hydrant", {
+      const res = await apiFetch("/api/osm/pull-hydrant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
@@ -262,7 +263,7 @@ export function HydrantSyncActions({
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/osm/discard-selected", {
+      const res = await apiFetch("/api/osm/discard-selected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: [id] }),

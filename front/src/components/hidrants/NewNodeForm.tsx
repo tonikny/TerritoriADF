@@ -1,3 +1,4 @@
+import { apiFetch } from "../../utils/api";
 import { useState } from "react";
 import { sendToTelegram } from "../../utils/sendToTelegram";
 import type { LatLon } from "../../map/core/types";
@@ -69,7 +70,7 @@ export const NewNodeForm = ({
     try {
       // La creació es fa via l'endpoint protegit (valida permís i abast ADF);
       // sendToTelegram només notifica, ja no escriu a la BD.
-      const createdRes = await fetch(`/api/hidrants?adf=${activeAdf.id}`, {
+      const createdRes = await apiFetch(`/api/hidrants?adf=${activeAdf.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

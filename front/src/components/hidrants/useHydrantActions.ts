@@ -1,3 +1,4 @@
+import { apiFetch } from "../../utils/api";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "../../hooks/useHidrantData";
@@ -92,7 +93,7 @@ export function useHydrantActions(
         { lat: poi.lat, lon: poi.lng },
         hasNewPosition ? { lat: finalLat, lon: finalLon } : undefined,
       );
-      const response = await fetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
+      const response = await apiFetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -144,7 +145,7 @@ export function useHydrantActions(
         surveyDate: today,
         estat: isOperative ? "Operatiu" : "Fora de servei",
       };
-      const response = await fetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
+      const response = await apiFetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ui_fields: newData }),
@@ -187,7 +188,7 @@ export function useHydrantActions(
 
     setBusy(true);
     try {
-      const response = await fetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
+      const response = await apiFetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
         method: "DELETE",
       });
       if (!response.ok) {

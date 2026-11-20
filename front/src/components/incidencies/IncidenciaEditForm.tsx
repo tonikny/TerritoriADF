@@ -10,6 +10,7 @@ import {
   selectClass,
 } from "../../styles/uiStyles";
 import {
+  displayCategoria,
   ESTATS_INCIDENCIA,
   PRECISIONS_INCIDENCIA,
   PRIORITATS_INCIDENCIA,
@@ -27,13 +28,11 @@ export function IncidenciaEditForm({
   onDone: () => void;
 }) {
   const { addEvent } = useIncidencies();
-  const { user, actualRole } = useAuth();
+  const { user } = useAuth();
+  // Rol efectiu (respecta "veure com" de l'admin): només coordinador de la mateixa ADF o admin real.
   const canChangeVisibility =
-    actualRole === "admin" ||
-    (actualRole === "coordinador" &&
-      user !== null &&
-      user.adf_id !== null &&
-      user.adf_id === incidencia.adf_id);
+    user?.role === "admin" ||
+    (user?.role === "coordinador" && user.adf_id !== null && user.adf_id === incidencia.adf_id);
   const [newTipus, setNewTipus] = useState<string>(incidencia.tipus);
   const [newStatus, setNewStatus] = useState<string>(incidencia.estat);
   const [newPriority, setNewPriority] = useState<string>(incidencia.prioritat);
@@ -47,7 +46,7 @@ export function IncidenciaEditForm({
     newStatus !== incidencia.estat ||
     newPriority !== incidencia.prioritat ||
     newPrecisio !== incidencia.precisio ||
-    newVisibilitat !== incidencia.visibilitat ||
+    (canChangeVisibility && newVisibilitat !== incidencia.visibilitat) ||
     !!newComment;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,7 +171,7 @@ export function IncidenciaEditForm({
           </select>
         </label>
 
-        {canChangeVisibility && (
+        {canChangeVisibility ? (
           <label className="text-[0.8rem] italic flex flex-col gap-1">
             Visibilitat:
             <select
@@ -188,6 +187,19 @@ export function IncidenciaEditForm({
                 </option>
               ))}
             </select>
+          </label>
+        ) : (
+          <label
+            className="text-[0.8rem] italic flex flex-col gap-1"
+            title="Només el coordinador de la teva ADF pot canviar la visibilitat"
+          >
+            Visibilitat (només lectura — la pot canviar el coordinador):
+            <input
+              value={displayCategoria(VISIBILITATS_INCIDENCIA, incidencia.visibilitat)}
+              readOnly
+              disabled
+              className={`${inputClass} opacity-70 cursor-not-allowed`}
+            />
           </label>
         )}
 

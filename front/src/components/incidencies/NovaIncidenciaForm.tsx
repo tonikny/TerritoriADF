@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useIncidencies } from "../../hooks/useIncidencies";
 import { useAuth } from "../../contexts/AuthContext";
+import { useAdf } from "../../contexts/AdfContext";
 import { toast } from "react-toastify";
 import {
   inputClass,
@@ -25,8 +26,16 @@ interface NovaIncidenciaFormProps {
 
 export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProps) => {
   const { createIncidencia } = useIncidencies();
-  const { actualRole } = useAuth();
-  const canChooseVisibility = actualRole === "admin" || actualRole === "coordinador";
+  const { user } = useAuth();
+  const { activeAdf } = useAdf();
+  // Rol efectiu (respecta "veure com" de l'admin): igual que a l'edició, un coordinador
+  // només tria visibilitat dins la seva ADF; un admin sempre pot.
+  const canChooseVisibility =
+    user?.role === "admin" ||
+    (user?.role === "coordinador" &&
+      user.adf_id !== null &&
+      activeAdf !== null &&
+      user.adf_id === activeAdf.id);
   const [type, setType] = useState("GENERICA");
   const [priority, setPriority] = useState("MITJANA");
   const [precisio, setPrecisio] = useState("EXACTA");

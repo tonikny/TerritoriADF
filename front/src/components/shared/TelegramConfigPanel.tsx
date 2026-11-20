@@ -1,3 +1,4 @@
+import { apiFetch } from "../../utils/api";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { adfLabel } from "../../utils/adfLabel";
@@ -49,7 +50,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 async function pollAdf(adfId: number) {
   try {
-    const res = await fetch(`/api/adfs/${adfId}/telegram/status`, {
+    const res = await apiFetch(`/api/adfs/${adfId}/telegram/status`, {
       credentials: "same-origin",
     });
     if (!res.ok) {
@@ -207,7 +208,7 @@ export function TelegramConfigPanel() {
     }
     setRegistering(true);
     try {
-      const res = await fetch(`/api/adfs/${adfId}/telegram`, {
+      const res = await apiFetch(`/api/adfs/${adfId}/telegram`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -236,7 +237,7 @@ export function TelegramConfigPanel() {
     setLinking(true);
     setLinkUrl(undefined);
     try {
-      const res = await fetch(`/api/adfs/${adfId}/telegram/link`, {
+      const res = await apiFetch(`/api/adfs/${adfId}/telegram/link`, {
         method: "POST",
         credentials: "same-origin",
       });
@@ -270,7 +271,7 @@ export function TelegramConfigPanel() {
     }
     setSending(true);
     try {
-      const res = await fetch(`/api/adfs/${adfId}/telegram/test`, {
+      const res = await apiFetch(`/api/adfs/${adfId}/telegram/test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -300,7 +301,7 @@ export function TelegramConfigPanel() {
     }
     setDeleting(true);
     try {
-      const res = await fetch(`/api/adfs/${adfId}/telegram`, {
+      const res = await apiFetch(`/api/adfs/${adfId}/telegram`, {
         method: "DELETE",
         credentials: "same-origin",
       });

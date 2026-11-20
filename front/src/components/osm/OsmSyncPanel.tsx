@@ -1,3 +1,4 @@
+import { apiFetch } from "../../utils/api";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { useAdf } from "../../contexts/AdfContext";
@@ -125,7 +126,7 @@ export function OsmSyncPanel({
     const load = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/osm/pending?adf=${activeAdf.id}`);
+        const res = await apiFetch(`/api/osm/pending?adf=${activeAdf.id}`);
         if (res.ok && !cancelled) {
           const data = await res.json();
           const items = data.pending || [];
@@ -159,7 +160,7 @@ export function OsmSyncPanel({
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/osm/pending?adf=${activeAdf.id}`);
+      const res = await apiFetch(`/api/osm/pending?adf=${activeAdf.id}`);
       if (res.ok) {
         const data = await res.json();
         setPending(data.pending || []);
@@ -228,7 +229,7 @@ export function OsmSyncPanel({
     }
     setActionLoading(true);
     try {
-      const res = await fetch("/api/osm/push-selected", {
+      const res = await apiFetch("/api/osm/push-selected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: Array.from(selected) }),
@@ -265,7 +266,7 @@ export function OsmSyncPanel({
     }
     setActionLoading(true);
     try {
-      const res = await fetch("/api/osm/discard-selected", {
+      const res = await apiFetch("/api/osm/discard-selected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: Array.from(selected) }),
@@ -316,7 +317,7 @@ export function OsmSyncPanel({
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/hidrants/sync?adf=${activeAdf.id}`, {
+      const res = await apiFetch(`/api/hidrants/sync?adf=${activeAdf.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
@@ -341,7 +342,7 @@ export function OsmSyncPanel({
   const handlePushOne = async (id: string) => {
     setActionLoading(true);
     try {
-      const res = await fetch("/api/osm/push-selected", {
+      const res = await apiFetch("/api/osm/push-selected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: [id] }),
@@ -378,7 +379,7 @@ export function OsmSyncPanel({
     }
     setActionLoading(true);
     try {
-      await fetch("/api/osm/discard-selected", {
+      await apiFetch("/api/osm/discard-selected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: [id] }),
@@ -404,7 +405,7 @@ export function OsmSyncPanel({
     }
     setActionLoading(true);
     try {
-      const res = await fetch("/api/osm/missing/purge", {
+      const res = await apiFetch("/api/osm/missing/purge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adf_id: adfId, ids }),
@@ -429,7 +430,7 @@ export function OsmSyncPanel({
     }
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/osm/pull-hydrant`, {
+      const res = await apiFetch(`/api/osm/pull-hydrant`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),

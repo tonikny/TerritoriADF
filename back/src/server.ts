@@ -208,6 +208,22 @@ function wrap(handler: ApiHandler, options: { protected?: boolean } = {}) {
     try {
       await request.jwtVerify();
       user = sessionUser((request as any).user);
+      // Mode "veure com": només un admin pot degradar el seu rol efectiu (mai escalar-lo)
+      // i simular pertinença a l'ADF activa. El front envia `x-view-role:
+      // coordinador|voluntari` + `x-view-adf-id` quan l'admin previsualitza un altre rol;
+      // així el backend aplica les mateixes restriccions (p. ex. visibilitat d'incidències)
+      // que tindria aquell rol en aquella ADF. Un admin ja ho pot tot, de manera que
+      // restringir-se a un rol/ADF concrets mai és una escalada de privilegis; les
+      // capçaleres s'ignoren per a qualsevol sessió no-admin.
+      const viewRole = (request.headers as any)?.["x-view-role"];
+      if (user?.role === "admin" && (viewRole === "coordinador" || viewRole === "voluntari")) {
+        const rawViewAdf = (request.headers as any)?.["x-view-adf-id"];
+        const viewAdfId =
+          typeof rawViewAdf === "string" && /^\d+$/.test(rawViewAdf.trim())
+            ? Number(rawViewAdf.trim())
+            : null;
+        user = { ...user, role: viewRole, adf_id: viewAdfId };
+      }
     } catch {
       user = undefined;
     }

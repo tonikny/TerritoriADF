@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAdf } from "../contexts/AdfContext";
 import { markDataSynced } from "../utils/offlineData";
+import { apiFetch } from "../utils/api";
 import type { IncidenciaFeature, Incidencia, IncidenciaEvent } from "../types";
 
 export function useIncidencies() {
@@ -16,7 +17,7 @@ export function useIncidencies() {
     }
     try {
       setLoading(true);
-      const response = await fetch(`/api/incidencies?adf=${activeAdf.id}`);
+      const response = await apiFetch(`/api/incidencies?adf=${activeAdf.id}`);
       if (!response.ok) {
         throw new Error("Error al carregar incidències");
       }
@@ -37,7 +38,7 @@ export function useIncidencies() {
   }, [fetchIncidencies]);
 
   const getIncidencia = async (id: string): Promise<Incidencia & { events: IncidenciaEvent[] }> => {
-    const response = await fetch(`/api/incidencies/${id}`);
+    const response = await apiFetch(`/api/incidencies/${id}`);
     if (!response.ok) {
       throw new Error("Error al carregar el detall de la incidència");
     }
@@ -54,7 +55,7 @@ export function useIncidencies() {
     lon: number;
     comentari: string;
   }) => {
-    const response = await fetch("/api/incidencies", {
+    const response = await apiFetch("/api/incidencies", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...data, adf_id: activeAdf?.id }),
@@ -73,7 +74,7 @@ export function useIncidencies() {
     tipusEvent: string,
     dades: Record<string, unknown>,
   ) => {
-    const response = await fetch(`/api/incidencies/${incidenciaId}/events`, {
+    const response = await apiFetch(`/api/incidencies/${incidenciaId}/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tipus_event: tipusEvent, dades }),
