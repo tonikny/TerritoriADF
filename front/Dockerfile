@@ -2,8 +2,9 @@
 # perquè les dependències s'instal·len amb el package-lock.json únic del
 # monorepo (npm workspaces) en lloc de resoldre els rangs ^ a cada build.
 
-# Estadi de construcció
-FROM node:26-alpine AS builder
+# Estadi de construcció. Versió fixada a `.nvmrc` (26.13.0): local, CI i Docker
+# han de compilar amb el mateix Node.
+FROM node:26.13-alpine AS builder
 
 WORKDIR /app
 

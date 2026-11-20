@@ -22,7 +22,7 @@ Aquesta guia cobreix **desenvolupament local**. Per a altres entorns i temes esp
 
 ## 1. Requisits
 
-- **Node.js >=26** i **npm** (vegeu `engines` de `package.json` i `.nvmrc`)
+- **Node.js 26.13.0** i **npm**. La versió té una sola font: `.nvmrc` (i `engines: >=26` a `package.json`). `.npmrc` porta `engine-strict=true`, així que `npm install`/`npm ci` **fallen amb `EBADENGINE`** si el Node del shell no compleix el mínim, en lloc d'instal·lar en silenci amb una versió no verificada (`better-sqlite3` és natiu). Comprova-ho amb `node -v` i canvia amb `nvm use` / `fnm use`, que llegeixen `.nvmrc`. El CI (`.github/workflows/ci.yml`, `node-version-file: .nvmrc`) i les imatges Docker (`node:26.13-alpine`) fan servir exactament aquesta versió.
 - **Docker** i **Docker Compose** (per `mqtt:up` i `docker:up`)
 - **Python 3** (per `scripts/init-dynsec.py` → `mqtt:sync-dynsec` / `mqtt:regen-dynsec`)
 - **Git**
@@ -547,21 +547,22 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 - **ESLint** (flat `eslint.config.mjs`, un per `front/` i `back/`): `npm run lint` / `lint:fix` a arrel o paquet. Stack `typescript-eslint` (recommended) + `eslint-config-prettier`, `eslint-plugin-react-hooks` i `react-refresh` (front). Objectiu **0 errors, 0 warnings**. `no-console` via `front/src/utils/log.ts`; `no-explicit-any` adapter Fastify amb `eslint-disable` justificat (`back/src/server.ts:1`).
 - **Husky + lint-staged** (hook pre-commit): `.husky/pre-commit` → `npx lint-staged` (ESLint `--fix` als staged). **No `--no-verify`** sense justificació. Config a `package.json:51` (`*.{ts,tsx,js,jsx}` → `eslint --fix` + `prettier`, `*.{json,md,yml}` → `prettier`).
 - **Tests del front:** Vitest a `front/src/map/core/` (`zoom`, `geometry` i `engineSelection`). Comanda: `npm test -w front`; CI també els executa. Detall a [`docs/ARCHITECTURE.md`](ARCHITECTURE.md#4-tests-i-comprovacions).
-- **CI** (`.github/workflows/ci.yml`): `push` a `main`/`develop` i `pull_request`. Pipeline Node 26: `npm ci` → `typecheck` → `lint` → `npm test -w front` → `build`. No publica artefactes ni desplega.
+- **CI** (`.github/workflows/ci.yml`): `push` a `main`/`develop` i `pull_request`. Pipeline amb la versió de `.nvmrc` (Node 26.13.0): `npm ci` → `typecheck` → `lint` → `npm test -w front` → `build`. No publica artefactes ni desplega.
 
 ---
 
 ## 12. Troubleshooting
 
-| Símptoma                                        | Causa / Context                                                       | Solució                                                                                                                                                                 |
-| ----------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getaddrinfo ENOTFOUND mosquitto`               | `MQTT_BROKER_URL` incorrecte segons entorn                            | Dev local: `mqtt://localhost:1883`. Docker: `mqtt://mosquitto:1883`                                                                                                     |
-| `Not authorized` (Mosquitto)                    | `back/.env` vs `dynamic-security.json` desincronitzats                | `npm run mqtt:sync-dynsec` (o `regen` si cal), verificar `docker compose logs mosquitto` → `Opening TLS listening socket on port 51823` (vegeu `docs/MQTT_DEPLOY.md#7`) |
-| `Not authorized` amb `mosquitto_sub -u backend` | Hash `encoded_password` incorrecte / format JSON DynSec invàlid       | Regenerar amb `scripts/init-dynsec.py` (Python directe, sense `mosquitto_passwd` amb expansió shell) — detall `docs/MQTT_DEPLOY.md#4`                                   |
-| `Permission denied` generant DynSec             | `mosquitto/data` propietat `root` (contenidor) sense grup `mosquitto` | `chown root:mosquitto`, `chmod 2770/660`, `setfacl -d -m g:mosquitto:rw` — vegeu `docs/MQTT_DEPLOY.md#4`                                                                |
-| `docker compose config` no cal `mosquitto/.env` | Mosquitto no consumeix env en runtime                                 | Contrasenyes només a `back/.env` (`MQTT_*_PASSWORD`); el JSON és la font de veritat                                                                                     |
-| Webhook Telegram `{"ok":false}` sempre          | Secret no trobat (`telegramBots.webhook_secret`)                      | Verificar `WEBHOOK_PUBLIC_URL` i que Nginx proxya `/api/telegram/webhook/*` (vegeu §8.2)                                                                                |
-| `Token OSM no vàlid` / push 401                 | `OSM_ACCESS_TOKEN` invàlid o sense `write_api`                        | Regenerar a https://www.openstreetmap.org/oauth2/applications, scope `write_api`                                                                                        |
+| Símptoma                                        | Causa / Context                                                                    | Solució                                                                                                                                                                 |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getaddrinfo ENOTFOUND mosquitto`               | `MQTT_BROKER_URL` incorrecte segons entorn                                         | Dev local: `mqtt://localhost:1883`. Docker: `mqtt://mosquitto:1883`                                                                                                     |
+| `npm ci`/`npm install` fallen amb `EBADENGINE`  | El Node del shell no és el de `.nvmrc` (26.13.0); `.npmrc` té `engine-strict=true` | `nvm use` o `fnm use` (llegeixen `.nvmrc`), comprova `node -v` → `v26.13.0` i torna-ho a provar                                                                         |
+| `Not authorized` (Mosquitto)                    | `back/.env` vs `dynamic-security.json` desincronitzats                             | `npm run mqtt:sync-dynsec` (o `regen` si cal), verificar `docker compose logs mosquitto` → `Opening TLS listening socket on port 51823` (vegeu `docs/MQTT_DEPLOY.md#7`) |
+| `Not authorized` amb `mosquitto_sub -u backend` | Hash `encoded_password` incorrecte / format JSON DynSec invàlid                    | Regenerar amb `scripts/init-dynsec.py` (Python directe, sense `mosquitto_passwd` amb expansió shell) — detall `docs/MQTT_DEPLOY.md#4`                                   |
+| `Permission denied` generant DynSec             | `mosquitto/data` propietat `root` (contenidor) sense grup `mosquitto`              | `chown root:mosquitto`, `chmod 2770/660`, `setfacl -d -m g:mosquitto:rw` — vegeu `docs/MQTT_DEPLOY.md#4`                                                                |
+| `docker compose config` no cal `mosquitto/.env` | Mosquitto no consumeix env en runtime                                              | Contrasenyes només a `back/.env` (`MQTT_*_PASSWORD`); el JSON és la font de veritat                                                                                     |
+| Webhook Telegram `{"ok":false}` sempre          | Secret no trobat (`telegramBots.webhook_secret`)                                   | Verificar `WEBHOOK_PUBLIC_URL` i que Nginx proxya `/api/telegram/webhook/*` (vegeu §8.2)                                                                                |
+| `Token OSM no vàlid` / push 401                 | `OSM_ACCESS_TOKEN` invàlid o sense `write_api`                                     | Regenerar a https://www.openstreetmap.org/oauth2/applications, scope `write_api`                                                                                        |
 
 ---
 

@@ -14,7 +14,8 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 26
+          # Versió única per a local, CI i Docker: es llegeix de `.nvmrc`.
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci
