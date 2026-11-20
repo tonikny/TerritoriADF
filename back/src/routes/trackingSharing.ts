@@ -1,44 +1,49 @@
+import { eq } from "drizzle-orm";
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
+
 import { db } from "../db/index.js";
 import { adfs } from "../db/schema.js";
-import { eq } from "drizzle-orm";
-import type { ApiHandler } from "../types.js";
-import { permissionsFor } from "../permissions.js";
+import { requireAdfScope, requireAuth, requirePermission } from "../plugins/authorize.js";
+import { adfIdParamsSchema } from "../utils/identifiers.js";
+
+const bodySchema = z.object({ shared: z.boolean().optional() });
 
 /**
  * PUT /api/adfs/:id/tracking-sharing
  * Comparteix/revoca el tracking d'una ADF amb la resta d'ADFs (opt-in global).
- * Admin pot qualsevol ADF; coordinador només la seva (permís manage_own_adf_sharing).
+ * Permís `manage_own_adf_sharing` i abast ADF declarats al `preHandler`.
  */
-const handler: ApiHandler = async (req, res) => {
-  // Endpoint de mutació: només PUT. Un GET no ha de poder desactivar la compartició.
-  if (req.method !== "PUT") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+export function registerTrackingSharingRoutes(app: FastifyInstance): void {
+  const typed = app.withTypeProvider<ZodTypeProvider>();
 
-  const user = req.user!;
-  const adfId = Number(req.params?.id);
-  const shared = req.body?.shared === true;
+  typed.put(
+    "/api/adfs/:id/tracking-sharing",
+    {
+      preHandler: [
+        requireAuth,
+        requirePermission("manage_own_adf_sharing"),
+        requireAdfScope([{ from: "params", key: "id" }]),
+      ],
+      schema: {
+        tags: ["tracking"],
+        summary: "Activa o revoca la compartició de tracking de l'ADF",
+        params: adfIdParamsSchema,
+        body: bodySchema,
+      },
+    },
+    async (request, reply) => {
+      const adfId = request.params.id;
+      const shared = request.body.shared === true;
 
-  if (!Number.isFinite(adfId)) {
-    return res.status(400).json({ error: "ID d'ADF no vàlid" });
-  }
+      const adf = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
+      if (!adf) {
+        return reply.code(404).send({ error: "ADF no trobada" });
+      }
 
-  const adf = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
-  if (!adf) {
-    return res.status(404).json({ error: "ADF no trobada" });
-  }
-
-  const perms = permissionsFor(user.role);
-  const allowed =
-    user.role === "admin" || (perms.includes("manage_own_adf_sharing") && user.adf_id === adfId);
-  if (!allowed) {
-    return res
-      .status(403)
-      .json({ error: "No tens permisos per modificar la compartició d'aquesta ADF" });
-  }
-
-  db.update(adfs).set({ tracking_shared: shared }).where(eq(adfs.id, adfId)).run();
-  return res.json({ adf_id: adfId, tracking_shared: shared });
-};
-
-export default handler;
+      db.update(adfs).set({ tracking_shared: shared }).where(eq(adfs.id, adfId)).run();
+      return reply.send({ adf_id: adfId, tracking_shared: shared });
+    },
+  );
+}

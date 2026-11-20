@@ -1,97 +1,209 @@
-import { HidrantsService } from "../services/hidrantsService.js";
-import type { ApiHandler } from "../types.js";
-import { BadRequestError } from "../errors.js";
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-const createSchema = z.object({
-  lat: z.number(),
-  lon: z.number(),
-  ui_fields: z.any().optional(),
-  private_tags: z.any().optional(),
+import { HidrantsService } from "../services/hidrantsService.js";
+import { BadRequestError } from "../errors.js";
+import {
+  ADF_FROM_QUERY_OR_BODY,
+  requireAdfScope,
+  requireAuth,
+  requirePermission,
+} from "../plugins/authorize.js";
+
+/**
+ * Rutes d'hidrants amb handlers natius de Fastify i esquemes Zod.
+ *
+ * L'esquema valida la frontera (abans `ui_fields` i `private_tags` eren
+ * `z.any()`), tipa el handler i alimenta l'OpenAPI. L'autorització és
+ * declarativa: cada mutació diu quina capacitat necessita i d'on surt l'ADF.
+ */
+
+/**
+ * Camps del formulari d'hidrant (`HydrantUiFields` a `utils/osmConversion.ts`).
+ * Tots són text; els que no arriben queden buits, que és el que fa `ui2Osm`:
+ * esborrar un camp esborra també el tag d'OSM corresponent.
+ */
+const uiFieldsSchema = z.object({
+  position: z.string().max(100).default(""),
+  type: z.string().max(100).default(""),
+  couplings: z.string().max(100).default(""),
+  diameters: z.string().max(100).default(""),
+  pressure: z.string().max(100).default(""),
+  street: z.string().max(200).default(""),
+  num: z.string().max(50).default(""),
+  barri: z.string().max(200).default(""),
+  surveyDate: z.string().max(50).default(""),
+  estat: z.string().max(50).default(""),
 });
 
-const updateSchema = z.object({
+const privateTagsSchema = z.record(z.string(), z.unknown());
+
+const adfQuerySchema = z.object({
+  adf: z.coerce.number().int().positive().optional(),
+});
+
+const createBodySchema = z.object({
+  adf_id: z.coerce.number().int().positive().optional(),
+  lat: z.number().finite(),
+  lon: z.number().finite(),
+  ui_fields: uiFieldsSchema.optional(),
+  private_tags: privateTagsSchema.optional(),
+});
+
+const updateBodySchema = z.object({
+  adf_id: z.coerce.number().int().positive().optional(),
   id: z.string().optional(),
-  lat: z.number().optional(),
-  lon: z.number().optional(),
-  ui_fields: z.any().optional(),
-  private_tags: z.any().optional(),
+  lat: z.number().finite().optional(),
+  lon: z.number().finite().optional(),
+  ui_fields: uiFieldsSchema.optional(),
+  private_tags: privateTagsSchema.optional(),
 });
 
-const handler: ApiHandler = async (req, res) => {
-  const { method, url, query } = req;
-  const adf_id = Number(query?.adf || req.body?.adf_id);
+/** El cos del sync és opcional: el front només envia `force` quan força. */
+const syncBodySchema = z
+  .object({
+    adf_id: z.coerce.number().int().positive().optional(),
+    force: z.boolean().optional(),
+  })
+  .default({});
 
-  if (!adf_id) {
+const idParamsSchema = z.object({ id: z.string().min(1) });
+
+function adfIdFrom(adf: number | undefined, bodyAdfId?: number): number {
+  const adfId = adf ?? bodyAdfId;
+  if (!adfId) {
     throw new BadRequestError("ADF ID not identified.");
   }
+  return adfId;
+}
 
-  // --- POST /api/hidrants/sync: Forçar sincronització amb OSM ---
-  const isSyncPath = url?.split("?")[0].endsWith("/sync");
-  if (method === "POST" && isSyncPath) {
-    const force = req.body?.force === true;
-    const result = await HidrantsService.forceSync(adf_id, force);
-    const msg = force
-      ? `Forçat des d'OSM: ${result.total} hidrants.`
-      : `Sincronitzats ${result.total} hidrants d'OSM. ${result.skipped > 0 ? `${result.skipped} locals mantinguts.` : ""}${result.conflicts > 0 ? `${result.conflicts} conflictes nous.` : ""}`;
-    return res.json({ success: true, message: msg, ...result });
-  }
+export function registerHidrantRoutes(app: FastifyInstance): void {
+  const typed = app.withTypeProvider<ZodTypeProvider>();
 
-  // --- GET /api/hidrants/stats: Obtenir estadístiques de sincronització ---
-  const isStatsPath = url?.split("?")[0].endsWith("/stats");
-  if (method === "GET" && isStatsPath) {
-    const stats = HidrantsService.getSyncStats(adf_id);
-    return res.json(stats);
-  }
+  // --- GET /api/hidrants: llistar hidrants de l'ADF (GeoJSON) ---
+  // Públic. Amb sessió s'hi inclouen les observacions privades.
+  typed.get(
+    "/api/hidrants",
+    {
+      schema: {
+        tags: ["hidrants"],
+        summary: "Hidrants d'una ADF en GeoJSON",
+        querystring: adfQuerySchema,
+      },
+    },
+    async (request, reply) => {
+      const adfId = adfIdFrom(request.query.adf);
+      const geoJson = await HidrantsService.getGeoJson(adfId, {
+        includePrivateTags: Boolean(request.authUser),
+      });
+      return reply
+        .header("Cache-Control", "no-cache, no-store, must-revalidate")
+        .header("Pragma", "no-cache")
+        .header("Expires", "0")
+        .send(geoJson);
+    },
+  );
 
-  // --- GET: Llistar hidrants (GeoJSON) ---
-  if (method === "GET") {
-    // Els usuaris autenticats de qualsevol ADF poden veure les observacions privades;
-    // els anònims reben el mateix GeoJSON sense `private_tags`.
-    const geoJson = await HidrantsService.getGeoJson(adf_id, {
-      includePrivateTags: Boolean(req.user),
-    });
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    return res.json(geoJson);
-  }
+  // --- POST /api/hidrants/sync: sincronitzar l'ADF amb OSM ---
+  typed.post(
+    "/api/hidrants/sync",
+    {
+      preHandler: [
+        requireAuth,
+        requirePermission("sync_osm"),
+        requireAdfScope(ADF_FROM_QUERY_OR_BODY),
+      ],
+      schema: {
+        tags: ["hidrants"],
+        summary: "Sincronitza els hidrants de l'ADF des d'OSM",
+        querystring: adfQuerySchema,
+        body: syncBodySchema,
+      },
+    },
+    async (request, reply) => {
+      const adfId = adfIdFrom(request.query.adf, request.body.adf_id);
+      const force = request.body.force === true;
+      const result = await HidrantsService.forceSync(adfId, force);
+      const msg = force
+        ? `Forçat des d'OSM: ${result.total} hidrants.`
+        : `Sincronitzats ${result.total} hidrants d'OSM. ${result.skipped > 0 ? `${result.skipped} locals mantinguts.` : ""}${result.conflicts > 0 ? `${result.conflicts} conflictes nous.` : ""}`;
+      return reply.send({ success: true, message: msg, ...result });
+    },
+  );
 
-  // --- POST: Crear nou hidrant local ---
-  if (method === "POST") {
-    const parsed = createSchema.safeParse(req.body);
-    if (!parsed.success) {
-      throw new BadRequestError(parsed.error.message);
-    }
-    const { lat, lon, ui_fields, private_tags } = parsed.data;
-    const result = HidrantsService.createLocal(adf_id, lat, lon, ui_fields, private_tags);
-    return res.status(201).json(result);
-  }
+  // --- POST /api/hidrants: crear hidrant local ---
+  typed.post(
+    "/api/hidrants",
+    {
+      preHandler: [
+        requireAuth,
+        requirePermission("create_hydrant"),
+        requireAdfScope(ADF_FROM_QUERY_OR_BODY),
+      ],
+      schema: {
+        tags: ["hidrants"],
+        summary: "Crea un hidrant local (PENDING_CREATE)",
+        querystring: adfQuerySchema,
+        body: createBodySchema,
+      },
+    },
+    async (request, reply) => {
+      const adfId = adfIdFrom(request.query.adf, request.body.adf_id);
+      const { lat, lon, ui_fields, private_tags } = request.body;
+      const result = HidrantsService.createLocal(adfId, lat, lon, ui_fields, private_tags);
+      return reply.code(201).send(result);
+    },
+  );
 
-  // --- PUT: Actualitzar hidrant ---
-  if (method === "PUT") {
-    const parsed = updateSchema.safeParse(req.body);
-    if (!parsed.success) {
-      throw new BadRequestError(parsed.error.message);
-    }
-    const id = req.params?.id || parsed.data.id;
-    if (!id) {
-      throw new BadRequestError("Missing hydrant ID");
-    }
+  // --- PUT /api/hidrants/:id: actualitzar hidrant ---
+  typed.put(
+    "/api/hidrants/:id",
+    {
+      preHandler: [
+        requireAuth,
+        requirePermission("edit_hydrant"),
+        requireAdfScope(ADF_FROM_QUERY_OR_BODY),
+      ],
+      schema: {
+        tags: ["hidrants"],
+        summary: "Actualitza un hidrant (posició, camps del formulari i observacions)",
+        params: idParamsSchema,
+        querystring: adfQuerySchema,
+        body: updateBodySchema,
+      },
+    },
+    async (request, reply) => {
+      const adfId = adfIdFrom(request.query.adf, request.body.adf_id);
+      const id = request.params.id || request.body.id;
+      if (!id) {
+        throw new BadRequestError("Missing hydrant ID");
+      }
+      const { lat, lon, ui_fields, private_tags } = request.body;
+      const result = HidrantsService.updateLocal(id, adfId, lat, lon, ui_fields, private_tags);
+      return reply.send(result);
+    },
+  );
 
-    const { lat, lon, ui_fields, private_tags } = parsed.data;
-    const result = HidrantsService.updateLocal(id, adf_id, lat, lon, ui_fields, private_tags);
-    return res.json(result);
-  }
-
-  // --- DELETE: Esborrar hidrant ---
-  if (method === "DELETE") {
-    const id = req.params?.id || req.query?.id;
-    const result = HidrantsService.deleteLocal(id, adf_id);
-    return res.json(result);
-  }
-
-  res.status(405).json({ error: "Method not allowed" });
-};
-
-export default handler;
+  // --- DELETE /api/hidrants/:id: esborrar hidrant ---
+  typed.delete(
+    "/api/hidrants/:id",
+    {
+      preHandler: [
+        requireAuth,
+        requirePermission("delete_hydrant"),
+        requireAdfScope(ADF_FROM_QUERY_OR_BODY),
+      ],
+      schema: {
+        tags: ["hidrants"],
+        summary: "Esborra un hidrant (o el marca PENDING_DELETE si ja és a OSM)",
+        params: idParamsSchema,
+        querystring: adfQuerySchema,
+      },
+    },
+    async (request, reply) => {
+      const adfId = adfIdFrom(request.query.adf);
+      return reply.send(HidrantsService.deleteLocal(request.params.id, adfId));
+    },
+  );
+}

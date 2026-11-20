@@ -1,44 +1,39 @@
 // Rutes de tracking OwnTracks: activar/descarregar config, estat, posicions i stream SSE.
 import { randomBytes } from "node:crypto";
+import { and, eq } from "drizzle-orm";
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+
 import { db } from "../db/index.js";
-import { mqttUsers, users, adfs } from "../db/schema.js";
-import { eq, and } from "drizzle-orm";
-import type { ApiHandler, ApiRequest } from "../types.js";
-import { encrypt, decrypt } from "../utils/crypto.js";
+import { adfs, mqttUsers, users } from "../db/schema.js";
+import { permissionsFor } from "../permissions.js";
+import type { SessionUser } from "../plugins/auth.js";
+import { requireAuth } from "../plugins/authorize.js";
 import {
-  isAvailable,
   createMqttUser,
   deleteMqttUser,
   getPositions,
   getPositionsRevision,
+  isAvailable,
   mqttNameFor,
   type LocationData,
 } from "../services/mqtt.js";
 import { config } from "../utils/config.js";
-import { permissionsFor } from "../permissions.js";
+import { decrypt, encrypt } from "../utils/crypto.js";
 
 /** Retorna si el servei MQTT està disponible i si l'usuari té OwnTracks activat. */
-const status: ApiHandler = async (req, res) => {
-  const mqttRow = db
+function isEnabledFor(userId: string): boolean {
+  return !!db
     .select()
     .from(mqttUsers)
-    .where(and(eq(mqttUsers.user_id, req.user!.id), eq(mqttUsers.enabled, true)))
+    .where(and(eq(mqttUsers.user_id, userId), eq(mqttUsers.enabled, true)))
     .get();
-  return res.json({ available: isAvailable(), enabled: !!mqttRow });
-};
-
-/** Retorna les posicions segons visibilitat: admin veu tot; la resta veu la seva ADF més,
- *  si té permis, les ADFs amb tracking_shared.
- *  Les posicions arriben clauades per la identitat MQTT aplanada (ex. "278_GI_011");
- *  es retornen clauades per l'username d'app (ex. "278/GI/011"). */
-const positions: ApiHandler = async (req, res) => {
-  return res.json({ positions: visiblePositions(req.user!) });
-};
+}
 
 /** Filtre de visibilitat compartit per `/positions` i `/stream`.
  *  Es recorre la taula d'usuaris (petita) en lloc del mapa de posicions: així n'hi ha prou
  *  amb un sol bucle i cap mapa intermedi. */
-function visiblePositions(user: NonNullable<ApiRequest["user"]>): Record<string, LocationData> {
+function visiblePositions(user: SessionUser): Record<string, LocationData> {
   const all = getPositions();
   const perms = permissionsFor(user.role);
   const viewAll = perms.includes("view_all_positions");
@@ -88,173 +83,6 @@ const SSE_TICK_MS = 5_000;
 const SSE_HEARTBEAT_MS = 25_000;
 const SSE_MAX_AGE_MS = 5 * 60_000;
 
-const stream: ApiHandler = (req, res) => {
-  const user = req.user!;
-  const reply = res._reply;
-  if (!reply) {
-    return res.status(500).json({ error: "Aquest servidor no suporta streaming" });
-  }
-
-  // A partir d'aquí la resposta la gestiona el handler: Fastify no hi envia res més.
-  reply.hijack();
-  reply.raw.writeHead(200, {
-    "Content-Type": "text/event-stream; charset=utf-8",
-    "Cache-Control": "no-store, no-transform",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
-  });
-
-  let revision = -1;
-  let lastData = "";
-  let lastWrite = Date.now();
-  let closed = false;
-  let tick: ReturnType<typeof setInterval> | null = null;
-  let expiry: ReturnType<typeof setTimeout> | null = null;
-
-  const write = (chunk: string) => {
-    if (closed || reply.raw.writableEnded) {
-      return;
-    }
-    reply.raw.write(chunk);
-    lastWrite = Date.now();
-  };
-
-  // El filtre (rol, ADF pròpia i ADFs compartides) es resol aquí dins, de manera que les
-  // consultes a `users`/`adfs` només es fan quan el mapa de posicions ha canviat.
-  const pushPositions = () => {
-    revision = getPositionsRevision();
-    const data = JSON.stringify({ positions: visiblePositions(user) });
-    if (data === lastData) {
-      return;
-    }
-    lastData = data;
-    write(`event: positions\ndata: ${data}\n\n`);
-  };
-
-  // Tanca la connexió: timers fora i socket tancat (el client reconecta al cap de 3 s).
-  const close = () => {
-    if (closed) {
-      return;
-    }
-    closed = true;
-    if (tick) {
-      clearInterval(tick);
-      tick = null;
-    }
-    if (expiry) {
-      clearTimeout(expiry);
-      expiry = null;
-    }
-    if (!reply.raw.writableEnded) {
-      reply.raw.end();
-    }
-  };
-
-  write("retry: 3000\n\n");
-  pushPositions();
-
-  tick = setInterval(() => {
-    if (getPositionsRevision() !== revision) {
-      pushPositions();
-      return;
-    }
-    if (Date.now() - lastWrite >= SSE_HEARTBEAT_MS) {
-      write(`event: ping\ndata: ${Date.now()}\n\n`);
-    }
-  }, SSE_TICK_MS);
-
-  expiry = setTimeout(close, SSE_MAX_AGE_MS);
-  reply.raw.on("close", close);
-  reply.raw.on("error", close);
-};
-
-/** Activa OwnTracks per l'usuari actual: crea l'usuari MQTT (identitat aplanada), guarda la password xifrada, retorna .otrc. */
-const enable: ApiHandler = async (req, res) => {
-  // Rotar credencials és una mutació: mai per GET (prefetch, crawlers, enllaços).
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-  res.setHeader("Cache-Control", "no-store");
-  const userId = req.user!.id;
-  const username = req.user!.username;
-  const mqUsername = mqttNameFor(username);
-  const existing = db.select().from(mqttUsers).where(eq(mqttUsers.user_id, userId)).get();
-  const password = randomBytes(16).toString("hex");
-
-  try {
-    await createMqttUser(mqUsername, password);
-  } catch (err) {
-    return res
-      .status(503)
-      .json({ error: `MQTT no disponible: ${err instanceof Error ? err.message : String(err)}` });
-  }
-
-  if (existing) {
-    // Auto-curat: si l'identitat MQTT emmagatzemada difereix de la identitat aplanada actual,
-    // s'elimina el client antic a DynSec i es re-renomena.
-    if (existing.mqtt_username !== mqUsername) {
-      try {
-        await deleteMqttUser(existing.mqtt_username);
-      } catch {
-        /* client antic pot no existir */
-      }
-    }
-    db.update(mqttUsers)
-      .set({ mqtt_password_enc: encrypt(password), mqtt_username: mqUsername, enabled: true })
-      .where(eq(mqttUsers.id, existing.id))
-      .run();
-  } else {
-    db.insert(mqttUsers)
-      .values({
-        id: randomBytes(16).toString("hex"),
-        user_id: userId,
-        mqtt_username: mqUsername,
-        mqtt_password_enc: encrypt(password),
-        enabled: true,
-      })
-      .run();
-  }
-  return res.json(buildOtrc(mqUsername, password));
-};
-
-/** Descarrega el .otrc si OwnTracks ja està activat (desxifra la password de la DB). */
-const configHandler: ApiHandler = async (req, res) => {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-  // Conté la password MQTT: no ha de quedar en cap caché.
-  res.setHeader("Cache-Control", "no-store");
-  const userId = req.user!.id;
-  const username = req.user!.username;
-  const mqUsername = mqttNameFor(username);
-  const row = db
-    .select()
-    .from(mqttUsers)
-    .where(and(eq(mqttUsers.user_id, userId), eq(mqttUsers.enabled, true)))
-    .get();
-
-  if (!row || !row.mqtt_password_enc) {
-    return res.status(400).json({ error: "OwnTracks no activat" });
-  }
-  const password = decrypt(row.mqtt_password_enc);
-  if (!password) {
-    return res.status(500).json({ error: "No es pot desxifrar. Torna a activar." });
-  }
-  // Auto-curat: si la identitat MQTT desada difereix de l'actual, es recrea el client amb la
-  // identitat nova. Si ja coincideix no es toca res: `setClientPassword` expulsa el
-  // dispositiu del broker, i cridar-ho a cada consulta de configuració tallava el tracking.
-  if (row.mqtt_username !== mqUsername) {
-    try {
-      await createMqttUser(mqUsername, password);
-      await deleteMqttUser(row.mqtt_username);
-    } catch {
-      /* best-effort: la configuració es retorna igualment */
-    }
-    db.update(mqttUsers).set({ mqtt_username: mqUsername }).where(eq(mqttUsers.id, row.id)).run();
-  }
-  return res.json(buildOtrc(mqUsername, password));
-};
-
 /** Mode de monitoratge OwnTracks: 1 = canvis significatius (estalvi de bateria), 2 = moviment continu. */
 const OWTRACKS_MONITORING = 1;
 
@@ -277,4 +105,212 @@ function buildOtrc(username: string, password: string) {
   };
 }
 
-export default { status, positions, stream, enable, config: configHandler };
+export function registerTrackingRoutes(app: FastifyInstance): void {
+  const typed = app.withTypeProvider<ZodTypeProvider>();
+
+  typed.get(
+    "/api/tracking/status",
+    {
+      preHandler: [requireAuth],
+      schema: { tags: ["tracking"], summary: "Estat d'OwnTracks de l'usuari" },
+    },
+    async (request, reply) => {
+      return reply.send({
+        available: isAvailable(),
+        enabled: isEnabledFor(request.authUser!.id),
+      });
+    },
+  );
+
+  typed.get(
+    "/api/tracking/positions",
+    {
+      preHandler: [requireAuth],
+      schema: { tags: ["tracking"], summary: "Posicions visibles per a l'usuari" },
+    },
+    async (request, reply) => {
+      return reply.send({ positions: visiblePositions(request.authUser!) });
+    },
+  );
+
+  typed.get(
+    "/api/tracking/stream",
+    {
+      preHandler: [requireAuth],
+      schema: { tags: ["tracking"], summary: "Stream SSE de posicions" },
+    },
+    (request, reply) => {
+      const user = request.authUser!;
+
+      // A partir d'aquí la resposta la gestiona el handler: Fastify no hi envia res més.
+      reply.hijack();
+      reply.raw.writeHead(200, {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-store, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+      });
+
+      let revision = -1;
+      let lastData = "";
+      let lastWrite = Date.now();
+      let closed = false;
+      let tick: ReturnType<typeof setInterval> | null = null;
+      let expiry: ReturnType<typeof setTimeout> | null = null;
+
+      const write = (chunk: string) => {
+        if (closed || reply.raw.writableEnded) {
+          return;
+        }
+        reply.raw.write(chunk);
+        lastWrite = Date.now();
+      };
+
+      // El filtre (rol, ADF pròpia i ADFs compartides) es resol aquí dins, de manera que les
+      // consultes a `users`/`adfs` només es fan quan el mapa de posicions ha canviat.
+      const pushPositions = () => {
+        revision = getPositionsRevision();
+        const data = JSON.stringify({ positions: visiblePositions(user) });
+        if (data === lastData) {
+          return;
+        }
+        lastData = data;
+        write(`event: positions\ndata: ${data}\n\n`);
+      };
+
+      // Tanca la connexió: timers fora i socket tancat (el client reconecta al cap de 3 s).
+      const close = () => {
+        if (closed) {
+          return;
+        }
+        closed = true;
+        if (tick) {
+          clearInterval(tick);
+          tick = null;
+        }
+        if (expiry) {
+          clearTimeout(expiry);
+          expiry = null;
+        }
+        if (!reply.raw.writableEnded) {
+          reply.raw.end();
+        }
+      };
+
+      write("retry: 3000\n\n");
+      pushPositions();
+
+      tick = setInterval(() => {
+        if (getPositionsRevision() !== revision) {
+          pushPositions();
+          return;
+        }
+        if (Date.now() - lastWrite >= SSE_HEARTBEAT_MS) {
+          write(`event: ping\ndata: ${Date.now()}\n\n`);
+        }
+      }, SSE_TICK_MS);
+
+      expiry = setTimeout(close, SSE_MAX_AGE_MS);
+      reply.raw.on("close", close);
+      reply.raw.on("error", close);
+    },
+  );
+
+  /** Activa OwnTracks per l'usuari actual: crea l'usuari MQTT (identitat aplanada),
+   *  guarda la password xifrada i retorna el .otrc. */
+  typed.post(
+    "/api/tracking/enable",
+    {
+      preHandler: [requireAuth],
+      schema: { tags: ["tracking"], summary: "Activa OwnTracks" },
+    },
+    async (request, reply) => {
+      // Rotar credencials és una mutació: mai per GET (prefetch, crawlers, enllaços).
+      reply.header("Cache-Control", "no-store");
+      const userId = request.authUser!.id;
+      const username = request.authUser!.username;
+      const mqUsername = mqttNameFor(username);
+      const existing = db.select().from(mqttUsers).where(eq(mqttUsers.user_id, userId)).get();
+      const password = randomBytes(16).toString("hex");
+
+      try {
+        await createMqttUser(mqUsername, password);
+      } catch (err) {
+        return reply.code(503).send({
+          error: `MQTT no disponible: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+
+      if (existing) {
+        // Auto-curat: si l'identitat MQTT emmagatzemada difereix de la identitat aplanada
+        // actual, s'elimina el client antic a DynSec i es re-renomena.
+        if (existing.mqtt_username !== mqUsername) {
+          try {
+            await deleteMqttUser(existing.mqtt_username);
+          } catch {
+            /* client antic pot no existir */
+          }
+        }
+        db.update(mqttUsers)
+          .set({ mqtt_password_enc: encrypt(password), mqtt_username: mqUsername, enabled: true })
+          .where(eq(mqttUsers.id, existing.id))
+          .run();
+      } else {
+        db.insert(mqttUsers)
+          .values({
+            id: randomBytes(16).toString("hex"),
+            user_id: userId,
+            mqtt_username: mqUsername,
+            mqtt_password_enc: encrypt(password),
+            enabled: true,
+          })
+          .run();
+      }
+      return reply.send(buildOtrc(mqUsername, password));
+    },
+  );
+
+  /** Descarrega el .otrc si OwnTracks ja està activat (desxifra la password de la DB). */
+  typed.get(
+    "/api/tracking/config",
+    {
+      preHandler: [requireAuth],
+      schema: { tags: ["tracking"], summary: "Configuració OwnTracks (.otrc)" },
+    },
+    async (request, reply) => {
+      // Conté la password MQTT: no ha de quedar en cap caché.
+      reply.header("Cache-Control", "no-store");
+      const userId = request.authUser!.id;
+      const mqUsername = mqttNameFor(request.authUser!.username);
+      const row = db
+        .select()
+        .from(mqttUsers)
+        .where(and(eq(mqttUsers.user_id, userId), eq(mqttUsers.enabled, true)))
+        .get();
+
+      if (!row || !row.mqtt_password_enc) {
+        return reply.code(400).send({ error: "OwnTracks no activat" });
+      }
+      const password = decrypt(row.mqtt_password_enc);
+      if (!password) {
+        return reply.code(500).send({ error: "No es pot desxifrar. Torna a activar." });
+      }
+      // Auto-curat: si la identitat MQTT desada difereix de l'actual, es recrea el client amb
+      // la identitat nova. Si ja coincideix no es toca res: `setClientPassword` expulsa el
+      // dispositiu del broker, i cridar-ho a cada consulta de configuració tallava el tracking.
+      if (row.mqtt_username !== mqUsername) {
+        try {
+          await createMqttUser(mqUsername, password);
+          await deleteMqttUser(row.mqtt_username);
+        } catch {
+          /* best-effort: la configuració es retorna igualment */
+        }
+        db.update(mqttUsers)
+          .set({ mqtt_username: mqUsername })
+          .where(eq(mqttUsers.id, row.id))
+          .run();
+      }
+      return reply.send(buildOtrc(mqUsername, password));
+    },
+  );
+}

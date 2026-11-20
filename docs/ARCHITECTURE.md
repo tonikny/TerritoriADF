@@ -45,13 +45,15 @@ territoriadf/
 │   └── vite.config.ts
 ├── back/
 │   ├── src/
-│   │   ├── routes/                 # endpoints Fastify
+│   │   ├── app.ts                  # buildApp(): plugins, guards i rutes (no escolta cap port)
+│   │   ├── server.ts               # bootstrap: listen, MQTT i aturada ordenada
+│   │   ├── plugins/                # auth (sessió), authorize (guards), errors, openapi
+│   │   ├── routes/                 # endpoints; cada mòdul registra les seves rutes amb Zod + preHandler
 │   │   ├── services/               # OSM, Telegram, MQTT, hidrants...
 │   │   ├── db/                     # esquema Drizzle, repositoris i connexió
 │   │   ├── scripts/                # seed, importació, migracions, utilitats
 │   │   ├── utils/
-│   │   ├── permissions.ts          # matriu rol → capacitats
-│   │   └── server.ts
+│   │   └── permissions.ts          # matriu rol → capacitats
 │   └── data/                       # SQLite local (no versionada)
 ├── docs/
 ├── scripts/                        # desplegament, backups, Nginx, MQTT
