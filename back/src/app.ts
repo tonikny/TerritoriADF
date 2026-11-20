@@ -46,8 +46,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerErrorHandler(app);
   await registerOpenApi(app);
 
-  // Totes les rutes: natives (Zod + `preHandler` declaratiu) i les poques que
-  // encara passen per l'adapter antic, amb auth/permís igualment declarats.
+  // Totes les rutes són natives: esquema Zod i `preHandler` (sessió, permís i
+  // abast d'ADF) declarats al costat del handler.
   registerRoutes(app);
 
   registerNotFound(app);

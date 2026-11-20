@@ -4,9 +4,13 @@
 //                                   i li deixa la sessió oberta.
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
+
 import { db } from "../db/index.js";
 import { accessTokens, adfs, users } from "../db/schema.js";
-import type { ApiHandler } from "../types.js";
+import { setSessionCookie } from "../plugins/auth.js";
 import { findAccessToken } from "../services/accessTokens.js";
 import { passwordProblem } from "../utils/password.js";
 import { toPublicUser } from "./auth.js";
@@ -46,84 +50,101 @@ function resolveToken(rawToken: string | undefined): AccessTarget {
   return { userId: user.id, tokenId: row.id };
 }
 
-const info: ApiHandler = async (req, res) => {
-  const target = resolveToken(req.params?.token);
-  if ("error" in target) {
-    return res.status(target.status).json({ error: target.error });
-  }
+const tokenParamsSchema = z.object({ token: z.string() });
+const redeemBodySchema = z.object({ password: z.string().optional() });
 
-  const user = db.select().from(users).where(eq(users.id, target.userId)).get();
-  if (!user) {
-    return res.status(404).json({ error: "Aquest enllaç ja no és vàlid." });
-  }
-  return res.json({ username: user.username });
-};
+export function registerAccessRoutes(app: FastifyInstance): void {
+  const typed = app.withTypeProvider<ZodTypeProvider>();
 
-const redeem: ApiHandler = async (req, res) => {
-  const target = resolveToken(req.params?.token);
-  if ("error" in target) {
-    return res.status(target.status).json({ error: target.error });
-  }
+  typed.get(
+    "/api/auth/access/:token",
+    {
+      schema: {
+        tags: ["auth"],
+        summary: "Usuari de l'enllaç d'accés",
+        params: tokenParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const target = resolveToken(request.params.token);
+      if ("error" in target) {
+        return reply.code(target.status).send({ error: target.error });
+      }
 
-  const { password } = req.body ?? {};
+      const user = db.select().from(users).where(eq(users.id, target.userId)).get();
+      if (!user) {
+        return reply.code(404).send({ error: "Aquest enllaç ja no és vàlid." });
+      }
+      return reply.send({ username: user.username });
+    },
+  );
 
-  const user = db.select().from(users).where(eq(users.id, target.userId)).get();
-  if (!user) {
-    return res.status(404).json({ error: "Aquest enllaç ja no és vàlid." });
-  }
+  typed.post(
+    "/api/auth/access/:token",
+    {
+      schema: {
+        tags: ["auth"],
+        summary: "Tria la contrasenya amb l'enllaç d'accés",
+        params: tokenParamsSchema,
+        body: redeemBodySchema,
+      },
+    },
+    async (request, reply) => {
+      const target = resolveToken(request.params.token);
+      if ("error" in target) {
+        return reply.code(target.status).send({ error: target.error });
+      }
 
-  const adfNom = user.adf_id
-    ? (db.select({ nom: adfs.nom }).from(adfs).where(eq(adfs.id, user.adf_id)).get()?.nom ?? null)
-    : null;
+      const { password } = request.body;
 
-  const problem = passwordProblem(password, "La contrasenya", {
-    username: user.username,
-    adfNom,
-  });
-  if (problem) {
-    return res.status(400).json({ error: problem });
-  }
+      const user = db.select().from(users).where(eq(users.id, target.userId)).get();
+      if (!user) {
+        return reply.code(404).send({ error: "Aquest enllaç ja no és vàlid." });
+      }
 
-  const hash = bcrypt.hashSync(password, 10);
-  const usedAt = new Date().toISOString();
-  // La nova contrasenya invalida qualsevol sessió anterior d'aquest usuari.
-  const newVersion = (user.token_version ?? 0) + 1;
+      const adfNom = user.adf_id
+        ? (db.select({ nom: adfs.nom }).from(adfs).where(eq(adfs.id, user.adf_id)).get()?.nom ??
+          null)
+        : null;
 
-  db.transaction((tx) => {
-    tx.update(users)
-      .set({ password_hash: hash, token_version: newVersion })
-      .where(eq(users.id, user.id))
-      .run();
-    tx.update(accessTokens)
-      .set({ used_at: usedAt })
-      .where(eq(accessTokens.id, target.tokenId))
-      .run();
-  });
+      const problem = passwordProblem(password, "La contrasenya", {
+        username: user.username,
+        adfNom,
+      });
+      if (problem) {
+        return reply.code(400).send({ error: problem });
+      }
 
-  const publicUser = toPublicUser(user);
-  res._userToSign = {
-    id: publicUser.id,
-    username: publicUser.username,
-    adf_id: publicUser.adf_id,
-    role: publicUser.role,
-    tv: newVersion,
-  };
+      const hash = bcrypt.hashSync(password as string, 10);
+      const usedAt = new Date().toISOString();
+      // La nova contrasenya invalida qualsevol sessió anterior d'aquest usuari.
+      const newVersion = (user.token_version ?? 0) + 1;
 
-  req.log
-    .child({ module: "auth", operation: "access_redeem" })
-    .info({ username: user.username }, "Contrasenya creada per enllaç d'accés");
+      db.transaction((tx) => {
+        tx.update(users)
+          .set({ password_hash: hash, token_version: newVersion })
+          .where(eq(users.id, user.id))
+          .run();
+        tx.update(accessTokens)
+          .set({ used_at: usedAt })
+          .where(eq(accessTokens.id, target.tokenId))
+          .run();
+      });
 
-  return res.json({ user: publicUser });
-};
+      const publicUser = toPublicUser(user);
+      setSessionCookie(app, request, reply, {
+        id: publicUser.id,
+        username: publicUser.username,
+        adf_id: publicUser.adf_id,
+        role: publicUser.role,
+        tv: newVersion,
+      });
 
-const handler: ApiHandler = async (req, res) => {
-  if (req.method === "GET") {
-    return info(req, res);
-  }
-  if (req.method === "POST") {
-    return redeem(req, res);
-  }
-  res.status(405).json({ error: "Method not allowed" });
-};
+      request.log
+        .child({ module: "auth", operation: "access_redeem" })
+        .info({ username: user.username }, "Contrasenya creada per enllaç d'accés");
 
-export default handler;
+      return reply.send({ user: publicUser });
+    },
+  );
+}

@@ -12,8 +12,7 @@ import { APP_NAME } from "../utils/appInfo.js";
  * - `GET /api/openapi.json`: document màquina-llegible (també per als agents).
  * - `GET /api/docs`: UI de Swagger.
  *
- * Les rutes que encara passen per l'adapter antic no declaren esquema i, per
- * tant, no hi surten: la cobertura creix a mesura que es migren.
+ * Totes les rutes declaren esquema, així que el document cobreix tota l'API.
  */
 export async function registerOpenApi(app: FastifyInstance): Promise<void> {
   await app.register(fastifySwagger, {

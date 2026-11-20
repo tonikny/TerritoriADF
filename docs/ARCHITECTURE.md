@@ -47,7 +47,7 @@ territoriadf/
 │   ├── src/
 │   │   ├── app.ts                  # buildApp(): plugins, guards i rutes (no escolta cap port)
 │   │   ├── server.ts               # bootstrap: listen, MQTT i aturada ordenada
-│   │   ├── plugins/                # auth (sessió), authorize (guards), errors, openapi, legacy (pont)
+│   │   ├── plugins/                # auth (sessió), authorize (guards), errors, openapi
 │   │   ├── routes/                 # endpoints; cada mòdul registra les seves rutes amb Zod + preHandler
 │   │   ├── services/               # OSM, Telegram, MQTT, hidrants...
 │   │   ├── db/                     # esquema Drizzle, repositoris i connexió
