@@ -4,6 +4,7 @@ import fs from "fs";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema.js";
 import { logger } from "../utils/logger.js";
+import { applyPragmas } from "./pragmas.js";
 
 // El volum a Docker està a /app/data, que a local és back/data
 const DATA_DIR = path.resolve(import.meta.dirname, "../../data");
@@ -57,8 +58,11 @@ migrateLegacyDatabase();
 
 const sqlite = new Database(DB_PATH);
 
-// Activem el mode WAL per a millor rendiment i concurrència
-sqlite.pragma("journal_mode = WAL");
+// WAL, foreign_keys, busy_timeout i synchronous. `foreign_keys` és per connexió
+// i ve desactivat per defecte: sense ell les `.references()` de Drizzle són pur
+// decorat i es poden crear files òrfenes. Les files òrfenes heretades les
+// reporta la migració (`migrate.ts`) i les detalla `npm run db:check`.
+applyPragmas(sqlite);
 
 // Exportem la instància de Drizzle
 export const db = drizzle(sqlite, { schema });

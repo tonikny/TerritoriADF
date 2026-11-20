@@ -18,7 +18,8 @@ export const hidrants = sqliteTable(
     id: text("id").primaryKey(),
     osm_id: integer("osm_id"),
     osm_version: integer("osm_version"),
-    adf_id: integer("adf_id").references(() => adfs.id),
+    // Els hidrants són dades d'OSM: si s'esborra una ADF no s'han de perdre.
+    adf_id: integer("adf_id").references(() => adfs.id, { onDelete: "set null" }),
     municipi: text("municipi"), // Mantinguem el nom del municipi per info visual
     lat: real("lat").notNull(),
     lon: real("lon").notNull(),
@@ -60,7 +61,8 @@ export const users = sqliteTable(
     // Versió del token: s'incrementa a cada canvi de contrasenya i invalida
     // totes les cookies JWT anteriors (el JWT només porta l'id + aquesta versió).
     token_version: integer("token_version").notNull().default(0),
-    adf_id: integer("adf_id").references(() => adfs.id),
+    // L'usuari sobreviu a la seva ADF (queda sense abast fins que se n'hi assigni una).
+    adf_id: integer("adf_id").references(() => adfs.id, { onDelete: "set null" }),
     role: text("role", { enum: ["admin", "coordinador", "voluntari"] }).default("voluntari"),
     created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   },
@@ -76,9 +78,10 @@ export const accessTokens = sqliteTable(
   "access_tokens",
   {
     id: text("id").primaryKey(), // UUID
+    // Enllaç d'un sol ús d'un usuari: sense l'usuari no té cap sentit.
     user_id: text("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     code_hash: text("code_hash").notNull(), // SHA-256 del token
     expires_at: text("expires_at").notNull(), // ISO
     used_at: text("used_at"), // ISO un cop consumit
@@ -94,9 +97,10 @@ export const mqttUsers = sqliteTable(
   "mqtt_users",
   {
     id: text("id").primaryKey(),
+    // La identitat MQTT d'un usuari esborrat no serveix per a res.
     user_id: text("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     mqtt_username: text("mqtt_username").notNull(),
     mqtt_password_enc: text("mqtt_password_enc"),
     enabled: integer("enabled", { mode: "boolean" }).default(false),
@@ -116,7 +120,8 @@ export const incidencies = sqliteTable(
     tipus: text("tipus").notNull(),
     estat: text("estat", { enum: ["OBERT", "EN_PROGRES", "RESOLT", "TANCAT"] }).default("OBERT"),
     prioritat: text("prioritat", { enum: ["BAIXA", "MITJANA", "ALTA"] }).default("MITJANA"),
-    adf_id: integer("adf_id").references(() => adfs.id),
+    // Les incidències són historial: es conserven encara que desaparegui l'ADF.
+    adf_id: integer("adf_id").references(() => adfs.id, { onDelete: "set null" }),
     lat: real("lat").notNull(),
     lon: real("lon").notNull(),
     precisio: text("precisio", { enum: ["DESCONEGUDA", "MUNICIPI", "AREA", "EXACTA"] }).default(
@@ -138,10 +143,11 @@ export const incidencia_events = sqliteTable(
   "incidencia_events",
   {
     id: text("id").primaryKey(), // UUID
+    // Els esdeveniments són fills propis de la incidència; l'autor és historial.
     incidencia_id: text("incidencia_id")
       .notNull()
-      .references(() => incidencies.id),
-    usuari_id: text("usuari_id").references(() => users.id),
+      .references(() => incidencies.id, { onDelete: "cascade" }),
+    usuari_id: text("usuari_id").references(() => users.id, { onDelete: "set null" }),
     tipus_event: text("tipus_event").notNull(),
     dades: text("dades").default("{}"), // JSON
     creat_at: text("creat_at").default(sql`CURRENT_TIMESTAMP`),
@@ -155,9 +161,10 @@ export const telegramBots = sqliteTable(
   "telegram_bots",
   {
     id: text("id").primaryKey(), // UUID
+    // La configuració del bot és regenerable: cau amb la seva ADF.
     adf_id: integer("adf_id")
       .notNull()
-      .references(() => adfs.id),
+      .references(() => adfs.id, { onDelete: "cascade" }),
     bot_id: integer("bot_id").notNull(),
     bot_username: text("bot_username").notNull(),
     bot_name: text("bot_name"),
@@ -184,7 +191,7 @@ export const telegramLinks = sqliteTable(
     id: text("id").primaryKey(), // UUID
     telegram_bot_id: text("telegram_bot_id")
       .notNull()
-      .references(() => telegramBots.id),
+      .references(() => telegramBots.id, { onDelete: "cascade" }),
     code_hash: text("code_hash").notNull(), // SHA-256 del codi de vinculació
     expires_at: text("expires_at").notNull(), // ISO
     used_at: text("used_at"), // ISO un cop consumit

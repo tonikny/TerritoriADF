@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/index.js";
-import { users, adfs, mqttUsers, incidencia_events, accessTokens } from "../db/schema.js";
+import { users, adfs, mqttUsers } from "../db/schema.js";
 import { eq, and, ne } from "drizzle-orm";
 import type { ApiHandler, ApiRequest } from "../types.js";
 import { BadRequestError } from "../errors.js";
@@ -229,23 +229,18 @@ const remove: ApiHandler = async (req, res) => {
       return res.status(403).json({ error: "No tens permisos per eliminar aquest usuari" });
     }
   }
-  let mqttUsername: string | undefined;
-  db.transaction((tx) => {
-    const mqttRow = tx
+  // Els fills de l'usuari els resol la BD amb les accions ON DELETE de
+  // l'esquema: `mqtt_users` i `access_tokens` cauen en cascada i
+  // `incidencia_events.usuari_id` queda a NULL. Només cal llegir la identitat
+  // MQTT abans d'esborrar per netejar-la també a DynSec.
+  const mqttUsername = db.transaction((tx) => {
+    const row = tx
       .select({ mqtt_username: mqttUsers.mqtt_username })
       .from(mqttUsers)
       .where(eq(mqttUsers.user_id, targetId))
       .get();
-    if (mqttRow) {
-      mqttUsername = mqttRow.mqtt_username;
-    }
-    tx.delete(accessTokens).where(eq(accessTokens.user_id, targetId)).run();
-    tx.delete(mqttUsers).where(eq(mqttUsers.user_id, targetId)).run();
-    tx.update(incidencia_events)
-      .set({ usuari_id: null })
-      .where(eq(incidencia_events.usuari_id, targetId))
-      .run();
     tx.delete(users).where(eq(users.id, targetId)).run();
+    return row?.mqtt_username;
   });
   if (mqttUsername) {
     try {

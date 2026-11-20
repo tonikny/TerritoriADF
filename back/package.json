@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "db:generate": "drizzle-kit generate",
+    "db:check": "tsx src/scripts/dbIntegrityCheck.ts",
     "db:migrate": "tsx src/scripts/migrate.ts",
     "dev": "npm run db:migrate && tsx watch src/server.ts",
     "start": "node dist/scripts/migrate.js && node dist/server.js",
