@@ -11,12 +11,21 @@ import { adfIdParamsSchema, adfIdSchema } from "../utils/identifiers.js";
 
 type AdfRow = typeof adfs.$inferSelect;
 
-function serialize(adf: AdfRow) {
+/**
+ * Camps JSON d'una ADF ja parsejats. `boundary_geojson` és pesat i només surt
+ * quan el client demana el detall (`GET /api/adf`); a la llista i al detall per
+ * `:id` s'omet, com ja documenta `docs/DEV.md`.
+ */
+export function serializeAdf(adf: AdfRow, options: { includeBoundary?: boolean } = {}) {
+  const { boundary_geojson, ...rest } = adf;
   return {
-    ...adf,
-    osm_relations: JSON.parse(adf.osm_relations),
+    ...rest,
+    osm_relations: JSON.parse(adf.osm_relations) as string[],
     bbox: adf.bbox ? JSON.parse(adf.bbox) : null,
     center: adf.center ? JSON.parse(adf.center) : null,
+    ...(options.includeBoundary
+      ? { boundary_geojson: boundary_geojson ? JSON.parse(boundary_geojson) : null }
+      : {}),
   };
 }
 
@@ -81,7 +90,7 @@ export function registerAdfRoutes(app: FastifyInstance): void {
     { schema: { tags: ["adfs"], summary: "Llista d'ADFs amb els camps JSON parsejats" } },
     async (_request, reply) => {
       const rows = db.select().from(adfs).all();
-      return reply.send(rows.map(serialize));
+      return reply.send(rows.map((row) => serializeAdf(row)));
     },
   );
 
@@ -96,7 +105,7 @@ export function registerAdfRoutes(app: FastifyInstance): void {
       if (!adf) {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
-      return reply.send(serialize(adf));
+      return reply.send(serializeAdf(adf));
     },
   );
 
@@ -127,7 +136,7 @@ export function registerAdfRoutes(app: FastifyInstance): void {
         .run();
 
       const row = db.select().from(adfs).where(eq(adfs.id, adfId)).get()!;
-      return reply.code(201).send(serialize(row));
+      return reply.code(201).send(serializeAdf(row));
     },
   );
 
@@ -173,7 +182,7 @@ export function registerAdfRoutes(app: FastifyInstance): void {
       }
 
       const row = db.select().from(adfs).where(eq(adfs.id, adfId)).get()!;
-      return reply.send(serialize(row));
+      return reply.send(serializeAdf(row));
     },
   );
 

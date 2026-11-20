@@ -355,19 +355,19 @@ REVIEW → SYNCED (revertit) o modificat
 
 ### 9.1. Endpoints principals
 
-| Endpoint                     | Mètode | Descripció                                    | Paràmetres                                    |
-| ---------------------------- | ------ | --------------------------------------------- | --------------------------------------------- |
-| `/api/osm/status`            | GET    | Estat del token OSM i comptador de conflictes | -                                             |
-| `/api/osm/pending`           | GET    | Llista de canvis pendents per ADF             | `adf` (ID de ADF)                             |
-| `/api/osm/push-sync`         | POST   | Pujar tots els canvis pendents                | -                                             |
-| `/api/osm/push-selected`     | POST   | Pujar només els hidrants seleccionats         | `ids` (array d'IDs)                           |
-| `/api/osm/discard-selected`  | POST   | Descartar/esborrar canvis seleccionats        | `ids` (array d'IDs)                           |
-| `/api/osm/conflicts`         | GET    | Llistat de conflictes amb detalls             | `adf` (ID de ADF)                             |
-| `/api/osm/conflicts/osc`     | GET    | Descarregar fitxer .osc amb conflictes        | `adf` (ID de ADF)                             |
-| `/api/osm/conflicts/resolve` | POST   | Resoldre un conflicte després de JOSM         | `id` (ID hidrant), `changeset` (ID changeset) |
-| `/api/osm/reviews`           | GET    | Hidrants amb warnings pendents                | `adf` (ID de ADF)                             |
-| `/api/osm/pull-hydrant`      | POST   | Baixar node individual d'OSM                  | `id` (ID hidrant)                             |
-| `/api/osm/diff/:id`          | GET    | Diferències local vs OSM                      | `:id` (ID hidrant)                            |
+| Endpoint                     | Mètode | Descripció                                    | Paràmetres          |
+| ---------------------------- | ------ | --------------------------------------------- | ------------------- |
+| `/api/osm/status`            | GET    | Estat del token OSM i comptador de conflictes | -                   |
+| `/api/osm/pending`           | GET    | Llista de canvis pendents per ADF             | `adf` (ID de ADF)   |
+| `/api/osm/push-sync`         | POST   | Pujar tots els canvis pendents                | `adf_id` (opcional) |
+| `/api/osm/push-selected`     | POST   | Pujar només els hidrants seleccionats         | `ids` (array d'IDs) |
+| `/api/osm/discard-selected`  | POST   | Descartar/esborrar canvis seleccionats        | `ids` (array d'IDs) |
+| `/api/osm/conflicts`         | GET    | Llistat de conflictes amb detalls             | -                   |
+| `/api/osm/conflicts/osc`     | GET    | Descarregar fitxer .osc amb conflictes        | -                   |
+| `/api/osm/conflicts/resolve` | POST   | Resoldre un conflicte després de JOSM         | `id` (ID hidrant)   |
+| `/api/osm/reviews`           | GET    | Hidrants amb warnings pendents                | -                   |
+| `/api/osm/pull-hydrant`      | POST   | Baixar node individual d'OSM                  | `id` (ID hidrant)   |
+| `/api/osm/diff/:id`          | GET    | Diferències local vs OSM                      | `:id` (ID hidrant)  |
 
 ### 9.2. Respostes esperades
 

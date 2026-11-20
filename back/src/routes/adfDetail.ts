@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "../db/index.js";
 import { adfs } from "../db/schema.js";
 import { adfIdSchema } from "../utils/identifiers.js";
+import { serializeAdf } from "./adfs.js";
 
 const adfQuerySchema = z.object({
   adf: adfIdSchema("Falta adf id").describe("Número d'ADF (1-999)"),
@@ -31,13 +32,7 @@ export function registerAdfDetailRoutes(app: FastifyInstance): void {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
 
-      return reply.send({
-        ...adf,
-        osm_relations: JSON.parse(adf.osm_relations),
-        bbox: adf.bbox ? JSON.parse(adf.bbox) : null,
-        center: adf.center ? JSON.parse(adf.center) : null,
-        boundary_geojson: adf.boundary_geojson ? JSON.parse(adf.boundary_geojson) : null,
-      });
+      return reply.send(serializeAdf(adf, { includeBoundary: true }));
     },
   );
 }

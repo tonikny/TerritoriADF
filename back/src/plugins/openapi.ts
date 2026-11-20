@@ -21,12 +21,22 @@ export async function registerOpenApi(app: FastifyInstance): Promise<void> {
       info: {
         title: `${APP_NAME} API`,
         description:
-          "API d'hidrants, incidències, OSM i tracking. Només les rutes amb esquema Zod hi apareixen.",
+          "API d'hidrants, incidències, OSM i tracking. Totes les rutes declaren esquema Zod.",
         version: "1.0.0",
       },
       tags: [
+        { name: "health", description: "Salut i preparació del servei" },
+        { name: "config", description: "Configuració pública del client" },
+        { name: "auth", description: "Sessió, contrasenya i enllaços d'accés" },
+        { name: "adfs", description: "ADFs, fronteres i tracking compartit" },
         { name: "hidrants", description: "Hidrants (lectura pública, mutacions amb permís)" },
         { name: "incidencies", description: "Incidències i el seu historial d'esdeveniments" },
+        { name: "users", description: "Gestió d'usuaris" },
+        { name: "tracking", description: "OwnTracks: estat, posicions i stream SSE" },
+        { name: "osm", description: "Sincronització bidireccional amb OpenStreetMap" },
+        { name: "overpass", description: "Consultes a l'API Overpass" },
+        { name: "routing", description: "Càlcul de rutes (GraphHopper)" },
+        { name: "telegram", description: "Bots i notificacions de Telegram" },
       ],
     },
     transform: jsonSchemaTransform,

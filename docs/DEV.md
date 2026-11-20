@@ -279,7 +279,7 @@ POST /api/telegram/webhook/:secret
 Telegram ha d'enviar `X-Telegram-Bot-Api-Secret-Token`; el backend el compara amb
 `telegramBots.webhook_secret` i rebutja la petició si no coincideix.
 
-Lògica a `back/src/routes/telegramWebhook.ts:39` (vincula amb codi `startgroup`, valida `group`/`supergroup`, conflicte grup-ADF, expiració/ús, `my_chat_member` per detectar sortida del bot).
+Lògica a `back/src/routes/telegramWebhook.ts` (vincula amb codi `startgroup`, valida `group`/`supergroup`, conflicte grup-ADF, expiració/ús, `my_chat_member` per detectar sortida del bot).
 
 ### 8.1 Dev local: cal túnel
 
@@ -420,22 +420,22 @@ Transicions i casos d'ús detallats: `docs/OSM_SYNC.md#5-6`.
 
 ### 9.8 Endpoints OSM
 
-| Endpoint                        | Mètode | Descripció                                      |
-| ------------------------------- | ------ | ----------------------------------------------- |
-| `/api/osm/status`               | GET    | Estat token i comptador conflictes              |
-| `/api/osm/pending?adf=ID`       | GET    | Canvis pendents amb detalls                     |
-| `/api/osm/push-sync`            | POST   | Push global                                     |
-| `/api/osm/push-selected`        | POST   | Push selectiu `{ ids }`                         |
-| `/api/osm/discard-selected`     | POST   | Descarta `{ ids }`                              |
-| `/api/osm/conflicts?adf=ID`     | GET    | Conflictes amb detalls                          |
-| `/api/osm/conflicts/osc?adf=ID` | GET    | Fitxer `.osc` per JOSM                          |
-| `/api/osm/conflicts/resolve`    | POST   | Resol conflicte `{ id, changeset? }`            |
-| `/api/osm/reviews?adf=ID`       | GET    | Hidrants `REVIEW`                               |
-| `/api/osm/missing/purge`        | POST   | Purga `MISSING_IN_OSM` `{ adf_id }` o `{ ids }` |
-| `/api/osm/pull-hydrant`         | POST   | Baixa node `{ id }`                             |
-| `/api/osm/diff/:id`             | GET    | Diff local vs OSM                               |
-| `/api/hidrants/sync?adf=ID`     | POST   | Pull sync `{ force? }` (vegeu taula §9.2)       |
-| `/api/hidrants/stats?adf=ID`    | GET    | Comptadors per `sync_status`                    |
+| Endpoint                     | Mètode | Descripció                                      |
+| ---------------------------- | ------ | ----------------------------------------------- |
+| `/api/osm/status`            | GET    | Estat token i comptador conflictes              |
+| `/api/osm/pending?adf=ID`    | GET    | Canvis pendents amb detalls                     |
+| `/api/osm/push-sync`         | POST   | Push global                                     |
+| `/api/osm/push-selected`     | POST   | Push selectiu `{ ids }`                         |
+| `/api/osm/discard-selected`  | POST   | Descarta `{ ids }`                              |
+| `/api/osm/conflicts`         | GET    | Conflictes amb detalls                          |
+| `/api/osm/conflicts/osc`     | GET    | Fitxer `.osc` per JOSM                          |
+| `/api/osm/conflicts/resolve` | POST   | Resol conflicte `{ id }`                        |
+| `/api/osm/reviews`           | GET    | Hidrants `REVIEW`                               |
+| `/api/osm/missing/purge`     | POST   | Purga `MISSING_IN_OSM` `{ adf_id }` o `{ ids }` |
+| `/api/osm/pull-hydrant`      | POST   | Baixa node `{ id }`                             |
+| `/api/osm/diff/:id`          | GET    | Diff local vs OSM                               |
+| `/api/hidrants/sync?adf=ID`  | POST   | Pull sync `{ force? }` (vegeu taula §9.2)       |
+| `/api/hidrants/stats?adf=ID` | GET    | Comptadors per `sync_status`                    |
 
 Fitxers clau: `back/src/services/osmSync.ts` (pull Overpass), `back/src/services/osmPushSync.ts` (push), `back/src/services/osmDataValidator.ts`, `back/src/services/osmConflictResolver.ts`, `back/src/routes/osm.ts`, `front/src/components/osm/OsmConflictList.tsx`, `OsmReviewList.tsx`. Detall API complet: `docs/OSM_SYNC.md#9`.
 
@@ -447,16 +447,16 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 
 ### 10.1 Auth / Config
 
-| Endpoint                  | Mètode | Auth                        | Descripció                                                                                                                                                                                                                                                     |
-| ------------------------- | ------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/auth/login`         | POST   | no                          | `{ username, password }` → cookie `auth_token` + `{ user }` amb `permissions[]` i `mqtt_enabled` (`back/src/routes/auth.ts:43`)                                                                                                                                |
-| `/api/auth/logout`        | POST   | no                          | Esborra cookie                                                                                                                                                                                                                                                 |
-| `/api/auth/me`            | GET    | no (401 si no hi ha sessió) | Usuari actual + `mqtt_enabled` + `permissions[]`                                                                                                                                                                                                               |
-| `/api/auth/access/:token` | GET    | no                          | Enllaç d'accés d'un sol ús: `{ username }` (404/410 si no existeix, ja s'ha fet servir o ha caducat)                                                                                                                                                           |
-| `/api/auth/access/:token` | POST   | no                          | `{ password }` → desa la contrasenya triada per l'usuari, marca el token com a gastat i obre sessió (`{ user }`)                                                                                                                                               |
-| `/api/config`             | GET    | no                          | `{ max_hydrant_move_meters, role_permissions, min_password_length }` límit de desplaçament, matriu rol → permisos i mínim de contrasenya (`back/src/routes/appConfig.ts:11`, `back/src/utils/geo.ts`, `back/src/permissions.ts`, `back/src/utils/password.ts`) |
-| `/healthz`                | GET    | no                          | Procés viu: `{ status: "ok", uptime_s }`, sense tocar la BD (`back/src/routes/health.ts`). És el senyal de liveness                                                                                                                                            |
-| `/readyz`                 | GET    | no                          | Preparació: 200 si la BD és oberta, `foreign_keys` actiu i les migracions de `drizzle/` aplicades; 503 si no. MQTT s'informa però és opcional. És el healthcheck del compose (`back/src/routes/health.ts`)                                                     |
+| Endpoint                  | Mètode | Auth                        | Descripció                                                                                                                                                                                                                                                  |
+| ------------------------- | ------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/auth/login`         | POST   | no                          | `{ username, password }` → cookie `auth_token` + `{ user }` amb `permissions[]` i `mqtt_enabled` (`back/src/routes/auth.ts`)                                                                                                                                |
+| `/api/auth/logout`        | POST   | no                          | Esborra cookie                                                                                                                                                                                                                                              |
+| `/api/auth/me`            | GET    | no (401 si no hi ha sessió) | Usuari actual + `mqtt_enabled` + `permissions[]`                                                                                                                                                                                                            |
+| `/api/auth/access/:token` | GET    | no                          | Enllaç d'accés d'un sol ús: `{ username }` (404/410 si no existeix, ja s'ha fet servir o ha caducat)                                                                                                                                                        |
+| `/api/auth/access/:token` | POST   | no                          | `{ password }` → desa la contrasenya triada per l'usuari, marca el token com a gastat i obre sessió (`{ user }`)                                                                                                                                            |
+| `/api/config`             | GET    | no                          | `{ max_hydrant_move_meters, role_permissions, min_password_length }` límit de desplaçament, matriu rol → permisos i mínim de contrasenya (`back/src/routes/appConfig.ts`, `back/src/utils/geo.ts`, `back/src/permissions.ts`, `back/src/utils/password.ts`) |
+| `/healthz`                | GET    | no                          | Procés viu: `{ status: "ok", uptime_s }`, sense tocar la BD (`back/src/routes/health.ts`). És el senyal de liveness                                                                                                                                         |
+| `/readyz`                 | GET    | no                          | Preparació: 200 si la BD és oberta, `foreign_keys` actiu i les migracions de `drizzle/` aplicades; 503 si no. MQTT s'informa però és opcional. És el healthcheck del compose (`back/src/routes/health.ts`)                                                  |
 
 ### 10.2 ADFs / Boundaries
 
@@ -464,19 +464,19 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 | -------------------------------- | ------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/api/adfs`                      | GET    | no                            | Llista ADFs amb `osm_relations`, `bbox`, `center` (`back/src/routes/adfs.ts`)                                                                             |
 | `/api/adf?adf=ID`                | GET    | no                            | Detall ADF per ID (`back/src/routes/adfDetail.ts`)                                                                                                        |
-| `/api/adf/boundary?adf=ID`       | GET    | no                            | Només `boundary_geojson` GeoJSON (`back/src/routes/boundary.ts:6`)                                                                                        |
+| `/api/adf/boundary?adf=ID`       | GET    | no                            | Només `boundary_geojson` GeoJSON (`back/src/routes/boundary.ts`)                                                                                          |
 | `/api/adfs`                      | POST   | sí (`manage_adfs`)            | Crea una ADF `{ id, nom, osm_relations }` — només admin (`back/src/routes/adfs.ts`)                                                                       |
 | `/api/adfs/:id`                  | GET    | no                            | Detall d'una ADF (`back/src/routes/adfs.ts`)                                                                                                              |
 | `/api/adfs/:id`                  | PUT    | sí (`manage_adfs`)            | Modifica `{ nom?, osm_relations? }`; si canvien les relacions, buida `bbox`/`center`/`boundary_geojson` fins a recalcular-los (`back/src/routes/adfs.ts`) |
 | `/api/adfs/:id`                  | DELETE | sí (`manage_adfs`)            | Elimina una ADF sense usuaris, hidrants, incidències ni bots associats (`409` si en té) (`back/src/routes/adfs.ts`)                                       |
 | `/api/adfs/:id/boundaries`       | POST   | sí (`manage_adfs`)            | Recalcula `bbox`/`center`/`boundary_geojson` des d'OSM/Nominatim (`back/src/routes/adfBoundaries.ts`)                                                     |
-| `/api/adfs/:id/tracking-sharing` | PUT    | sí (`manage_own_adf_sharing`) | `{ shared: boolean }` — comparteix tracking amb altres ADFs; admin qualsevol, coordinador la seva (`back/src/routes/trackingSharing.ts:12`)               |
+| `/api/adfs/:id/tracking-sharing` | PUT    | sí (`manage_own_adf_sharing`) | `{ shared: boolean }` — comparteix tracking amb altres ADFs; admin qualsevol, coordinador la seva (`back/src/routes/trackingSharing.ts`)                  |
 
 ### 10.3 Hidrants
 
 | Endpoint                     | Mètode | Auth (capacitat)      | Descripció                                                                                     |
 | ---------------------------- | ------ | --------------------- | ---------------------------------------------------------------------------------------------- |
-| `/api/hidrants?adf=ID`       | GET    | no                    | GeoJSON hidrants ADF (`back/src/routes/hidrants.ts:48`, `Cache-Control: no-cache`)             |
+| `/api/hidrants?adf=ID`       | GET    | no                    | GeoJSON hidrants ADF (`back/src/routes/hidrants.ts`, `Cache-Control: no-cache`)                |
 | `/api/hidrants`              | POST   | sí (`create_hydrant`) | Crea hidrant local `PENDING_CREATE` `{ lat, lon, ui_fields?, private_tags? }`                  |
 | `/api/hidrants/:id`          | PUT    | sí (`edit_hydrant`)   | Actualitza `{ lat?, lon?, ui_fields?, private_tags? }`; valida límit `max_hydrant_move_meters` |
 | `/api/hidrants/:id?id=ID`    | DELETE | sí (`delete_hydrant`) | Marca `PENDING_DELETE` (esborra directe si era `PENDING_CREATE` o `MISSING_IN_OSM`)            |
@@ -487,14 +487,14 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 
 | Endpoint                                         | Mètode | Auth                     | Descripció                                                                                                              |
 | ------------------------------------------------ | ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `/api/incidencies?adf=ID&incloure_tancades=true` | GET    | no                       | GeoJSON filtrat per `visibilitat` (públic només `PUBLICA`) (`back/src/routes/incidencies.ts:45`)                        |
+| `/api/incidencies?adf=ID&incloure_tancades=true` | GET    | no                       | GeoJSON filtrat per `visibilitat` (públic només `PUBLICA`) (`back/src/routes/incidencies.ts`)                           |
 | `/api/incidencies/:id`                           | GET    | no                       | Detall amb esdeveniments                                                                                                |
 | `/api/incidencies`                               | POST   | sí (`create_incidencia`) | Crea `{ titol, tipus, prioritat?, visibilitat?, lat, lon, precisio?, comentari? }` + notifica Telegram (`appBaseUrl()`) |
 | `/api/incidencies/:id/events`                    | POST   | sí (`create_incidencia`) | Afegeix esdeveniment `{ tipus_event, dades }`                                                                           |
 
 ### 10.5 Usuaris
 
-Username `XXX/YYY` o `XXX/GI/YYY` (3 dígits, `back/src/routes/users.ts:12`), rols `admin|coordinador|voluntari`. Admin veu/toca tot; coordinador només la seva ADF i mai a si mateix.
+Username `XXX/YYY` o `XXX/GI/YYY` (3 dígits, `back/src/routes/users.ts`), rols `admin|coordinador|voluntari`. Admin veu/toca tot; coordinador només la seva ADF i mai a si mateix.
 
 **Contrasenyes:** ningú no en tria per un altre. En crear un usuari o en demanar un enllaç, el backend guarda el `sha256` del token a `access_tokens` i retorna **una sola vegada** `access_url` (`/acces/<token>`, TTL 7 dies en alta i 24 h en restabliment). L'usuari obre l'enllaç, hi tria la seva contrasenya i queda amb la sessió oberta. Un sol enllaç viu per usuari (`back/src/services/accessTokens.ts`). El backend exigeix **mínim 8 caràcters**, que combinin lletres i xifres, i rebutja les d'un sol caràcter repetit i les que contenen el nom d'usuari o el de l'ADF (`back/src/utils/password.ts`); la mateixa validació s'aplica a `PUT /api/auth/password` i a `npm run create:user`. El mínim no es duplica al front: es publica a `GET /api/config` (`min_password_length`) i els formularis el fan servir per a l'atribut `minLength`.
 
@@ -534,7 +534,7 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 | ------------------------------------ | ------ | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/api/overpass`                      | POST   | sí   | Proxy Overpass `{ query }` → JSON; només sessió (els hidrants públics surten de la BD), límit 8k + `out:json` + timeout 25s (`back/src/routes/overpass.ts`)                        |
 | `/api/sendToTelegram`                | POST   | sí   | Només notifica (creació/edició/esborrat d'hidrant) a bot global + bot ADF; exigeix sessió, ADF pròpia, permís de l'acció i fre anti-spam; no escriu a la BD ni accepta text lliure |
-| `/api/route?from=lat,lon&to=lat,lon` | GET    | sí   | Proxy GraphHopper `vehicle=car`; requereix sessió (`back/src/routes/route.ts:4`)                                                                                                   |
+| `/api/route?from=lat,lon&to=lat,lon` | GET    | sí   | Proxy GraphHopper `vehicle=car`; requereix sessió (`back/src/routes/route.ts`)                                                                                                     |
 
 ### 10.9 Fre de força bruta (login)
 

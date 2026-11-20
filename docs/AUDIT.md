@@ -163,7 +163,7 @@ Es poden crear hidrants d'una ADF inexistent, incidències òrfenes o enllaços 
 
 #### F-03 · `server.ts` concentra bootstrap, adapter HTTP, autenticació, autorització i registre de rutes
 
-> **Estat (20/11/2026): resolt.** `buildApp()` viu a `back/src/app.ts` i no escolta cap port; `server.ts` només fa bootstrap. L'autenticació és a `back/src/plugins/auth.ts`, els guards a `back/src/plugins/authorize.ts` i cada ruta declara `auth`/`permission`/`adfScope` a `back/src/routes/index.ts` (sense `url.includes` ni `app.all`). `view_sync_status` protegeix les lectures d'OSM i els mètodes no permesos responen 405 amb `Allow`.
+> **Estat (20/11/2026): resolt.** `buildApp()` viu a `back/src/app.ts` i no escolta cap port; `server.ts` només fa bootstrap. L'autenticació és a `back/src/plugins/auth.ts`, els guards a `back/src/plugins/authorize.ts` i cada ruta declara `requireAuth`/`requirePermission`/`requireAdfScope` al seu `preHandler` (sense `url.includes` ni `app.all`). `view_sync_status` protegeix les lectures d'OSM i els mètodes no permesos responen 405 amb `Allow`.
 
 **Evidència**
 
@@ -200,11 +200,11 @@ app.post(
 
 #### F-04 · Adapter Express sobre Fastify: es renuncia a validació, serialització i OpenAPI
 
-> **Estat (20/11/2026): resolt al pilot.** Hidrants i incidències són handlers natius amb esquemes Zod (`fastify-type-provider-zod`); `ui_fields`, `private_tags` i el cos d'esdeveniments ja no són `z.any()`, i els errors de validació responen 400 amb el detall dels camps. `GET /api/openapi.json` i `GET /api/docs` publiquen l'esquema. La resta de rutes continuen a l'adapter antic.
+> **Estat (20/11/2026): resolt.** Totes les rutes són handlers natius amb esquemes Zod (`fastify-type-provider-zod`); `plugins/legacy.ts`, els tipus `ApiRequest`/`ApiResponse`/`ApiHandler` i la taula de rutes antigues de `routes/index.ts` s'han eliminat. `ui_fields`, `private_tags` i el cos d'esdeveniments ja no són `z.any()`, i els errors de validació responen 400 amb el detall dels camps. `GET /api/openapi.json` i `GET /api/docs` publiquen l'esquema complet (48 paths, 59 operacions), incloent-hi autenticació, tracking (SSE) i OSM. Els esquemes de `/api/users` i `/api/adfs` són el contracte real (enum de rols, patró del username, ID 1..999, camps obligatoris) i els missatges de validació surten en català.
 
 **Evidència**
 
-- `back/src/types.ts` defineix `ApiRequest`/`ApiResponse` amb `query`, `body`, `params` i `headers` com a `any`; `server.ts:1` i `types.ts:1` desactiven explícitament les regles `no-unsafe-*` per aquest motiu.
+- (Abans) `back/src/types.ts` definia `ApiRequest`/`ApiResponse` amb `query`, `body`, `params` i `headers` com a `any`, i `server.ts:1` i `types.ts:1` desactivaven explícitament les regles `no-unsafe-*` per aquest motiu; tots dos s'han eliminat.
 - Només 5 fitxers de 66 importen Zod. A `routes/hidrants.ts` la validació és `z.any()` per a `ui_fields` i `private_tags`; a `routes/incidencies.ts` passa el mateix amb part del cos.
 - No hi ha JSON Schema de ruta: Fastify no pot validar ni serialitzar amb `fast-json-stringify`, i no hi ha OpenAPI.
 
@@ -425,7 +425,7 @@ La cookie és `httpOnly`, `sameSite=lax` i `secure` en producció, i les mutacio
 
 A més de F-03: `/api/adfs/:id/telegram` no té `required` al `wrap` i confia en `canManage()`; `/api/users` fa el mateix. `view_sync_status` no s'usa. Proposta: una sola declaració per ruta (`{ auth, permission, adfScope }`) i un guard comú; els handlers no haurien de repetir la comprovació de rol.
 
-> **Estat (20/11/2026): resolt.** Cap handler comprova rols. La matriu de `back/src/permissions.ts` té ara `manage_users` (admin i coordinador), `manage_all_users` i `manage_adfs` (només admin), i `view_sync_status` protegeix les lectures d'OSM. Cada ruta es declara a `back/src/routes/index.ts` amb `auth`, `permission`, `adfScope` i, si cal, `guards`: `requireTargetUserScope()` (usuari objectiu d'`/api/users/:id`), `requireUsernameAdfScope` (ADF del `username`), `requireBodyRolePermission()` (assignar `role: "admin"`) i `requireComputedPermission()` (permís segons l'acció notificada a `/api/sendToTelegram`). `telegram.ts`, `trackingSharing.ts`, `adfBoundaries.ts`, `municipis.ts` i `users.ts` ja no tenen `canManage()` ni `requireAdmin()`; els handlers de `/api/users` i `/api/adfs` són un per mètode i no pas un dispatcher per `req.method`.
+> **Estat (20/11/2026): resolt.** Cap handler comprova rols. La matriu de `back/src/permissions.ts` té ara `manage_users` (admin i coordinador), `manage_all_users` i `manage_adfs` (només admin), i `view_sync_status` protegeix les lectures d'OSM. Cada ruta declara `requireAuth`, `requirePermission`, `requireAdfScope` i, si cal, guards al seu `preHandler`: `requireTargetUserScope()` (usuari objectiu d'`/api/users/:id`), `requireUsernameAdfScope` (ADF del `username`), `requireBodyRolePermission()` (assignar `role: "admin"`) i `requireComputedPermission()` (permís segons l'acció notificada a `/api/sendToTelegram`). `telegram.ts`, `trackingSharing.ts`, `adfBoundaries.ts`, `adfs.ts` i `users.ts` ja no tenen `canManage()` ni `requireAdmin()`; els handlers de `/api/users` i `/api/adfs` són un per mètode i no pas un dispatcher per `req.method`.
 
 #### F-19 · Sense OpenAPI ni client generat
 
@@ -453,7 +453,7 @@ A més de F-01: `/scripts/*` s'ignora amb excepcions; un script nou no versionat
 
 #### F-23 · Tipus més estrictes
 
-Proposta incremental: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`, i tornar a activar `no-unsafe-*` després de F-04. També `@typescript-eslint/no-explicit-any` a `error` un cop desaparegui l'adapter. No cal fer-ho tot de cop: començar pel back i deixar el front per al final.
+Proposta incremental: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`, i tornar a activar `no-unsafe-*`, ara que l'adapter de F-04 ja s'ha eliminat. També `@typescript-eslint/no-explicit-any` a `error`. No cal fer-ho tot de cop: començar pel back i deixar el front per al final.
 
 #### F-24 · Llistats sense paginació
 
@@ -919,19 +919,19 @@ Cada ADR: context, decisió, conseqüències, alternatives, data. Un fitxer, una
 
 Proposar com a “definition of done” del projecte, no com a burocràcia:
 
-| Mètrica                               | Objectiu inicial | Com es mesura             |
-| ------------------------------------- | ---------------- | ------------------------- |
-| Tests de backend                      | > 40% domini     | Vitest coverage           |
-| Tests de `map/core`                   | > 70%            | Vitest coverage           |
-| Fitxers > 400 línies                  | 0                | `wc -l` a CI o script     |
-| Imports de motors fora de `engines/`  | 0                | ESLint (ja hi és)         |
-| Rutes sense permís declarat           | 0                | test de la taula de rutes |
-| `any` en handlers                     | 0                | ESLint                    |
-| Temps de `typecheck` + `lint` + tests | < 2 min          | CI                        |
-| Desplegament amb rollback possible    | sí               | tag d'imatge + runbook    |
-| Restauració de backup provada         | mensual          | checklist signada         |
-| Errors 5xx per 1.000 peticions        | < 5              | logs/mètriques            |
-| Latència p95 API lectura              | < 300 ms         | logs/mètriques            |
+| Mètrica                               | Objectiu inicial | Com es mesura          |
+| ------------------------------------- | ---------------- | ---------------------- |
+| Tests de backend                      | > 40% domini     | Vitest coverage        |
+| Tests de `map/core`                   | > 70%            | Vitest coverage        |
+| Fitxers > 400 línies                  | 0                | `wc -l` a CI o script  |
+| Imports de motors fora de `engines/`  | 0                | ESLint (ja hi és)      |
+| Rutes sense permís declarat           | 0                | test dels preHandlers  |
+| `any` en handlers                     | 0                | ESLint                 |
+| Temps de `typecheck` + `lint` + tests | < 2 min          | CI                     |
+| Desplegament amb rollback possible    | sí               | tag d'imatge + runbook |
+| Restauració de backup provada         | mensual          | checklist signada      |
+| Errors 5xx per 1.000 peticions        | < 5              | logs/mètriques         |
+| Latència p95 API lectura              | < 300 ms         | logs/mètriques         |
 
 ---
 
