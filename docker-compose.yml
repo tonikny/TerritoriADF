@@ -80,7 +80,9 @@ services:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3033/api/adfs"]
+      # /readyz, no /api/adfs: el contenidor només és sa si la BD és oberta i
+      # les migracions ja s'hi han aplicat (MQTT és opcional).
+      test: ["CMD", "curl", "-f", "http://localhost:3033/readyz"]
       interval: 30s
       timeout: 10s
       retries: 3

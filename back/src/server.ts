@@ -22,6 +22,7 @@ import telegram from "./routes/telegram.js";
 import telegramWebhook from "./routes/telegramWebhook.js";
 import osm from "./routes/osm.js";
 import appConfig from "./routes/appConfig.js";
+import { healthz, readyz } from "./routes/health.js";
 import { startMqttService, stopMqttService } from "./services/mqtt.js";
 import sqlite, { db } from "./db/index.js";
 import { users as usersTable } from "./db/schema.js";
@@ -294,6 +295,8 @@ function wrap(handler: ApiHandler, options: { protected?: boolean } = {}) {
  * RUTES
  */
 const routes = [
+  { path: "/healthz", handler: healthz },
+  { path: "/readyz", handler: readyz },
   { path: "/api/auth/login", handler: login },
   { path: "/api/auth/logout", handler: logout },
   { path: "/api/auth/me", handler: me },

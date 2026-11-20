@@ -188,7 +188,7 @@ export PROJECT_DIR=/ruta/al/repo-nou          # destí
    canviat també el domini.
 7. **Sessions obertes**: reexporta `PROJECT_DIR` i torna a entrar a la carpeta
    nova; les shells que ja hi eren dins conserven el `cwd` antic.
-8. **Comprovacions**: `docker compose ps`, `curl http://127.0.0.1:3034/api/adfs`,
+8. **Comprovacions**: `docker compose ps`, `curl http://127.0.0.1:3034/readyz`,
    `./scripts/backup/check-backups.sh` i `./scripts/backup/setup-cron.sh status`.
 
 > **Vindre d'una pila amb un altre nom**: si el `docker-compose.yml` anterior no

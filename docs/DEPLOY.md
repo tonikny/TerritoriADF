@@ -149,7 +149,7 @@ L'script (`scripts/deploy/update.sh`) fa, en aquest ordre i aturant-se al primer
 6. `npm ci` amb el `package-lock.json` de l'arrel (reproducible; falla si el lock no quadra amb els `package.json`).
 7. `docker compose build`. Si el build falla, **els contenidors en marxa no es toquen**.
 8. `docker compose up -d` (les migracions s'apliquen en arrencar el contenidor) + `docker compose restart mosquitto` només si la seva conf ha canviat (`up -d` sol no recarrega un bind mount).
-9. Espera del healthcheck del backend (fins a 180 s) i del frontend, i comprovació HTTP de `127.0.0.1:3034/api/adfs` i `127.0.0.1:8080`.
+9. Espera del healthcheck del backend (fins a 180 s) i del frontend, i comprovació HTTP de `127.0.0.1:3034/readyz` i `127.0.0.1:8080`.
 10. `npm run update:boundaries` (Overpass/Nominatim). **No bloqueja**: si OSM no respon, avisa i el desplegament es dóna per bo.
 11. `docker image prune -f` només si tot ha anat bé.
 

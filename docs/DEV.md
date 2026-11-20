@@ -455,6 +455,8 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 | `/api/auth/access/:token` | GET    | no                          | Enllaç d'accés d'un sol ús: `{ username }` (404/410 si no existeix, ja s'ha fet servir o ha caducat)                                                                                                                                                           |
 | `/api/auth/access/:token` | POST   | no                          | `{ password }` → desa la contrasenya triada per l'usuari, marca el token com a gastat i obre sessió (`{ user }`)                                                                                                                                               |
 | `/api/config`             | GET    | no                          | `{ max_hydrant_move_meters, role_permissions, min_password_length }` límit de desplaçament, matriu rol → permisos i mínim de contrasenya (`back/src/routes/appConfig.ts:11`, `back/src/utils/geo.ts`, `back/src/permissions.ts`, `back/src/utils/password.ts`) |
+| `/healthz`                | GET    | no                          | Procés viu: `{ status: "ok", uptime_s }`, sense tocar la BD (`back/src/routes/health.ts`). És el senyal de liveness                                                                                                                                            |
+| `/readyz`                 | GET    | no                          | Preparació: 200 si la BD és oberta, `foreign_keys` actiu i les migracions de `drizzle/` aplicades; 503 si no. MQTT s'informa però és opcional. És el healthcheck del compose (`back/src/routes/health.ts`)                                                     |
 
 ### 10.2 ADFs / Boundaries
 

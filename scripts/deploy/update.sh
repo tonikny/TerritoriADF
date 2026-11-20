@@ -408,9 +408,9 @@ verify_services() {
     return 0
   fi
   if command -v curl >/dev/null; then
-    curl -fsS --max-time 10 http://127.0.0.1:3034/api/adfs >/dev/null \
-      && log_ok "API respon a 127.0.0.1:3034" \
-      || { log_error "L'API no respon a 127.0.0.1:3034"; return 1; }
+    curl -fsS --max-time 10 http://127.0.0.1:3034/readyz >/dev/null \
+      && log_ok "API respon a 127.0.0.1:3034 (/readyz)" \
+      || { log_error "L'API no respon a 127.0.0.1:3034 (/readyz)"; return 1; }
     curl -fsS --max-time 10 http://127.0.0.1:8080/ >/dev/null \
       && log_ok "Frontend respon a 127.0.0.1:8080" \
       || { log_error "El frontend no respon a 127.0.0.1:8080"; return 1; }

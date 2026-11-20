@@ -189,7 +189,7 @@ Comprova què es conserva i què es torna a crear:
 ### 1.8 Verificar
 
 ```bash
-curl -fsS http://127.0.0.1:<port-backend>/api/adfs >/dev/null && echo "API ok"
+curl -fsS http://127.0.0.1:<port-backend>/readyz >/dev/null && echo "API ok"
 curl -fsS https://<domini-antic>/api/config
 docker compose logs --tail=80 backend | grep -iE "error|mqtt|migrat"
 ```
