@@ -4,7 +4,11 @@ import { logger } from "./logger.js";
 
 const log = logger.child({ module: "config", operation: "load" });
 
-dotenv.config();
+// Els tests fixen les variables al procés: llegir `back/.env` faria que la suite
+// depengués de la configuració local (token d'OSM, TRUST_PROXY, Telegram...).
+if (process.env.NODE_ENV !== "test") {
+  dotenv.config();
+}
 
 const configSchema = z.object({
   // Domini públic de l'aplicació, sense protocol. És l'única font per a

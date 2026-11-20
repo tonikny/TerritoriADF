@@ -10,13 +10,19 @@ import { applyPragmas } from "./pragmas.js";
 const DATA_DIR = path.resolve(import.meta.dirname, "../../data");
 const DB_FILENAME = "territoriadf.db";
 const LEGACY_DB_FILENAME = "hidrants.db";
-const DB_PATH = path.join(DATA_DIR, DB_FILENAME);
+// `DB_PATH` permet apuntar la connexió a una altra BD (la suite de tests hi
+// posa una BD temporal). Sense la variable s'usa el fitxer de sempre.
+const DB_PATH = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.join(DATA_DIR, DB_FILENAME);
 const LEGACY_DB_PATH = path.join(DATA_DIR, LEGACY_DB_FILENAME);
+const USING_DEFAULT_DB = !process.env.DB_PATH;
 
 // Assegurem que el directori de dades existeix
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 // Amb WAL la BD viu en tres fitxers, que s'han de moure junts: si el journal es
 // queda enrere, el fitxer renombrat apareix sense les últimes transaccions.
@@ -54,7 +60,11 @@ function migrateLegacyDatabase(): void {
   logger.info({ from: LEGACY_DB_FILENAME, to: DB_FILENAME }, "BD renombrada al nom actual");
 }
 
-migrateLegacyDatabase();
+// El renombratge només té sentit per a la BD per defecte: si `DB_PATH` apunta a
+// un fitxer extern (tests), no s'ha de tocar el directori de dades del projecte.
+if (USING_DEFAULT_DB) {
+  migrateLegacyDatabase();
+}
 
 const sqlite = new Database(DB_PATH);
 
