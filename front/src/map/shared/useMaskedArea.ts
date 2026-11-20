@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import * as turf from "@turf/turf";
+import turfDifference from "@turf/difference";
+import { featureCollection as turfFeatureCollection, polygon as turfPolygon } from "@turf/helpers";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 
 export type MaskedArea = {
@@ -39,7 +40,7 @@ export function useMaskedArea(boundaryGeojson: string | null): MaskedArea {
       if (!area) {
         return EMPTY;
       }
-      const world = turf.polygon([
+      const world = turfPolygon([
         [
           [-180, -90],
           [180, -90],
@@ -48,7 +49,7 @@ export function useMaskedArea(boundaryGeojson: string | null): MaskedArea {
           [-180, -90],
         ],
       ]);
-      const masked = turf.difference(turf.featureCollection([world, area]));
+      const masked = turfDifference(turfFeatureCollection([world, area]));
       return { mask: masked?.geometry ?? null, boundary: area.geometry };
     } catch {
       return EMPTY;

@@ -1,7 +1,7 @@
 // Enllaços d'accés d'un sol ús: el coordinador no inventa contrasenyes, genera un
 // enllaç i l'usuari hi tria la seva. A la BD només es desa el SHA-256 del token.
 import { createHash, randomBytes } from "node:crypto";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { accessTokens } from "../db/schema.js";
@@ -26,7 +26,7 @@ export function issueAccessToken(userId: string, ttlMs: number): IssuedAccessTok
 
   db.delete(accessTokens).where(eq(accessTokens.user_id, userId)).run();
   db.insert(accessTokens)
-    .values({ id: uuidv4(), user_id: userId, code_hash: sha256hex(token), expires_at })
+    .values({ id: randomUUID(), user_id: userId, code_hash: sha256hex(token), expires_at })
     .run();
 
   return { token, expires_at };

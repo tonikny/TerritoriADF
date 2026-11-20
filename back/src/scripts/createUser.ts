@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from "node:crypto";
 import { db } from '../db/index.js';
 import { users, adfs } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -65,7 +65,7 @@ if (problem) {
   process.exit(1);
 }
 
-const id = uuidv4();
+const id = randomUUID();
 const hash = bcrypt.hashSync(password, 10);
 
 try {

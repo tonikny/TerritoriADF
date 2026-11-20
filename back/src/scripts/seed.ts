@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { randomBytes } from 'node:crypto';
-import { v4 as uuidv4 } from 'uuid';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, adfs } from '../db/schema.js';
@@ -58,7 +57,7 @@ async function run() {
     // 2. Admin global (únic usuari fora de la nomenclatura per ADF)
     db.insert(users)
       .values({
-        id: uuidv4(),
+        id: randomUUID(),
         username: 'admin',
         password_hash: hash,
         adf_id: null, // Admin global
@@ -84,7 +83,7 @@ async function run() {
       }
       db.insert(users)
         .values({
-          id: uuidv4(),
+          id: randomUUID(),
           username: u.username,
           password_hash: hash,
           adf_id: adfId,

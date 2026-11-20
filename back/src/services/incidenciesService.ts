@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 import {
   IncidenciesRepository,
   canView,
@@ -150,8 +150,8 @@ export const IncidenciesService = {
     // Igual que els hidrants: només es poden crear incidències dins del límit de l'ADF.
     assertPointInAdf(data.adf_id, data.lat, data.lon);
 
-    const incidenciaId = uuidv4();
-    const eventId = uuidv4();
+    const incidenciaId = randomUUID();
+    const eventId = randomUUID();
     const timestamp = new Date().toISOString();
     const nomUsuari = data.nom_usuari || data.usuari_id;
 
@@ -225,7 +225,7 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
 
     assertCanAddEvent(incidencia, requester, tipusEvent);
 
-    const eventId = uuidv4();
+    const eventId = randomUUID();
     const timestamp = new Date().toISOString();
     const displayUser = requester.username || requester.id;
 

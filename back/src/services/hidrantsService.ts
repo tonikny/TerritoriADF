@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 import { HidrantsRepository } from "../db/repositories/hidrantsRepository.js";
 import { syncAdfFromOSM } from "./osmSync.js";
 import { NotFoundError, BadRequestError } from "../errors.js";
@@ -112,7 +112,7 @@ export const HidrantsService = {
     assertPointInAdf(adfId, lat, lon);
 
     const osm_tags = ui_fields ? ui2Osm(ui_fields) : {};
-    const id = uuidv4();
+    const id = randomUUID();
 
     HidrantsRepository.create({
       id,

@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 import { db } from "../db/index.js";
 import { users, adfs, mqttUsers } from "../db/schema.js";
 import { eq, and, ne } from "drizzle-orm";
@@ -106,7 +106,7 @@ const create: ApiHandler = async (req, res) => {
     throw new BadRequestError(`El nom d'usuari ${username} ja existeix`);
   }
 
-  const id = uuidv4();
+  const id = randomUUID();
   // Contrasenya aleatòria que ningú no coneix: l'usuari entra per l'enllaç d'accés i hi
   // tria la seva, així el coordinador no arriba a saber mai la contrasenya de ningú.
   const hash = bcrypt.hashSync(randomBytes(32).toString("hex"), 10);

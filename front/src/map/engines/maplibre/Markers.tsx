@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as turf from "@turf/turf";
+import turfCircle from "@turf/circle";
 import { Layer, Marker, Popup, Source } from "@vis.gl/react-maplibre";
 import type { Marker as MaplibreMarkerInstance, Popup as MaplibrePopupInstance } from "maplibre-gl";
 import type { MapMarkerSpec, MarkerIcon } from "../../core/types";
@@ -62,7 +62,7 @@ function CircleShape({ spec }: { spec: MapMarkerSpec }) {
     if (!circle) {
       return null;
     }
-    return turf.circle([spec.position.lon, spec.position.lat], circle.radiusMeters / 1000, {
+    return turfCircle([spec.position.lon, spec.position.lat], circle.radiusMeters / 1000, {
       steps: 48,
       units: "kilometers",
     });

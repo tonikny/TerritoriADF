@@ -2,7 +2,7 @@ import { db } from "../db/index.js";
 import { adfs, hidrants } from "../db/schema.js";
 import { eq, notInArray, and } from "drizzle-orm";
 import { queryOverpass, type OsmElement } from "./overpass.js";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 import { HidrantsRepository } from "../db/repositories/hidrantsRepository.js";
 import { logger } from "../utils/logger.js";
 
@@ -165,7 +165,7 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
       // s'insereix una fila nova i en queden dos marcadors quasi superposats; publicar
       // el pendent crearia un node duplicat a OSM. Per això els canvis es validen a mà
       // abans de pujar-los (vegeu el panell OSM → «Canvis pendents»).
-      const id = existing ? existing.id : uuidv4();
+      const id = existing ? existing.id : randomUUID();
 
       tx.insert(hidrants)
         .values({

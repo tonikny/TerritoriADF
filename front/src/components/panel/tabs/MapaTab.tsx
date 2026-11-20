@@ -1,7 +1,7 @@
 import { apiFetch } from "../../../utils/api";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import * as turf from "@turf/turf";
+import turfArea from "@turf/area";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdf, type AdfData } from "../../../contexts/AdfContext";
 import { OsmSyncPanel } from "../../osm/OsmSyncPanel";
@@ -58,7 +58,7 @@ function boundaryAreaKm2(boundaryGeojson: string | null): number | null {
     return null;
   }
   try {
-    return turf.area(JSON.parse(boundaryGeojson)) / 1_000_000;
+    return turfArea(JSON.parse(boundaryGeojson)) / 1_000_000;
   } catch {
     return null;
   }
