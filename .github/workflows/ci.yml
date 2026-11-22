@@ -22,6 +22,8 @@ jobs:
 
       - run: npm run typecheck
 
+      - run: npm test -w packages/contracts
+
       - run: npm run lint
 
       - run: npm run db:migrate -w back

@@ -1,5 +1,5 @@
-import type { HydrantUiFields } from "../../utils/osmConversion";
-import { HydrantFormFields } from "./HydrantFormFields";
+import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
+import { HidrantFormFields } from "./HidrantFormFields";
 import {
   inputClass,
   primaryButtonClass,
@@ -7,7 +7,7 @@ import {
   dangerButtonClass,
 } from "../../styles/uiStyles";
 
-export function HydrantEditForm({
+export function HidrantEditForm({
   data,
   setData,
   observacions,
@@ -17,8 +17,8 @@ export function HydrantEditForm({
   onCancel,
   onDelete,
 }: {
-  data: HydrantUiFields;
-  setData: (d: HydrantUiFields) => void;
+  data: HidrantUiFields;
+  setData: (d: HidrantUiFields) => void;
   observacions: string;
   setObservacions: (o: string) => void;
   busy: boolean;
@@ -31,7 +31,7 @@ export function HydrantEditForm({
       <div className="text-[0.8rem] italic flex flex-col gap-1 rounded-md text-center text-yellow-300 bg-gray-400">
         Pots arrossegar el node per corregir la posició del hidrant
       </div>
-      <HydrantFormFields data={data} onChange={setData} showSurveyDateAndStatus={true} />
+      <HidrantFormFields data={data} onChange={setData} showSurveyDateAndStatus={true} />
 
       <label className="text-[0.8rem] italic flex flex-col gap-1">
         Observacions:

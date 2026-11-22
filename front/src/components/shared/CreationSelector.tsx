@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { secondaryButtonClass } from "../../styles/uiStyles";
 
 interface CreationSelectorProps {
-  onSelectHydrant: () => void;
+  onSelectHidrant: () => void;
   onSelectIncidencia: () => void;
   onClose: () => void;
 }
 
 export const CreationSelector: React.FC<CreationSelectorProps> = ({
-  onSelectHydrant,
+  onSelectHidrant,
   onSelectIncidencia,
   onClose,
 }) => {
@@ -16,9 +16,9 @@ export const CreationSelector: React.FC<CreationSelectorProps> = ({
 
   const cardClass = (type: "hydrant" | "incidencia"): string => {
     const isHovered = hoveredCard === type;
-    const isHydrant = type === "hydrant";
+    const isHidrant = type === "hydrant";
     const hoverClass = isHovered
-      ? isHydrant
+      ? isHidrant
         ? "border-primary bg-[#f0f7ff] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
         : "border-[#dc3545] bg-[#fff5f5] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
       : "border-[#e0e0e0] bg-[#fcfcfc]";
@@ -37,7 +37,7 @@ export const CreationSelector: React.FC<CreationSelectorProps> = ({
           className={cardClass("hydrant")}
           onMouseEnter={() => setHoveredCard("hydrant")}
           onMouseLeave={() => setHoveredCard(null)}
-          onClick={onSelectHydrant}
+          onClick={onSelectHidrant}
         >
           <span className="text-[2.5rem] mb-2">📍</span>
           <strong className="text-base text-ink mb-1">Nou Hidrant</strong>

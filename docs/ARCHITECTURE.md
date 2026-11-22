@@ -43,6 +43,9 @@ territoriadf/
 │   │   └── utils/
 │   ├── index.html
 │   └── vite.config.ts
+├── packages/
+│   └── contracts/                  # contractes compartits back/front (Zod): permisos, incidències, estats OSM i conversions
+│       └── src/
 ├── back/
 │   ├── src/
 │   │   ├── app.ts                  # buildApp(): plugins, guards i rutes (no escolta cap port)
@@ -53,13 +56,13 @@ territoriadf/
 │   │   ├── db/                     # esquema Drizzle, repositoris i connexió
 │   │   ├── scripts/                # seed, importació, migracions, utilitats
 │   │   ├── utils/
-│   │   └── permissions.ts          # matriu rol → capacitats
+│   │   └── permissions.ts          # re-exporta la matriu de permisos del paquet de contractes
 │   └── data/                       # SQLite local (no versionada)
 ├── docs/
 ├── scripts/                        # desplegament, backups, Nginx, MQTT
 ├── .github/workflows/ci.yml
 ├── docker-compose.yml
-└── package.json                    # workspaces front + back
+└── package.json                    # workspaces packages/contracts + front + back
 ```
 
 Els tests de la capa de mapa viuen al costat del codi que proven, dins de `front/src/map/core/*.test.ts`. No hi ha una carpeta `tests/` separada.

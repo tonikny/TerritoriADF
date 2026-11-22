@@ -15,13 +15,18 @@ ENV HUSKY=0
 COPY package.json package-lock.json ./
 COPY back/package.json ./back/
 COPY front/package.json ./front/
+COPY packages/contracts/package.json ./packages/contracts/
 
 # Dependències exactes del lockfile (vite inclòs: fa falta per al build).
 # --ignore-scripts evita que el `prepare: husky` de l'arrel s'executi a la imatge.
 RUN npm ci -w front --no-audit --no-fund --ignore-scripts
 
-# Copiem el codi del frontend
+# Contractes compartits i codi del frontend. El front en consumeix els tipus;
+# es compilen igualment perquè, si algun valor compartit acaba al bundle, Vite
+# l'hagi de poder resoldre.
+COPY packages ./packages
 COPY front ./front
+RUN npm run build -w packages/contracts
 
 # Build de l'aplicació Vite
 RUN npm run build -w front

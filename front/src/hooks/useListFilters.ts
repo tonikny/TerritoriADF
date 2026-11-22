@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { HidrantFeature } from "./useHidrantData";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { IncidenciaEstat, IncidenciaFeature, IncidenciaPrioritat } from "../types";
 import { ESTATS_INCIDENCIA, PRIORITATS_INCIDENCIA } from "../utils/incidenciaConstants";
 
@@ -20,7 +20,7 @@ function shortLabel(options: { value: string; label: string }[], value: string):
   return options.find((option) => option.value === value)?.label.split(" (")[0] ?? value;
 }
 
-export function useHydrantFilters(features: HidrantFeature[]) {
+export function useHidrantFilters(features: HidrantFeature[]) {
   const [search, setSearch] = useState("");
   const [estat, setEstat] = useState<HidrantEstatFilter>("");
 
@@ -61,7 +61,7 @@ export function useHydrantFilters(features: HidrantFeature[]) {
   };
 }
 
-export type HydrantFilters = ReturnType<typeof useHydrantFilters>;
+export type HidrantFilters = ReturnType<typeof useHidrantFilters>;
 
 export type IncidenciaEstatFilter = "" | IncidenciaEstat;
 export type IncidenciaPrioritatFilter = "" | IncidenciaPrioritat;

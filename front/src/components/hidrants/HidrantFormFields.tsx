@@ -1,14 +1,14 @@
 import React from "react";
 import { inputClass, selectClass } from "../../styles/uiStyles";
-import type { HydrantUiFields } from "../../utils/osmConversion";
+import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
 
-interface HydrantFormFieldsProps {
-  data: HydrantUiFields;
-  onChange: (newData: HydrantUiFields) => void;
+interface HidrantFormFieldsProps {
+  data: HidrantUiFields;
+  onChange: (newData: HidrantUiFields) => void;
   showSurveyDateAndStatus: boolean;
 }
 
-export const HydrantFormFields: React.FC<HydrantFormFieldsProps> = ({
+export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
   data,
   onChange,
   showSurveyDateAndStatus,
@@ -21,7 +21,7 @@ export const HydrantFormFields: React.FC<HydrantFormFieldsProps> = ({
     currentDiameters.push("");
   }
 
-  const handleFieldChange = (field: keyof HydrantUiFields, value: string) => {
+  const handleFieldChange = (field: keyof HidrantUiFields, value: string) => {
     onChange({
       ...data,
       [field]: value,

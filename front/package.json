@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@territoriadf/contracts": "*",
     "@tailwindcss/vite": "^4.3.3",
     "@turf/area": "^7.2.0",
     "@turf/circle": "^7.2.0",

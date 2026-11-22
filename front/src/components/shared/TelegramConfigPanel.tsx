@@ -1,4 +1,5 @@
 import { apiFetch } from "../../utils/api";
+import { can } from "@territoriadf/contracts/permissions";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { adfLabel } from "../../utils/adfLabel";
@@ -140,7 +141,7 @@ export function TelegramConfigPanel() {
   const perms = user?.permissions ?? [];
   const canManage =
     !!activeAdf &&
-    perms.includes("manage_telegram") &&
+    can(perms, "manage_telegram") &&
     (user?.role === "admin" || activeAdf.id === user?.adf_id);
 
   useEffect(() => {

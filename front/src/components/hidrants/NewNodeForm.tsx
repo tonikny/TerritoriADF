@@ -4,8 +4,8 @@ import { sendToTelegram } from "../../utils/sendToTelegram";
 import type { LatLon } from "../../map/core/types";
 import { toast } from "react-toastify";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../styles/uiStyles";
-import type { HydrantUiFields } from "../../utils/osmConversion";
-import { HydrantFormFields } from "./HydrantFormFields";
+import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
+import { HidrantFormFields } from "./HidrantFormFields";
 import { logError } from "../../utils/log";
 import { useAdf } from "../../contexts/AdfContext";
 import { CoordinatesLabel } from "../shared/CoordinatesLabel";
@@ -29,7 +29,7 @@ export const NewNodeForm = ({
   const { activeAdf } = useAdf();
   const [isInspected, setIsInspected] = useState(false);
 
-  const [data, setData] = useState<HydrantUiFields>({
+  const [data, setData] = useState<HidrantUiFields>({
     type: "",
     position: "",
     couplings: "",
@@ -139,7 +139,7 @@ export const NewNodeForm = ({
         </label>
       </div>
 
-      <HydrantFormFields data={data} onChange={setData} showSurveyDateAndStatus={isInspected} />
+      <HidrantFormFields data={data} onChange={setData} showSurveyDateAndStatus={isInspected} />
 
       <label className="text-[0.8rem] w-full italic mb-4 mt-2">
         Observacions:

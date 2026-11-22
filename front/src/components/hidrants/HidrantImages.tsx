@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import type { HydrantImage } from "../../utils/osmConversion";
+import type { HidrantImage } from "../../utils/hidrantDisplay";
 
-interface HydrantImagesProps {
-  images: HydrantImage[];
+interface HidrantImagesProps {
+  images: HidrantImage[];
 }
 
-const SingleImage: React.FC<{ img: HydrantImage; index: number }> = ({ img, index }) => {
+const SingleImage: React.FC<{ img: HidrantImage; index: number }> = ({ img, index }) => {
   const [hasError, setHasError] = useState(false);
 
   if (hasError) {
@@ -24,7 +24,7 @@ const SingleImage: React.FC<{ img: HydrantImage; index: number }> = ({ img, inde
   );
 };
 
-export const HydrantImages: React.FC<HydrantImagesProps> = ({ images }) => {
+export const HidrantImages: React.FC<HidrantImagesProps> = ({ images }) => {
   if (!images || images.length === 0) {
     return null;
   }

@@ -1,82 +1,13 @@
-// --- Incidències ---
-
-export type IncidenciaEstat = "OBERT" | "EN_PROGRES" | "RESOLT" | "TANCAT";
-export type IncidenciaPrioritat = "BAIXA" | "MITJANA" | "ALTA";
-export type IncidenciaPrecisio = "DESCONEGUDA" | "MUNICIPI" | "AREA" | "EXACTA";
-export type IncidenciaVisibilitat = "PUBLICA" | "TOTES_ADFS" | "ADF_PRIVADA";
-
-export interface Incidencia {
-  id: string;
-  titol: string;
-  tipus: string;
-  estat: IncidenciaEstat;
-  prioritat: IncidenciaPrioritat;
-  adf_id: number | null;
-  lat: number;
-  lon: number;
-  precisio: IncidenciaPrecisio;
-  visibilitat: IncidenciaVisibilitat;
-  creat_at: string;
-  actualitzat_at: string;
-}
-
-export type TipusEvent =
-  | "CREACIO"
-  | "CANVI_ESTAT"
-  | "CANVI_TIPUS"
-  | "CANVI_PRIORITAT"
-  | "CANVI_PRECISIO"
-  | "CANVI_VISIBILITAT"
-  | "OBSERVACIO"
-  | "CANVI_UBICACIO"
-  | "MULTIMEDIA"
-  | "ASSIGNACIO";
-
-export interface IncidenciaEvent {
-  id: string;
-  incidencia_id: string;
-  usuari_id: string | null;
-  nom_usuari?: string; // Camp virtual del join amb usuaris
-  tipus_event: TipusEvent;
-  dades: string; // JSON string
-  creat_at: string;
-}
-
-// Estructures per al camp 'dades' dels events
-export interface EventDataCreacio {
-  titol: string;
-  tipus: string;
-  prioritat: IncidenciaPrioritat;
-  lat: number;
-  lon: number;
-  precisio: IncidenciaPrecisio;
-  comentari?: string;
-}
-
-export interface EventDataCanviEstat {
-  anterior: IncidenciaEstat;
-  nou: IncidenciaEstat;
-}
-
-export interface EventDataCanviTipus {
-  anterior: string;
-  nou: string;
-}
-
-export interface EventDataCanviUbicacio {
-  anterior: { lat: number; lon: number; precisio: IncidenciaPrecisio };
-  nova: { lat: number; lon: number; precisio: IncidenciaPrecisio };
-}
-
-export interface EventDataObservacio {
-  observador?: string;
-  comentari: string;
-  orientacio?: number;
-  distancia_m?: number;
-}
-
-export interface EventDataMultimedia {
-  titol?: string;
-  url: string;
-  tipus: "imatge" | "video";
-}
+// Els tipus compartits amb el frontend viuen a `@territoriadf/contracts`
+// (font única: esquemes Zod, enums, entitats i conversions OSM). Aquest mòdul
+// només manté els noms que el backend ja importava.
+export type {
+  Incidencia,
+  IncidenciaEstat,
+  // Fila de `incidencia_events`: `dades` encara és el JSON cru de la BD.
+  IncidenciaEventRow as IncidenciaEvent,
+  IncidenciaPrecisio,
+  IncidenciaPrioritat,
+  IncidenciaVisibilitat,
+  TipusEvent,
+} from "@territoriadf/contracts/incidencies";

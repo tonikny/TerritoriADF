@@ -1,11 +1,11 @@
-import type { HidrantFeature } from "../../hooks/useHidrantData";
-import { getHydrantDisplayData, getHydrantImages } from "../../utils/osmConversion";
-import { HydrantImages } from "./HydrantImages";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
+import { getHidrantDisplayData, getHidrantImages } from "../../utils/hidrantDisplay";
+import { HidrantImages } from "./HidrantImages";
 import { QuickStatusButtons } from "./QuickStatusButtons";
-import { HydrantActions } from "./HydrantActions";
-import { HydrantSyncActions } from "./HydrantSyncActions";
+import { HidrantActions } from "./HidrantActions";
+import { HidrantSyncActions } from "./HidrantSyncActions";
 
-export function HydrantInfoView({
+export function HidrantInfoView({
   feature,
   canEdit,
   isAdmin,
@@ -25,7 +25,7 @@ export function HydrantInfoView({
   refreshHidrants?: () => Promise<void>;
 }) {
   const props = feature.properties;
-  const displayData = getHydrantDisplayData(props.ui_fields);
+  const displayData = getHidrantDisplayData(props.ui_fields);
 
   return (
     <>
@@ -42,7 +42,7 @@ export function HydrantInfoView({
             ))}
           </div>
         </div>
-        <HydrantImages images={getHydrantImages(props.osm_tags)} />
+        <HidrantImages images={getHidrantImages(props.osm_tags)} />
       </div>
 
       {props.private_tags?.observacions && (
@@ -54,7 +54,7 @@ export function HydrantInfoView({
         </div>
       )}
 
-      {isAdmin && <HydrantSyncActions feature={feature} refreshHidrants={refreshHidrants} />}
+      {isAdmin && <HidrantSyncActions feature={feature} refreshHidrants={refreshHidrants} />}
 
       {canEdit && (
         <QuickStatusButtons
@@ -63,7 +63,7 @@ export function HydrantInfoView({
         />
       )}
 
-      <HydrantActions
+      <HidrantActions
         feature={feature}
         showRoute={showRoute}
         setShowRoute={setShowRoute}

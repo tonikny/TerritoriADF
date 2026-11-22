@@ -1,15 +1,4 @@
-export interface HydrantUiFields {
-  position: string;
-  type: string;
-  couplings: string;
-  diameters: string;
-  pressure: string;
-  street: string;
-  num: string;
-  barri: string;
-  surveyDate: string;
-  estat: string;
-}
+import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
 
 const POSITION_MAP: Record<string, string> = {
   lane: "Calçada",
@@ -22,7 +11,7 @@ const TYPE_MAP: Record<string, string> = {
   pillar: "Columna",
 };
 
-export function getHydrantDisplayData(uiFields: HydrantUiFields) {
+export function getHidrantDisplayData(uiFields: HidrantUiFields) {
   if (!uiFields) {
     return [];
   }
@@ -62,7 +51,7 @@ export function getHydrantDisplayData(uiFields: HydrantUiFields) {
   ];
 }
 
-export interface HydrantImage {
+export interface HidrantImage {
   url: string;
   thumbnail: string;
   type: "image" | "panoramax";
@@ -107,11 +96,11 @@ function isAllowedImageUrl(raw: string): boolean {
   return IMAGE_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
 }
 
-export function getHydrantImages(osmTags: Record<string, string>): HydrantImage[] {
+export function getHidrantImages(osmTags: Record<string, string>): HidrantImage[] {
   if (!osmTags) {
     return [];
   }
-  const images: HydrantImage[] = [];
+  const images: HidrantImage[] = [];
 
   Object.keys(osmTags).forEach((key) => {
     const rawValue = osmTags[key];

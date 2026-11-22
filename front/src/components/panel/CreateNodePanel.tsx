@@ -25,7 +25,7 @@ export function CreateNodePanel({
     return (
       <div className="p-3">
         <CreationSelector
-          onSelectHydrant={() => setForm("hydrant")}
+          onSelectHidrant={() => setForm("hydrant")}
           onSelectIncidencia={() => setForm("incidencia")}
           onClose={onClose}
         />

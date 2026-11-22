@@ -1,4 +1,5 @@
 import { apiFetch } from "../../../utils/api";
+import { can } from "@territoriadf/contracts/permissions";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdf } from "../../../contexts/AdfContext";
@@ -57,7 +58,7 @@ export function SeguimentTab({
   const perms = user?.permissions ?? [];
   const canToggle =
     !!activeAdf &&
-    perms.includes("manage_own_adf_sharing") &&
+    can(perms, "manage_own_adf_sharing") &&
     (user?.role === "admin" || activeAdf?.id === user?.adf_id);
 
   useEffect(() => {

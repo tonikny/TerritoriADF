@@ -1,8 +1,8 @@
-import type { HidrantFeature } from "../../hooks/useHidrantData";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { getNodeShareUrl } from "../../utils/urlParams";
 import { NodeActions } from "../shared/NodeActions";
 
-export function HydrantActions({
+export function HidrantActions({
   feature,
   showRoute,
   setShowRoute,
