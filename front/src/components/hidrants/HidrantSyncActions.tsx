@@ -39,8 +39,15 @@ function syncBadge(status: SyncStatus | null) {
       return { cls: "bg-[#f1c40f]", text: "Revisió pendent" };
     case "ERROR":
       return { cls: "bg-[#e74c3c]", text: "Error sync" };
-    default:
-      return { cls: "bg-gray-400", text: status };
+    case "MISSING_IN_OSM":
+      // Existia a OSM i ja no hi és: el push el tornarà a crear si cal.
+      return { cls: "bg-[#7f8c8d]", text: "Ja no és a OSM" };
+    default: {
+      // Tots els estats de `SyncStatus` estan coberts: si se n'hi afegeix un,
+      // el typecheck falla aquí en lloc de pintar l'identificador en cru.
+      const inesperat: never = status;
+      return { cls: "bg-gray-400", text: String(inesperat) };
+    }
   }
 }
 
