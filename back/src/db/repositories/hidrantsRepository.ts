@@ -1,20 +1,11 @@
 import { db } from "../index.js";
 import { hidrants } from "../schema.js";
 import { count, eq, and, ne, inArray, notInArray } from "drizzle-orm";
+import type { SyncStatus } from "@territoriadf/contracts/sync";
 
 function nowISO(): string {
   return new Date().toISOString();
 }
-
-type SyncStatus =
-  | "SYNCED"
-  | "MISSING_IN_OSM"
-  | "PENDING_CREATE"
-  | "PENDING_UPDATE"
-  | "PENDING_DELETE"
-  | "CONFLICT"
-  | "ERROR"
-  | "REVIEW";
 
 export interface HidrantData {
   id: string;

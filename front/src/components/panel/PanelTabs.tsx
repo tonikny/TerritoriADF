@@ -1,5 +1,5 @@
 import type { PanelTab } from "../layout/Panel";
-import type { HidrantFeature } from "../../hooks/useHidrantData";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { IncidenciaFeature } from "../../types";
 import type { Position } from "../../hooks/usePositionPolling";
 import type { EngineId } from "../../map/core/types";
@@ -17,7 +17,7 @@ export function buildTabs({
   positions,
   onSelectNode,
   onSelectIncidencia,
-  onSelectHydrantById,
+  onSelectHidrantById,
   onRefreshHidrants,
   onCenterCoordinates,
   engine,
@@ -29,7 +29,7 @@ export function buildTabs({
   positions: Record<string, Position>;
   onSelectNode?: (feature: HidrantFeature) => void;
   onSelectIncidencia?: (feature: IncidenciaFeature) => void;
-  onSelectHydrantById?: (id: string) => void;
+  onSelectHidrantById?: (id: string) => void;
   onRefreshHidrants?: () => void;
   onCenterCoordinates?: (coords: [number, number]) => void;
   engine?: EngineId;
@@ -41,7 +41,7 @@ export function buildTabs({
       id: "mapa",
       icon: "🗺️",
       label: "ADF",
-      content: <MapaTab onSelectHydrant={onSelectHydrantById} onRefresh={onRefreshHidrants} />,
+      content: <MapaTab onSelectHidrant={onSelectHidrantById} onRefresh={onRefreshHidrants} />,
     },
     {
       id: "seguiment",

@@ -1,4 +1,4 @@
-import type { HydrantUiFields } from "./osmConversion";
+import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
 
 export const hidrant_op_rev = "/images/icons/hidrant_op_rev.png";
 export const hidrant_op_nrev = "/images/icons/hidrant_op_nrev.png";
@@ -7,7 +7,7 @@ export const hidrant_nop_nrev = "/images/icons/hidrant_nop_nrev.png";
 export const hidrant_no_info = "/images/icons/hidrant_no_info.png";
 export const hidrant_shadow = "/images/icons/marker-shadow.png";
 
-export function getHydrantStatus(ui: Pick<HydrantUiFields, "surveyDate" | "estat">) {
+export function getHidrantStatus(ui: Pick<HidrantUiFields, "surveyDate" | "estat">) {
   const currentYear = new Date().getFullYear();
   const surveyDate = ui.surveyDate;
   const year = Number(surveyDate?.split("-")[0]);
@@ -34,7 +34,7 @@ export function getHydrantStatus(ui: Pick<HydrantUiFields, "surveyDate" | "estat
   return "no_info";
 }
 
-export function getHydrantIconUrl(status: string) {
+export function getHidrantIconUrl(status: string) {
   switch (status) {
     case "op_rev":
       return hidrant_op_rev;

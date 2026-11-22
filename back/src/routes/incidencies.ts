@@ -1,6 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
+import {
+  incidenciaPrecisioSchema,
+  incidenciaPrioritatSchema,
+  incidenciaVisibilitatSchema,
+  tipusEventSchema,
+} from "@territoriadf/contracts/incidencies";
 
 import { IncidenciesService } from "../services/incidenciesService.js";
 import { BadRequestError } from "../errors.js";
@@ -31,35 +37,22 @@ const createBodySchema = z.object({
   adf_id: z.coerce.number().int().positive().optional(),
   titol: z.string(),
   tipus: z.string(),
-  prioritat: z.enum(["BAIXA", "MITJANA", "ALTA"]).optional(),
-  visibilitat: z.enum(["PUBLICA", "TOTES_ADFS", "ADF_PRIVADA"]).optional(),
+  prioritat: incidenciaPrioritatSchema.optional(),
+  visibilitat: incidenciaVisibilitatSchema.optional(),
   lat: z.number().finite(),
   lon: z.number().finite(),
-  precisio: z.enum(["DESCONEGUDA", "MUNICIPI", "AREA", "EXACTA"]).optional(),
+  precisio: incidenciaPrecisioSchema.optional(),
   comentari: z.string().optional(),
 });
 
 const locationSchema = z.object({
   lat: z.number().finite(),
   lon: z.number().finite(),
-  precisio: z.enum(["DESCONEGUDA", "MUNICIPI", "AREA", "EXACTA"]),
+  precisio: incidenciaPrecisioSchema,
 });
 
-const TIPUS_EVENT = [
-  "CREACIO",
-  "CANVI_ESTAT",
-  "CANVI_TIPUS",
-  "CANVI_PRIORITAT",
-  "CANVI_PRECISIO",
-  "CANVI_VISIBILITAT",
-  "OBSERVACIO",
-  "CANVI_UBICACIO",
-  "MULTIMEDIA",
-  "ASSIGNACIO",
-] as const;
-
 const eventBodySchema = z.object({
-  tipus_event: z.enum(TIPUS_EVENT),
+  tipus_event: tipusEventSchema,
   // `catchall`: els camps que el servei encara no formalitza (multimèdia,
   // assignacions) no es poden perdre, però el cos ha de ser un objecte.
   dades: z

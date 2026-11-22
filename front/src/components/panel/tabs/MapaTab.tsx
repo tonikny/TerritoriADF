@@ -1,4 +1,5 @@
 import { apiFetch } from "../../../utils/api";
+import { can } from "@territoriadf/contracts/permissions";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import turfArea from "@turf/area";
@@ -70,10 +71,10 @@ const KM2_FORMAT = new Intl.NumberFormat("ca-ES", {
 });
 
 export function MapaTab({
-  onSelectHydrant,
+  onSelectHidrant,
   onRefresh,
 }: {
-  onSelectHydrant?: (id: string) => void;
+  onSelectHidrant?: (id: string) => void;
   onRefresh?: () => void;
 }) {
   const { adfs, isLoading, activeAdf, setActiveAdf, refreshAdfs, boundaryGeojson } = useAdf();
@@ -82,8 +83,8 @@ export function MapaTab({
   const isAdmin = user?.role === "admin";
   const permissions = user?.permissions ?? [];
   // Les relacions OSM només les veu l'admin; el tracking compartit, coordinadors i admins.
-  const canSeeOsmRelations = permissions.includes("view_osm_link");
-  const canSeeTrackingSharing = permissions.includes("view_shared_positions");
+  const canSeeOsmRelations = can(permissions, "view_osm_link");
+  const canSeeTrackingSharing = can(permissions, "view_shared_positions");
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [draftMode, setDraftMode] = useState<DraftMode>("create");
@@ -444,7 +445,7 @@ export function MapaTab({
         </form>
       )}
 
-      {permissions.includes("sync_osm") && (
+      {can(permissions, "sync_osm") && (
         <>
           <div className="flex items-center gap-3 mt-6 mb-3" role="separator" aria-label="OSM">
             <span className="flex-1 h-px bg-border" />
@@ -454,7 +455,7 @@ export function MapaTab({
             <span className="flex-1 h-px bg-border" />
           </div>
           <h4 className="m-0 mb-2 text-[0.9rem] font-semibold">Sincronització amb OSM</h4>
-          <OsmSyncPanel onSelectHydrant={onSelectHydrant} onRefresh={onRefresh} />
+          <OsmSyncPanel onSelectHidrant={onSelectHidrant} onRefresh={onRefresh} />
         </>
       )}
     </div>

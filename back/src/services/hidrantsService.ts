@@ -7,8 +7,8 @@ import {
   ui2Osm,
   mergeUiFieldsIntoTags,
   sameOsmTags,
-  type HydrantUiFields,
-} from "../utils/osmConversion.js";
+  type HidrantUiFields,
+} from "@territoriadf/contracts/hidrants";
 import { clampToMaxDistance, hasPositionChanged, MAX_HYDRANT_MOVE_METERS } from "../utils/geo.js";
 import { assertPointInAdf } from "./adfArea.js";
 /**
@@ -102,7 +102,7 @@ export const HidrantsService = {
     adfId: number,
     lat: number,
     lon: number,
-    ui_fields?: HydrantUiFields,
+    ui_fields?: HidrantUiFields,
     private_tags?: Record<string, unknown>,
   ) {
     if (!lat || !lon) {
@@ -132,7 +132,7 @@ export const HidrantsService = {
     adfId: number,
     lat?: number,
     lon?: number,
-    ui_fields?: HydrantUiFields,
+    ui_fields?: HidrantUiFields,
     private_tags?: Record<string, unknown>,
   ) {
     if (!id) {

@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev -w back\" \"sleep 3 && npm run dev -w front\"",
-    "build": "npm run build -w front && npm run build -w back",
+    "dev": "npm run build -w packages/contracts && concurrently \"npm run dev -w back\" \"sleep 3 && npm run dev -w front\"",
+    "build": "npm run build -w packages/contracts && npm run build -w front && npm run build -w back",
+    "build:contracts": "npm run build -w packages/contracts",
     "start": "npm run start -w back",
-    "lint": "npm run lint -w front && npm run lint -w back",
-    "lint:fix": "npm run lint:fix -w front && npm run lint:fix -w back",
-    "typecheck": "npm run typecheck -w front && npm run typecheck -w back",
+    "lint": "npm run lint -w packages/contracts && npm run lint -w front && npm run lint -w back",
+    "lint:fix": "npm run lint:fix -w packages/contracts && npm run lint:fix -w front && npm run lint:fix -w back",
+    "typecheck": "npm run build -w packages/contracts && npm run typecheck -w packages/contracts && npm run typecheck -w front && npm run typecheck -w back",
+    "test:contracts": "npm test -w packages/contracts",
     "format": "prettier . --write",
     "format:check": "prettier . --check .",
     "update:boundaries": "npm run update:boundaries -w back",
@@ -47,6 +49,7 @@
   },
   "private": true,
   "workspaces": [
+    "packages/contracts",
     "front",
     "back"
   ],

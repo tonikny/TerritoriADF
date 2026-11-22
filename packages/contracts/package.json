@@ -1,0 +1,45 @@
+{
+  "name": "@territoriadf/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./permissions": {
+      "types": "./dist/permissions.d.ts",
+      "default": "./dist/permissions.js"
+    },
+    "./sync": {
+      "types": "./dist/sync.d.ts",
+      "default": "./dist/sync.js"
+    },
+    "./incidencies": {
+      "types": "./dist/incidencies.d.ts",
+      "default": "./dist/incidencies.js"
+    },
+    "./hidrants": {
+      "types": "./dist/hidrants.d.ts",
+      "default": "./dist/hidrants.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "postinstall": "npm run build",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "peerDependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0",
+    "zod": "^4.4.3"
+  }
+}

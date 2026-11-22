@@ -122,7 +122,7 @@ Cada estat té la seva pròpia secció amb:
 - Enllaç directe al node d'OSM
 - Botons d'acció específics segons l'estat
 
-### 4.2. Gestió per hidrant (HydrantSyncActions)
+### 4.2. Gestió per hidrant (HidrantSyncActions)
 
 A nivell individual, cada hidrant mostra:
 

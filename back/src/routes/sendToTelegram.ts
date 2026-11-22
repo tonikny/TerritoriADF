@@ -12,7 +12,7 @@ import {
 import { registerTelegramHit, telegramBlock } from "../services/telegramThrottle.js";
 import { sendToAdf } from "../services/telegramService.js";
 import { appBaseUrl } from "../utils/appUrl.js";
-import { ui2Osm, type HydrantUiFields } from "../utils/osmConversion.js";
+import { ui2Osm, type HidrantUiFields } from "@territoriadf/contracts/hidrants";
 import { sendTelegramMessage } from "../utils/telegram.js";
 
 /**
@@ -144,7 +144,7 @@ export function registerTelegramNotificationRoutes(app: FastifyInstance): void {
           const currentOsmTags = {
             ...((dbInfo.osm_tags as Record<string, string> | undefined) ?? {}),
           };
-          const newOsmTags = ui2Osm(dbInfo.ui_fields as HydrantUiFields);
+          const newOsmTags = ui2Osm(dbInfo.ui_fields as HidrantUiFields);
           if ((dbInfo.ui_fields as Record<string, unknown>).estat) {
             delete currentOsmTags["emergency"];
             delete currentOsmTags["disused:emergency"];

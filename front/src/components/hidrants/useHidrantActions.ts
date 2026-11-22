@@ -1,17 +1,17 @@
 import { apiFetch } from "../../utils/api";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import type { HidrantFeature } from "../../hooks/useHidrantData";
-import type { HydrantUiFields } from "../../utils/osmConversion";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
+import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
 import type { AdfData } from "../../contexts/AdfContext";
 import { sendToTelegram } from "../../utils/sendToTelegram";
 import { logError } from "../../utils/log";
 
-type FieldPatch = Partial<HydrantUiFields & { observacions: string; coordinates: string }>;
+type FieldPatch = Partial<HidrantUiFields & { observacions: string; coordinates: string }>;
 
 function calculateChanges(
-  original: HydrantUiFields,
-  modified: HydrantUiFields,
+  original: HidrantUiFields,
+  modified: HidrantUiFields,
   originalObservacions: string,
   modifiedObservacions: string,
   originalCoords?: { lat: number; lon: number },
@@ -21,7 +21,7 @@ function calculateChanges(
   const originalValues: FieldPatch = {};
 
   for (const key in modified) {
-    const k = key as keyof HydrantUiFields;
+    const k = key as keyof HidrantUiFields;
     if (original[k] !== modified[k]) {
       changes[k] = modified[k];
       originalValues[k] = original[k];
@@ -48,7 +48,7 @@ function calculateChanges(
   return { changes, originalValues };
 }
 
-export function useHydrantActions(
+export function useHidrantActions(
   feature: HidrantFeature,
   adf: AdfData | null,
   refreshHidrants?: () => Promise<void> | void,
@@ -66,9 +66,9 @@ export function useHydrantActions(
   };
 
   const save = async (opts: {
-    uiFields: HydrantUiFields;
+    uiFields: HidrantUiFields;
     observacions: string;
-    originalUiFields: HydrantUiFields;
+    originalUiFields: HidrantUiFields;
     originalObservacions: string;
     newLat?: number;
     newLon?: number;
@@ -128,7 +128,7 @@ export function useHydrantActions(
     }
   };
 
-  const quickStatus = async (isOperative: boolean, data: HydrantUiFields) => {
+  const quickStatus = async (isOperative: boolean, data: HidrantUiFields) => {
     if (!adf) {
       return;
     }
@@ -140,7 +140,7 @@ export function useHydrantActions(
     setBusy(true);
     try {
       const today = new Date().toISOString().split("T")[0];
-      const newData: HydrantUiFields = {
+      const newData: HidrantUiFields = {
         ...data,
         surveyDate: today,
         estat: isOperative ? "Operatiu" : "Fora de servei",

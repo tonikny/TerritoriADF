@@ -1,5 +1,6 @@
 import { sqliteTable, text, integer, real, unique, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { SYNC_STATUSES } from "@territoriadf/contracts/sync";
 
 export const adfs = sqliteTable("adfs", {
   id: integer("id").primaryKey(), // Número d'ADF
@@ -25,18 +26,7 @@ export const hidrants = sqliteTable(
     lon: real("lon").notNull(),
     osm_tags: text("osm_tags").default("{}"),
     private_tags: text("private_tags").default("{}"),
-    sync_status: text("sync_status", {
-      enum: [
-        "SYNCED",
-        "MISSING_IN_OSM",
-        "PENDING_CREATE",
-        "PENDING_UPDATE",
-        "PENDING_DELETE",
-        "CONFLICT",
-        "ERROR",
-        "REVIEW",
-      ],
-    }).default("SYNCED"),
+    sync_status: text("sync_status", { enum: [...SYNC_STATUSES] }).default("SYNCED"),
     sync_error: text("sync_error"), // JSON: detalls de l'error o del conflicte
     synced_at: text("synced_at"), // ISO: timestamp de l'última pujada exitosa a OSM
     remote_lat: real("remote_lat"), // Latitud de la versió remota d'OSM (per al diff)

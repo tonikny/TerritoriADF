@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { can } from "@territoriadf/contracts/permissions";
 import type { LatLon } from "../../map/core/types";
-import type { HidrantFeature } from "../../hooks/useHidrantData";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdf } from "../../contexts/AdfContext";
-import { useHydrantActions } from "./useHydrantActions";
-import { HydrantInfoView } from "./HydrantInfoView";
-import { HydrantEditForm } from "./HydrantEditForm";
+import { useHidrantActions } from "./useHidrantActions";
+import { HidrantInfoView } from "./HidrantInfoView";
+import { HidrantEditForm } from "./HidrantEditForm";
 import { usePreventLeave } from "../../hooks/usePreventLeave";
 
 export const NodeInfo = ({
@@ -47,9 +48,9 @@ export const NodeInfo = ({
   }, [props.ui_fields, props.private_tags?.observacions]);
 
   const isAdmin = user?.role === "admin";
-  const canDelete = canEdit && (user?.permissions ?? []).includes("delete_hydrant");
+  const canDelete = canEdit && can(user?.permissions, "delete_hydrant");
 
-  const { busy, save, quickStatus, remove } = useHydrantActions(
+  const { busy, save, quickStatus, remove } = useHidrantActions(
     feature,
     activeAdf,
     refreshHidrants,
@@ -98,7 +99,7 @@ export const NodeInfo = ({
   return (
     <div className={`${className} p-3 flex flex-col gap-3`}>
       {!editing ? (
-        <HydrantInfoView
+        <HidrantInfoView
           feature={feature}
           canEdit={canEdit}
           isAdmin={isAdmin}
@@ -111,7 +112,7 @@ export const NodeInfo = ({
           refreshHidrants={refreshHidrants}
         />
       ) : (
-        <HydrantEditForm
+        <HidrantEditForm
           data={data}
           setData={setData}
           observacions={observacions}

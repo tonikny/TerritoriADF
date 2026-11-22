@@ -2,40 +2,12 @@ import { apiFetch } from "../utils/api";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAdf } from "../contexts/AdfContext";
 import { markDataSynced } from "../utils/offlineData";
-import type { HydrantUiFields } from "../utils/osmConversion";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 
-export interface HidrantFeature {
-  type: "Feature";
-  id: string;
-  geometry: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-  properties: {
-    id: string;
-    osm_id: number;
-    ui_fields: HydrantUiFields;
-    osm_tags: Record<string, string>;
-    private_tags?: Record<string, unknown> & { observacions?: string };
-    sync_status: string;
-    sync_error: {
-      diffFields?: string[];
-      osmTags?: Record<string, string>;
-      osmLat?: number;
-      osmLon?: number;
-      localLat?: number;
-      localLon?: number;
-      message?: string;
-    } | null;
-    synced_at: string | null;
-    remote_osm_tags: Record<string, string> | null;
-    remote_lat: number | null;
-    remote_lon: number | null;
-    updated_at: string;
-  };
-}
+// La forma del GeoJSON ve del contracte compartit amb el backend.
+export type { HidrantFeature };
 
-export function useHydrantData() {
+export function useHidrantData() {
   const { activeAdf } = useAdf();
   const [features, setFeatures] = useState<HidrantFeature[]>([]);
   const [loading, setLoading] = useState(false);

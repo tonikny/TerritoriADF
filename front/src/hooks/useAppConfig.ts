@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 // Es demana una sola vegada per sessió i només es cacheja si la resposta és vàlida
 // (si falla, el següent muntatge ho tornarà a intentar).
-let cachedMaxHydrantMoveMeters: number | null = null;
+let cachedMaxHidrantMoveMeters: number | null = null;
 let cachedMinPasswordLength: number | null = null;
 
 /** Valor de reserva mentre `/api/config` no ha arribat: el backend és qui valida de veritat. */
@@ -15,15 +15,15 @@ const DEFAULT_MIN_PASSWORD_LENGTH = 8;
  * l'atribut `minLength` dels formularis.
  */
 export function useAppConfig() {
-  const [maxHydrantMoveMeters, setMaxHydrantMoveMeters] = useState<number | null>(
-    cachedMaxHydrantMoveMeters,
+  const [maxHidrantMoveMeters, setMaxHidrantMoveMeters] = useState<number | null>(
+    cachedMaxHidrantMoveMeters,
   );
   const [minPasswordLength, setMinPasswordLength] = useState<number>(
     cachedMinPasswordLength ?? DEFAULT_MIN_PASSWORD_LENGTH,
   );
 
   useEffect(() => {
-    if (cachedMaxHydrantMoveMeters !== null && cachedMinPasswordLength !== null) {
+    if (cachedMaxHidrantMoveMeters !== null && cachedMinPasswordLength !== null) {
       return;
     }
     let cancelled = false;
@@ -32,9 +32,9 @@ export function useAppConfig() {
       .then((data) => {
         const maxMeters = data?.max_hydrant_move_meters;
         if (typeof maxMeters === "number" && maxMeters > 0) {
-          cachedMaxHydrantMoveMeters = maxMeters;
+          cachedMaxHidrantMoveMeters = maxMeters;
           if (!cancelled) {
-            setMaxHydrantMoveMeters(maxMeters);
+            setMaxHidrantMoveMeters(maxMeters);
           }
         }
         const minLength = data?.min_password_length;
@@ -53,5 +53,5 @@ export function useAppConfig() {
     };
   }, []);
 
-  return { maxHydrantMoveMeters, minPasswordLength };
+  return { maxHidrantMoveMeters, minPasswordLength };
 }

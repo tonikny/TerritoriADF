@@ -1,7 +1,7 @@
 import { apiFetch } from "../../utils/api";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import type { HidrantFeature } from "../../hooks/useHidrantData";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useAdf } from "../../contexts/AdfContext";
 import { sendToTelegram } from "../../utils/sendToTelegram";
 import { logError } from "../../utils/log";
@@ -18,7 +18,12 @@ interface DiffData {
   osmLon?: number;
 }
 
-function syncBadge(status: SyncStatus) {
+function syncBadge(status: SyncStatus | null) {
+  if (!status) {
+    // La columna admet NULL: no inventem un estat, però cal pintar alguna cosa.
+    return { cls: "bg-gray-400", text: "Sense estat" };
+  }
+
   switch (status) {
     case "SYNCED":
       return { cls: "bg-[#27ae60]", text: "Sincronitzat" };
@@ -113,7 +118,7 @@ function DiffTable({ diff }: { diff: DiffData }) {
   );
 }
 
-export function HydrantSyncActions({
+export function HidrantSyncActions({
   feature,
   refreshHidrants,
 }: {
@@ -290,7 +295,7 @@ export function HydrantSyncActions({
         <span className={`${badge.cls} text-white text-[0.7rem] px-2 py-0.5 rounded font-semibold`}>
           {badge.text}
         </span>
-        {osm_id > 0 && (
+        {osm_id !== null && osm_id > 0 && (
           <a
             href={`https://www.openstreetmap.org/node/${osm_id}`}
             target="_blank"
@@ -327,7 +332,7 @@ export function HydrantSyncActions({
               {diffLoading ? "Carregant diff..." : "Diferències amb OSM:"}
             </div>
             {!diffLoading && diff && <DiffTable diff={diff} />}
-            {!diffLoading && !diff && osm_id > 0 && (
+            {!diffLoading && !diff && osm_id !== null && osm_id > 0 && (
               <div className="text-[0.7rem] text-muted">No s'ha pogut obtenir la versió d'OSM</div>
             )}
           </div>

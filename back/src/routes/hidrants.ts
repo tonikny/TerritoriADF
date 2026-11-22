@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
+import { hidrantUiFieldsSchema } from "@territoriadf/contracts/hidrants";
 
 import { HidrantsService } from "../services/hidrantsService.js";
 import { BadRequestError } from "../errors.js";
@@ -19,24 +20,6 @@ import {
  * declarativa: cada mutació diu quina capacitat necessita i d'on surt l'ADF.
  */
 
-/**
- * Camps del formulari d'hidrant (`HydrantUiFields` a `utils/osmConversion.ts`).
- * Tots són text; els que no arriben queden buits, que és el que fa `ui2Osm`:
- * esborrar un camp esborra també el tag d'OSM corresponent.
- */
-const uiFieldsSchema = z.object({
-  position: z.string().max(100).default(""),
-  type: z.string().max(100).default(""),
-  couplings: z.string().max(100).default(""),
-  diameters: z.string().max(100).default(""),
-  pressure: z.string().max(100).default(""),
-  street: z.string().max(200).default(""),
-  num: z.string().max(50).default(""),
-  barri: z.string().max(200).default(""),
-  surveyDate: z.string().max(50).default(""),
-  estat: z.string().max(50).default(""),
-});
-
 const privateTagsSchema = z.record(z.string(), z.unknown());
 
 const adfQuerySchema = z.object({
@@ -47,7 +30,7 @@ const createBodySchema = z.object({
   adf_id: z.coerce.number().int().positive().optional(),
   lat: z.number().finite(),
   lon: z.number().finite(),
-  ui_fields: uiFieldsSchema.optional(),
+  ui_fields: hidrantUiFieldsSchema.optional(),
   private_tags: privateTagsSchema.optional(),
 });
 
@@ -56,7 +39,7 @@ const updateBodySchema = z.object({
   id: z.string().optional(),
   lat: z.number().finite().optional(),
   lon: z.number().finite().optional(),
-  ui_fields: uiFieldsSchema.optional(),
+  ui_fields: hidrantUiFieldsSchema.optional(),
   private_tags: privateTagsSchema.optional(),
 });
 

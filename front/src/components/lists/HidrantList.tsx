@@ -1,17 +1,17 @@
-import type { HidrantFeature } from "../../hooks/useHidrantData";
-import type { HidrantEstatFilter, HydrantFilters } from "../../hooks/useListFilters";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
+import type { HidrantEstatFilter, HidrantFilters } from "../../hooks/useListFilters";
 import { HIDRANT_ESTAT_OPTIONS } from "../../hooks/useListFilters";
 import { useAdf } from "../../contexts/AdfContext";
-import { exportHydrantListPdf } from "../../utils/listPdf";
-import { getHydrantStatus, getHydrantIconUrl } from "../../utils/icons";
+import { exportHidrantListPdf } from "../../utils/listPdf";
+import { getHidrantStatus, getHidrantIconUrl } from "../../utils/icons";
 import { inputClass, selectClass } from "../../styles/uiStyles";
 import { PdfExportButton } from "./PdfExportButton";
 
-export function HydrantList({
+export function HidrantList({
   filters,
   onSelectNode,
 }: {
-  filters: HydrantFilters;
+  filters: HidrantFilters;
   onSelectNode?: (feature: HidrantFeature) => void;
 }) {
   const { activeAdf } = useAdf();
@@ -44,9 +44,9 @@ export function HydrantList({
         <PdfExportButton
           errorLabel="Error generant el PDF dels hidrants"
           onExport={() =>
-            exportHydrantListPdf({
+            exportHidrantListPdf({
               adf: activeAdf,
-              hydrants: filtered,
+              hidrants: filtered,
               total: filters.total,
               filterDescription: filters.description,
             })
@@ -74,7 +74,7 @@ export function HydrantList({
                 className="flex items-center gap-3 px-3 py-2.5 border-b border-soft cursor-pointer transition-colors duration-100 hover:bg-[#f5f5f5]"
               >
                 <img
-                  src={getHydrantIconUrl(getHydrantStatus(ui))}
+                  src={getHidrantIconUrl(getHidrantStatus(ui))}
                   alt="Estat"
                   className="w-4 h-6.5 object-contain shrink-0"
                 />

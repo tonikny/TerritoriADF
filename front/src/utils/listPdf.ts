@@ -1,5 +1,5 @@
 import type { AdfData } from "../contexts/AdfContext";
-import type { HidrantFeature } from "../hooks/useHidrantData";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { IncidenciaFeature } from "../types";
 import type { PdfCell, PdfColumn } from "./pdfExport";
 import { adfLabel } from "./adfLabel";
@@ -40,14 +40,14 @@ function reportMeta(adf: AdfData | null, filterDescription: string) {
 }
 
 /** Exporta a PDF la llista d'hidrants tal com es mostra (filtrada, si ho està). */
-export async function exportHydrantListPdf({
+export async function exportHidrantListPdf({
   adf,
-  hydrants,
+  hidrants,
   total,
   filterDescription,
 }: {
   adf: AdfData | null;
-  hydrants: HidrantFeature[];
+  hidrants: HidrantFeature[];
   total: number;
   filterDescription: string;
 }) {
@@ -58,9 +58,9 @@ export async function exportHydrantListPdf({
     fileName: `hidrants-${meta.adfId}-${meta.date}.pdf`,
     tables: [
       {
-        title: `Hidrants (${hydrants.length} de ${total})`,
+        title: `Hidrants (${hidrants.length} de ${total})`,
         columns: HIDRANT_COLUMNS,
-        rows: hydrants.map((feature) => {
+        rows: hidrants.map((feature) => {
           const ui = feature.properties.ui_fields;
           const row: PdfCell[] = [
             `${ui.street || ""} ${ui.num || ""}`.trim() || "Sense adreça",

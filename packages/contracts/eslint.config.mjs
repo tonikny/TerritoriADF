@@ -1,0 +1,43 @@
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import globals from "globals";
+import prettier from "eslint-config-prettier";
+
+export default tseslint.config(
+  {
+    ignores: ["dist", "node_modules", "coverage", "eslint.config.mjs"],
+  },
+
+  js.configs.recommended,
+
+  ...tseslint.configs.recommended,
+
+  prettier,
+
+  {
+    files: ["**/*.ts"],
+
+    languageOptions: {
+      parserOptions: {
+        // Inclou `src` i `tests`: si només apuntés a `src`, ESLint no podria
+        // analitzar els fitxers de test.
+        project: "./tsconfig.test.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+
+      globals: globals.node,
+    },
+
+    rules: {
+      eqeqeq: "error",
+      curly: "error",
+      "prefer-const": "error",
+      "no-var": "error",
+      "no-console": "error",
+
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+    },
+  },
+);

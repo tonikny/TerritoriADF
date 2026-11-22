@@ -19,17 +19,21 @@ ENV npm_config_build_from_source=true
 COPY package.json package-lock.json ./
 COPY back/package.json ./back/
 COPY front/package.json ./front/
+COPY packages/contracts/package.json ./packages/contracts/
 
 # Dependències (incloses devDependencies) exactes del lockfile
 # --ignore-scripts evita que el `prepare: husky` de l'arrel s'executi a la
 # imatge; després es recompilen només els mòduls natius del backend.
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
  && npm ci -w back --no-audit --no-fund --ignore-scripts \
- && npm rebuild -w back \
+ && npm rebuild -w back better-sqlite3 \
  && apk del .build-deps
 
-# Copiem el codi del backend i compil·lem TypeScript
+# Contractes compartits i codi del backend. Els contractes es compilen primer:
+# el backend els importa en runtime, no només com a tipus.
+COPY packages ./packages
 COPY back ./back
+RUN npm run build -w packages/contracts
 RUN npm run build -w back
 
 # Estadi de dependències de producció
@@ -43,10 +47,11 @@ ENV npm_config_build_from_source=true
 COPY package.json package-lock.json ./
 COPY back/package.json ./back/
 COPY front/package.json ./front/
+COPY packages/contracts/package.json ./packages/contracts/
 
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
  && npm ci -w back --omit=dev --no-audit --no-fund --ignore-scripts \
- && npm rebuild -w back
+ && npm rebuild -w back better-sqlite3
 
 # Estadi de producció
 FROM node:26-alpine
@@ -67,6 +72,11 @@ COPY --from=prod-deps /app/back/package.json ./package.json
 # dirname(dist/db) + ../../data => /app/data (el volum muntat per compose).
 COPY --from=builder /app/back/dist ./dist
 COPY --from=builder /app/back/drizzle ./drizzle
+
+# `node_modules/@territoriadf/contracts` és un enllaç al workspace: el paquet ha
+# d'existir a la imatge final (package.json + dist) o l'enllaç queda trencat.
+COPY --from=builder /app/packages/contracts/package.json ./packages/contracts/package.json
+COPY --from=builder /app/packages/contracts/dist ./packages/contracts/dist
 
 # Exposem el port intern (configurat al .env, per defecte 3033)
 EXPOSE 3033

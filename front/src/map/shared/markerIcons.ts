@@ -1,7 +1,7 @@
 import type { MarkerIcon } from "../core/types";
-import type { HidrantFeature } from "../../hooks/useHidrantData";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { IncidenciaFeature } from "../../types";
-import { getHydrantIconUrl, getHydrantStatus, hidrant_shadow } from "../../utils/icons";
+import { getHidrantIconUrl, getHidrantStatus, hidrant_shadow } from "../../utils/icons";
 import { emojiTipusIncidencia } from "../../utils/incidenciaConstants";
 
 export const USER_ICON: MarkerIcon = {
@@ -18,10 +18,10 @@ export const CREATE_ICON: MarkerIcon = {
   anchor: [12, 41],
 };
 
-export function hydrantIcon(feature: HidrantFeature): MarkerIcon {
+export function hidrantIcon(feature: HidrantFeature): MarkerIcon {
   return {
     kind: "image",
-    url: getHydrantIconUrl(getHydrantStatus(feature.properties.ui_fields)),
+    url: getHidrantIconUrl(getHidrantStatus(feature.properties.ui_fields)),
     size: [25, 41],
     anchor: [12, 41],
     shadowUrl: hidrant_shadow,

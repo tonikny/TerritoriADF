@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { useAdf } from "../../contexts/AdfContext";
 import { logError } from "../../utils/log";
 
-interface PendingHydrant {
+interface PendingHidrant {
   id: string;
   osm_id: number | null;
   lat: number;
@@ -73,7 +73,7 @@ const SECTION_CONFIG: Record<SectionKey, { label: string; color: string; hint: s
   },
 };
 
-function hydrantLabel(h: PendingHydrant) {
+function hidrantLabel(h: PendingHidrant) {
   if (h.street) {
     return `${h.street}${h.num ? `, ${h.num}` : ""}`;
   }
@@ -96,25 +96,25 @@ function parseSyncError(syncError: string | null): string[] {
 }
 
 export function OsmSyncPanel({
-  onSelectHydrant,
+  onSelectHidrant,
   onRefresh,
 }: {
-  onSelectHydrant?: (id: string) => void;
+  onSelectHidrant?: (id: string) => void;
   onRefresh?: () => void;
 }) {
   const { activeAdf } = useAdf();
-  const [pending, setPending] = useState<PendingHydrant[]>([]);
+  const [pending, setPending] = useState<PendingHidrant[]>([]);
   const [stats, setStats] = useState<SyncStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState(false);
 
-  const selectHydrant = (id: string) => {
-    onSelectHydrant?.(id);
+  const selectHidrant = (id: string) => {
+    onSelectHidrant?.(id);
   };
 
-  const refreshHydrants = () => {
+  const refreshHidrants = () => {
     onRefresh?.();
   };
 
@@ -173,7 +173,7 @@ export function OsmSyncPanel({
     }
   }, [activeAdf]);
 
-  const grouped = pending.reduce<Record<SectionKey, PendingHydrant[]>>(
+  const grouped = pending.reduce<Record<SectionKey, PendingHidrant[]>>(
     (acc, h) => {
       const key = (h.sync_status || "PENDING_UPDATE") as SectionKey;
       if (key in acc) {
@@ -248,7 +248,7 @@ export function OsmSyncPanel({
         toast.info(`${data.reviewed} per revisar`);
       }
       setSelected(new Set());
-      refreshHydrants();
+      refreshHidrants();
       void reload();
     } catch (err) {
       toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -281,7 +281,7 @@ export function OsmSyncPanel({
       }
       toast.success(parts.join(", ") || "Fet");
       setSelected(new Set());
-      refreshHydrants();
+      refreshHidrants();
       void reload();
     } catch (err) {
       toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -325,7 +325,7 @@ export function OsmSyncPanel({
       const data = await res.json();
       if (data.success) {
         toast.success(data.message);
-        refreshHydrants();
+        refreshHidrants();
         void reload();
       } else {
         toast.error(data.message || "Error desconegut");
@@ -360,7 +360,7 @@ export function OsmSyncPanel({
       if (data.reviewed > 0) {
         toast.info("Per revisar abans de pujar");
       }
-      refreshHydrants();
+      refreshHidrants();
       void reload();
     } catch (err) {
       toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -385,7 +385,7 @@ export function OsmSyncPanel({
         body: JSON.stringify({ ids: [id] }),
       });
       toast.success("Descartat");
-      refreshHydrants();
+      refreshHidrants();
       void reload();
     } catch (err) {
       toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -413,7 +413,7 @@ export function OsmSyncPanel({
       const data = await res.json();
       toast.success(`${data.deleted ?? 0} hidrants esborrats`);
       setSelected(new Set());
-      refreshHydrants();
+      refreshHidrants();
       void reload();
     } catch (err) {
       toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -438,7 +438,7 @@ export function OsmSyncPanel({
       const data = await res.json();
       if (data.success) {
         toast.success("Dades d'OSM aplicades");
-        refreshHydrants();
+        refreshHidrants();
       } else {
         toast.error(data.error || "Error");
       }
@@ -576,11 +576,11 @@ export function OsmSyncPanel({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() => selectHydrant(h.id)}
+                                  onClick={() => selectHidrant(h.id)}
                                   className="text-[0.8rem] font-semibold text-ink hover:text-blue-600 cursor-pointer bg-transparent border-0 p-0 truncate"
                                   title="Seleccionar al mapa"
                                 >
-                                  {hydrantLabel(h)}
+                                  {hidrantLabel(h)}
                                 </button>
                                 {h.osm_id && (
                                   <span className="text-[0.7rem] text-muted">OSM {h.osm_id}</span>
@@ -618,7 +618,7 @@ export function OsmSyncPanel({
                               {/* Baixar: CONFLICT (keep OSM) */}
                               {key === "CONFLICT" && (
                                 <button
-                                  onClick={() => void handlePullFromOsm(h.id, hydrantLabel(h))}
+                                  onClick={() => void handlePullFromOsm(h.id, hidrantLabel(h))}
                                   disabled={actionLoading}
                                   className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
                                   title="Aplicar versió d'OSM"
@@ -651,7 +651,7 @@ export function OsmSyncPanel({
                                 </button>
                               ) : (
                                 <button
-                                  onClick={() => void handleDiscardOne(h.id, key, hydrantLabel(h))}
+                                  onClick={() => void handleDiscardOne(h.id, key, hidrantLabel(h))}
                                   disabled={actionLoading}
                                   className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
                                   title={

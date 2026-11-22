@@ -9,8 +9,8 @@ type Props = {
   technicalLayers: TechnicalLayer[];
   activeTechnicalLayer: string | null;
   onTechnicalLayerChange: (id: string | null) => void;
-  hydrantsVisible: boolean;
-  onHydrantsVisibleChange: (visible: boolean) => void;
+  hidrantsVisible: boolean;
+  onHidrantsVisibleChange: (visible: boolean) => void;
   incidenciesVisible: boolean;
   onIncidenciesVisibleChange: (visible: boolean) => void;
   trackingVisible: boolean;
@@ -32,8 +32,8 @@ export function LayersPanel({
   technicalLayers,
   activeTechnicalLayer,
   onTechnicalLayerChange,
-  hydrantsVisible,
-  onHydrantsVisibleChange,
+  hidrantsVisible,
+  onHidrantsVisibleChange,
   incidenciesVisible,
   onIncidenciesVisibleChange,
   trackingVisible,
@@ -155,8 +155,8 @@ export function LayersPanel({
             <label className={rowClass}>
               <input
                 type="checkbox"
-                checked={hydrantsVisible}
-                onChange={(event) => onHydrantsVisibleChange(event.target.checked)}
+                checked={hidrantsVisible}
+                onChange={(event) => onHidrantsVisibleChange(event.target.checked)}
               />
               <span>Hidrants</span>
             </label>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { can } from "@territoriadf/contracts/permissions";
 import { toast } from "react-toastify";
 import { MapSurface } from "../../map/MapSurface";
 import { ENGINE_CAPABILITIES } from "../../map/core/capabilities";
@@ -33,7 +34,7 @@ import {
   CREATE_ICON,
   USER_ICON,
   ageColor,
-  hydrantIcon,
+  hidrantIcon,
   incidenciaIcon,
   trackingPin,
 } from "../../map/shared/markerIcons";
@@ -48,8 +49,8 @@ import { useAdf, type AdfData } from "../../contexts/AdfContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { Panel, type BottomSheetHandle } from "./Panel";
 import { buildTabs } from "../panel/PanelTabs";
-import { useHydrantData } from "../../hooks/useHidrantData";
-import type { HidrantFeature } from "../../hooks/useHidrantData";
+import { useHidrantData } from "../../hooks/useHidrantData";
+import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useIncidencies } from "../../hooks/useIncidencies";
 import { useAppConfig } from "../../hooks/useAppConfig";
 import { useGeolocationTracking } from "../../hooks/useGeolocationTracking";
@@ -131,11 +132,11 @@ function MapPanelView() {
     loaded: hidrantsLoaded,
     error: hidrantsError,
     mutate: refreshHidrants,
-  } = useHydrantData();
+  } = useHidrantData();
 
   const { features: incidenciaFeatures, refresh: refreshIncidencies } = useIncidencies();
 
-  const { maxHydrantMoveMeters } = useAppConfig();
+  const { maxHidrantMoveMeters } = useAppConfig();
   const { tracking, toggleTracking, position, accuracy } = useGeolocationTracking();
 
   const [trackingChecked, setTrackingChecked] = useLocalStorage<boolean>(
@@ -155,7 +156,7 @@ function MapPanelView() {
     storageKey("technical_layer"),
     null,
   );
-  const [hydrantsVisible, setHydrantsVisible] = useLocalStorage<boolean>(
+  const [hidrantsVisible, setHidrantsVisible] = useLocalStorage<boolean>(
     storageKey("hydrants_visible"),
     true,
   );
@@ -270,11 +271,11 @@ function MapPanelView() {
     if (!deepLinkNodeId || deepLinkHandled.current === deepLinkNodeId) {
       return;
     }
-    const hydrant = features.find((feature) => feature.id === deepLinkNodeId);
-    if (hydrant) {
+    const hidrant = features.find((feature) => feature.id === deepLinkNodeId);
+    if (hidrant) {
       deepLinkHandled.current = deepLinkNodeId;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- selecció inicial des de la URL
-      handleSelectNode(hydrant);
+      handleSelectNode(hidrant);
       return;
     }
     // Compatibilitat amb enllaços antics, quan les incidències també feien servir `node`.
@@ -463,19 +464,19 @@ function MapPanelView() {
   const markers = useMemo<MapMarkerSpec[]>(() => {
     const list: MapMarkerSpec[] = [];
 
-    if (hydrantsVisible) {
+    if (hidrantsVisible) {
       for (const feature of features) {
         const featurePosition = fromLngLat(
           feature.geometry.coordinates[0],
           feature.geometry.coordinates[1],
         );
         const isEditingThis = editing && selectedNode?.id === feature.id;
-        const maxMeters = isEditingThis ? maxHydrantMoveMeters : null;
+        const maxMeters = isEditingThis ? maxHidrantMoveMeters : null;
 
         list.push({
           id: `hydrant-${feature.id}`,
           position: maxMeters !== null && draftPosition ? draftPosition : featurePosition,
-          icon: hydrantIcon(feature),
+          icon: hidrantIcon(feature),
           selected: selectedNode?.id === feature.id,
           ringClassName: "hydrant-ring",
           draggable: maxMeters !== null,
@@ -564,10 +565,10 @@ function MapPanelView() {
     features,
     handleSelectIncidencia,
     handleSelectNode,
-    hydrantsVisible,
+    hidrantsVisible,
     incidenciaFeatures,
     incidenciesVisible,
-    maxHydrantMoveMeters,
+    maxHidrantMoveMeters,
     openCreate,
     position,
     positions,
@@ -652,7 +653,7 @@ function MapPanelView() {
         ])
       : undefined;
 
-  const handleSelectHydrantById = (id: string) => {
+  const handleSelectHidrantById = (id: string) => {
     const feature = features.find((candidate) => candidate.id === id);
     if (feature) {
       handleSelectNode(feature);
@@ -691,8 +692,8 @@ function MapPanelView() {
                 technicalLayers={technicalLayers()}
                 activeTechnicalLayer={activeTechnicalLayer}
                 onTechnicalLayerChange={setActiveTechnicalLayer}
-                hydrantsVisible={hydrantsVisible}
-                onHydrantsVisibleChange={setHydrantsVisible}
+                hidrantsVisible={hidrantsVisible}
+                onHidrantsVisibleChange={setHidrantsVisible}
                 incidenciesVisible={incidenciesVisible}
                 onIncidenciesVisibleChange={setIncidenciesVisible}
                 trackingVisible={trackingChecked}
@@ -712,12 +713,12 @@ function MapPanelView() {
             loadingHidrants={loadingHidrants}
             hidrantsError={hidrantsError}
             hidrantsEmpty={
-              hydrantsVisible &&
+              hidrantsVisible &&
               hidrantsLoaded &&
               features.length === 0 &&
               emptyNoticeDismissedFor !== (activeAdf?.id ?? null)
             }
-            canSyncFromOsm={(user?.permissions ?? []).includes("sync_osm")}
+            canSyncFromOsm={can(user?.permissions, "sync_osm")}
             onDismissEmptyHidrants={() => setEmptyNoticeDismissedFor(activeAdf?.id ?? null)}
             attributionLines={attributionLines}
           />
@@ -729,7 +730,7 @@ function MapPanelView() {
         positions,
         onSelectNode: handleSelectNode,
         onSelectIncidencia: handleSelectIncidencia,
-        onSelectHydrantById: handleSelectHydrantById,
+        onSelectHidrantById: handleSelectHidrantById,
         onRefreshHidrants: () => {
           void refreshHidrants().then(() => setNodeInfoKey((prev) => prev + 1));
         },
