@@ -19,7 +19,8 @@ import type { LatLon, MapMarkerSpec } from "@/map/core/types";
  *
  * La composició viu aquí i no a `MapPanel` perquè depèn de nou fonts d'estat;
  * els *builders* de `map/core` fan la feina pura i aquest hook només decideix
- * quines capes estan actives.
+ * quines capes estan actives. El popup arriba com a funció perquè els hooks no
+ * poden importar components.
  */
 export function useMapMarkers({
   features,

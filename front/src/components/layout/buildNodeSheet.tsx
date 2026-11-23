@@ -2,8 +2,7 @@ import { NodeInfo } from "@/components/hidrants/NodeInfo";
 import { IncidenciaInfo } from "@/components/incidencies/IncidenciaInfo";
 import { CreateNodePanel } from "@/components/panel/CreateNodePanel";
 import { createTitle } from "@/components/panel/createTitle";
-import type { useMapCreation } from "@/hooks/map/useMapCreation";
-import type { useMapSelection } from "@/hooks/map/useMapSelection";
+import type { useMapSheet } from "@/hooks/map/useMapSheet";
 import { emojiPrioritatIncidencia } from "@/utils/incidenciaConstants";
 
 import type { PanelNode } from "./types";
@@ -14,8 +13,7 @@ import type { PanelNode } from "./types";
  * descripció (`PanelNode`) i no un element.
  */
 export function buildNodeSheet({
-  selection,
-  creation,
+  sheet,
   canEdit,
   hasUser,
   hasLocation,
@@ -25,8 +23,7 @@ export function buildNodeSheet({
   refreshHidrants,
   refreshIncidencies,
 }: {
-  selection: ReturnType<typeof useMapSelection>;
-  creation: ReturnType<typeof useMapCreation>;
+  sheet: ReturnType<typeof useMapSheet>;
   canEdit: boolean;
   hasUser: boolean;
   hasLocation: boolean;
@@ -36,7 +33,7 @@ export function buildNodeSheet({
   refreshHidrants: () => Promise<void>;
   refreshIncidencies: () => void | Promise<void>;
 }): PanelNode | null {
-  const { selectedNode, selectedIncidencia, editing, setEditing } = selection;
+  const { selectedNode, selectedIncidencia, editing, creation, close } = sheet;
 
   if (selectedNode) {
     return {
@@ -47,17 +44,17 @@ export function buildNodeSheet({
           feature={selectedNode}
           canEdit={canEdit}
           editing={editing}
-          setEditing={setEditing}
-          draftPosition={selection.draftPosition}
-          setDraftPosition={selection.setDraftPosition}
+          setEditing={sheet.setEditing}
+          draftPosition={sheet.draftPosition}
+          setDraftPosition={sheet.setDraftPosition}
           refreshHidrants={refreshHidrants}
           showRoute={showRoute}
           setShowRoute={setShowRoute}
           hasLocation={hasLocation}
         />
       ),
-      onClose: selection.deselectNode,
-      onEdit: canEdit ? selection.toggleEditing : undefined,
+      onClose: close,
+      onEdit: canEdit ? sheet.toggleEditing : undefined,
       editing,
     };
   }
@@ -72,7 +69,7 @@ export function buildNodeSheet({
           incidencia={selectedIncidencia}
           canEdit={canEdit}
           editing={editing}
-          setEditing={setEditing}
+          setEditing={sheet.setEditing}
           showRoute={showRoute}
           setShowRoute={setShowRoute}
           refreshIncidencies={() => {
@@ -81,8 +78,8 @@ export function buildNodeSheet({
           hasLocation={hasLocation}
         />
       ),
-      onClose: selection.deselectIncidencia,
-      onEdit: canEdit ? () => setEditing((prev) => !prev) : undefined,
+      onClose: close,
+      onEdit: canEdit ? sheet.toggleEditing : undefined,
       editing,
     };
   }
@@ -96,7 +93,7 @@ export function buildNodeSheet({
           form={creation.form}
           position={creation.position}
           setForm={creation.setForm}
-          onClose={creation.close}
+          onClose={close}
           setNewNodePosition={creation.setPosition}
           refreshHidrants={() => {
             void refreshHidrants();
@@ -106,7 +103,7 @@ export function buildNodeSheet({
           }}
         />
       ),
-      onClose: creation.close,
+      onClose: close,
     };
   }
 
