@@ -15,7 +15,7 @@ import {
   secondaryButtonClass,
 } from "@/styles/uiStyles";
 import { adfLabel } from "@/utils/adfLabel";
-import { useAppConfig } from "@/hooks/useAppConfig";
+import { useAppConfig } from "@/contexts/AppConfigContext";
 
 const ROLES_ADMIN = ["admin", "coordinador", "voluntari"];
 const ROLES_COORD = ["coordinador", "voluntari"];

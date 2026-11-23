@@ -6,6 +6,10 @@
 // privades, visibilitat d'incidències) porten a més la signatura del visor, de
 // manera que la vista "veure com" no reaprofita dades d'un altre rol.
 export const queryKeys = {
+  /** Configuració pública del backend: una sola entrada per sessió. */
+  config: ["config"] as const,
+  /** Sessió real; `null` significa 401 (sense sessió). */
+  session: ["session"] as const,
   adfs: ["adfs"] as const,
   adfBoundary: (adfId: number | null) => ["adf-boundary", adfId] as const,
   hidrants: (adfId: number | null, viewer: string) => ["hidrants", adfId, viewer] as const,

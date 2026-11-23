@@ -38,7 +38,7 @@ territoriadf/
 │   │   │   ├── incidencies/
 │   │   │   ├── panel/              # pestanyes ADF, seguiment, informes...
 │   │   │   └── shared/
-│   │   ├── contexts/               # AuthContext, AdfContext
+│   │   ├── contexts/               # AuthContext, AdfContext, AppConfigContext
 │   │   ├── hooks/                  # dades, geolocalització, polling i comportament del mapa (map/)
 │   │   ├── styles/                 # Tailwind i estils compartits
 │   │   └── utils/
