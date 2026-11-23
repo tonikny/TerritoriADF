@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FONT_SCALES, getFontScale, setFontScale } from "@/utils/fontScale";
 import { selectClass } from "@/styles/uiStyles";
-import { CollapsibleSection } from "@/components/panel/shared/CollapsibleSection";
+import { CollapsibleSection } from "@/shared/ui/CollapsibleSection";
 import { TelegramConfigPanel } from "@/features/telegram/TelegramConfigPanel";
 import { ENGINE_LABELS } from "@/map/core/capabilities";
 import { detectWebgl2 } from "@/map/core/engineSelection";

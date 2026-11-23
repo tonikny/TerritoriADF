@@ -101,6 +101,7 @@ export const NodeInfo = ({
           showRoute={showRoute ?? false}
           setShowRoute={setShowRoute}
           hasLocation={hasLocation}
+          showRouteButton={!!user}
           onQuickStatus={(v) => {
             void handleQuickStatus(v);
           }}

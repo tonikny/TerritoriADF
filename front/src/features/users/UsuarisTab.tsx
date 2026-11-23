@@ -5,8 +5,8 @@ import { createAccessLink } from "./api";
 import { useUserMutations, useUsers } from "./useUsers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf } from "@/contexts/AdfContext";
-import { Login } from "@/components/shared/Login";
-import { PasswordInput } from "@/components/shared/PasswordInput";
+import { Login } from "./Login";
+import { PasswordInput } from "@/shared/ui/PasswordInput";
 import { toast } from "react-toastify";
 import {
   inputClass,

@@ -9,7 +9,7 @@ import { getTrackingConfig, getTrackingStatus } from "./api";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 import { useAdf } from "@/contexts/AdfContext";
 import { timeAgo } from "@/utils/time";
-import { CollapsibleSection } from "@/components/panel/shared/CollapsibleSection";
+import { CollapsibleSection } from "@/shared/ui/CollapsibleSection";
 import { adfLabel } from "@/utils/adfLabel";
 import { primaryButtonClass, secondaryButtonClass } from "@/styles/uiStyles";
 import { toast } from "react-toastify";

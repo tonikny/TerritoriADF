@@ -96,11 +96,14 @@ const FEATURE_BOUNDARIES = FEATURE_NAMES.map((feature) => ({
         patterns: [
           noParentImports,
           {
-            group: FEATURE_NAMES.filter((other) => other !== feature).map(
-              (other) => `@/features/${other}/**`,
-            ),
+            group: [
+              ...FEATURE_NAMES.filter((other) => other !== feature).map(
+                (other) => `@/features/${other}/**`,
+              ),
+              "@/components/**",
+            ],
             message:
-              "Una feature no pot importar una altra feature: mou la dependència compartida a shared/.",
+              "Una feature no pot importar una altra feature ni components: mou la dependència compartida a shared/ o compon-la des de la vista.",
           },
         ],
       },

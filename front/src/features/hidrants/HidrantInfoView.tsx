@@ -12,6 +12,7 @@ export function HidrantInfoView({
   showRoute,
   setShowRoute,
   hasLocation,
+  showRouteButton,
   onQuickStatus,
 }: {
   feature: HidrantFeature;
@@ -20,6 +21,7 @@ export function HidrantInfoView({
   showRoute?: boolean;
   setShowRoute?: (v: boolean) => void;
   hasLocation?: boolean;
+  showRouteButton?: boolean;
   onQuickStatus: (isOperative: boolean) => void;
 }) {
   const props = feature.properties;
@@ -63,6 +65,7 @@ export function HidrantInfoView({
 
       <HidrantActions
         feature={feature}
+        showRouteButton={showRouteButton}
         showRoute={showRoute}
         setShowRoute={setShowRoute}
         hasLocation={hasLocation}

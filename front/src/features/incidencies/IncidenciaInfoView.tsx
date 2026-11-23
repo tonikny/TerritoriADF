@@ -1,6 +1,6 @@
 import type { Incidencia, IncidenciaEvent } from "@/types";
 import { Timeline } from "./Timeline";
-import { NodeActions } from "@/components/shared/NodeActions";
+import { NodeActions } from "@/shared/ui/NodeActions";
 import { getIncidenciaShareUrl } from "@/utils/urlParams";
 import {
   ESTATS_INCIDENCIA,
@@ -28,6 +28,7 @@ export function IncidenciaInfoView({
   showRoute,
   setShowRoute,
   hasLocation,
+  showRouteButton,
 }: {
   incidencia: Incidencia;
   events: IncidenciaEvent[];
@@ -35,6 +36,7 @@ export function IncidenciaInfoView({
   showRoute?: boolean;
   setShowRoute?: (v: boolean) => void;
   hasLocation?: boolean;
+  showRouteButton?: boolean;
 }) {
   const rows: Array<[string, string]> = [
     ["Tipus", displayCategoria(TIPUS_INCIDENCIA, incidencia.tipus)],
@@ -73,6 +75,7 @@ export function IncidenciaInfoView({
         shareUrl={getIncidenciaShareUrl(incidencia.id)}
         lat={incidencia.lat}
         lon={incidencia.lon}
+        showRouteButton={showRouteButton}
         showRoute={showRoute}
         setShowRoute={setShowRoute}
         hasLocation={hasLocation}

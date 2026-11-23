@@ -11,8 +11,8 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from "@/styles/uiStyles";
-import { CollapsibleSection } from "@/components/panel/shared/CollapsibleSection";
-import { PasswordInput } from "@/components/shared/PasswordInput";
+import { CollapsibleSection } from "@/shared/ui/CollapsibleSection";
+import { PasswordInput } from "@/shared/ui/PasswordInput";
 
 /** Exemple d'usuari de bot per a @BotFather: curts (màxim ~32 caràcters a Telegram). */
 function botUsernameExample(adf: { id: number; nom?: string }): string {

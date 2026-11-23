@@ -1,5 +1,4 @@
 import { toast } from "react-toastify";
-import { useAuth } from "@/contexts/AuthContext";
 import { openInNativeMaps } from "@/utils/geoMaps";
 import { ShareIcon } from "./Icons";
 
@@ -11,6 +10,8 @@ interface NodeActionsProps {
   showRoute?: boolean;
   setShowRoute?: (v: boolean) => void;
   hasLocation?: boolean;
+  /** L'usuari pot veure la ruta (normalment, sessió iniciada). */
+  showRouteButton?: boolean;
 }
 
 export function NodeActions({
@@ -20,9 +21,8 @@ export function NodeActions({
   showRoute,
   setShowRoute,
   hasLocation,
+  showRouteButton,
 }: NodeActionsProps) {
-  const { user } = useAuth();
-
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -57,7 +57,7 @@ export function NodeActions({
         <ShareIcon />
       </button>
 
-      {user && setShowRoute && (
+      {showRouteButton && setShowRoute && (
         <button
           type="button"
           onClick={(e) => {

@@ -9,9 +9,7 @@ import {
   storeEnginePreference,
   type EnginePreference,
 } from "@/map/core/engineSelection";
-import type { EngineId, ViewState } from "@/map/core/types";
-
-import type { FocusCommand } from "./useMapFocus";
+import type { EngineId, FocusCommand, ViewState } from "@/map/core/types";
 
 /**
  * Motor de mapa: preferència, selecció i fallback davant d'un error fatal.

@@ -2,7 +2,7 @@ import { FullscreenButton } from "./FullscreenButton";
 import { LocateButton } from "./LocateButton";
 import { MapLogo } from "./MapLogo";
 import type { ReactNode } from "react";
-import { OfflineNotice } from "@/components/shared/OfflineNotice";
+import { OfflineNotice } from "./OfflineNotice";
 import { ZoomDisplay } from "./ZoomDisplay";
 import { MapScale } from "./MapScale";
 import { MapAttribution } from "@/map/ui/MapAttribution";

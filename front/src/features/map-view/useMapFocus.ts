@@ -4,18 +4,8 @@ import type { Adf } from "@territoriadf/contracts/adfs";
 
 import { DEFAULT_VIEW, bboxToBounds, fromLngLat, viewForAdf } from "@/map/core/geometry";
 import { getBottomSheetInset } from "@/map/shared/uiInset";
-import type { GeoBounds, LatLon, MapFocus, ViewState } from "@/map/core/types";
+import type { FocusCommand, LatLon, MapFocus, ViewState } from "@/map/core/types";
 import { clearSavedView, useMapViewPersistence } from "@/map/shared/useMapViewPersistence";
-
-export type FocusCommand =
-  | {
-      kind: "point";
-      position: LatLon;
-      zoom?: number;
-      keepZoom?: boolean;
-      insetBottom?: number;
-    }
-  | { kind: "bounds"; bounds: GeoBounds; padding?: number };
 
 /** Comptador de mòdul: només cal que el token sigui únic i creixent. */
 let focusSequence = 0;

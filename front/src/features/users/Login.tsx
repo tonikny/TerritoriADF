@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError, request } from "@/shared/api/client";
 import { inputClass, primaryButtonClass } from "@/styles/uiStyles";
-import { PasswordInput } from "./PasswordInput";
+import { PasswordInput } from "@/shared/ui/PasswordInput";
 import { APP_NAME } from "@/utils/appInfo";
 
 export const Login: React.FC = () => {

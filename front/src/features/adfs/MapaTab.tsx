@@ -1,12 +1,11 @@
 import { can } from "@territoriadf/contracts/permissions";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "react-toastify";
 import turfArea from "@turf/area";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf, type Adf } from "@/contexts/AdfContext";
-import { useAdfMutations } from "@/features/adfs/mutations";
-import { OsmSyncPanel } from "@/features/osm/OsmSyncPanel";
-import { OfflineMapSection } from "@/components/panel/shared/OfflineMapSection";
+import { useAdfMutations } from "./mutations";
+import { OfflineMapSection } from "./OfflineMapSection";
 import { adfLabel } from "@/utils/adfLabel";
 import { logError } from "@/utils/log";
 import {
@@ -70,7 +69,7 @@ const KM2_FORMAT = new Intl.NumberFormat("ca-ES", {
   maximumFractionDigits: 2,
 });
 
-export function MapaTab({ onSelectHidrant }: { onSelectHidrant?: (id: string) => void }) {
+export function MapaTab({ osmSyncPanel }: { osmSyncPanel?: ReactNode }) {
   const { adfs, isLoading, activeAdf, setActiveAdf, refreshAdfs, boundaryGeojson } = useAdf();
   const mutations = useAdfMutations();
   const areaKm2 = boundaryAreaKm2(boundaryGeojson);
@@ -417,7 +416,7 @@ export function MapaTab({ onSelectHidrant }: { onSelectHidrant?: (id: string) =>
             <span className="flex-1 h-px bg-border" />
           </div>
           <h4 className="m-0 mb-2 text-[0.9rem] font-semibold">Sincronització amb OSM</h4>
-          <OsmSyncPanel onSelectHidrant={onSelectHidrant} />
+          {osmSyncPanel}
         </>
       )}
     </div>

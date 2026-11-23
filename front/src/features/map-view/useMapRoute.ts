@@ -1,9 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useRoute, type RouteData } from "@/map/shared/useRoute";
-import type { LatLon } from "@/map/core/types";
-
-import type { FocusCommand } from "./useMapFocus";
+import type { FocusCommand, LatLon } from "@/map/core/types";
 
 /**
  * Ruta a peu/cotxe fins al punt seleccionat i encuadre automàtic.

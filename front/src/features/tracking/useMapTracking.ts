@@ -7,7 +7,7 @@ import { POSITIONS_POLL_ACTIVE_MS, POSITIONS_POLL_IDLE_MS } from "./usePositionP
 import { usePositions } from "./usePositions";
 import { getBottomSheetInset } from "@/map/shared/uiInset";
 
-import type { FocusCommand } from "@/hooks/map/useMapFocus";
+import type { FocusCommand } from "@/map/core/types";
 
 /**
  * Posició pròpia (GPS) i posicions OwnTracks de la resta d'unitats.

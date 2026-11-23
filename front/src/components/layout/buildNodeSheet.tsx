@@ -3,7 +3,7 @@ import { IncidenciaInfo } from "@/features/incidencies/IncidenciaInfo";
 import { HidrantSyncActions } from "@/features/osm/HidrantSyncActions";
 import { CreateNodePanel } from "@/components/panel/CreateNodePanel";
 import { createTitle } from "@/components/panel/createTitle";
-import type { useMapSheet } from "@/hooks/map/useMapSheet";
+import type { useMapSheet } from "@/features/map-view/useMapSheet";
 import { emojiPrioritatIncidencia } from "@/utils/incidenciaConstants";
 
 import type { PanelNode } from "./types";
@@ -69,6 +69,7 @@ export function buildNodeSheet({
           showRoute={showRoute}
           setShowRoute={setShowRoute}
           hasLocation={hasLocation}
+          showRouteButton={hasUser}
         />
       ),
       onClose: close,

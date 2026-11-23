@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 import { ApiError, request } from "@/shared/api/client";
 import { inputClass, primaryButtonClass } from "@/styles/uiStyles";
-import { PasswordInput } from "./PasswordInput";
+import { PasswordInput } from "@/shared/ui/PasswordInput";
 import { enterApp } from "@/utils/route";
 import { useAppConfig } from "@/contexts/AppConfigContext";
 import { APP_NAME } from "@/utils/appInfo";

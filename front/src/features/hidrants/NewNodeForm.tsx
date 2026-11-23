@@ -8,7 +8,7 @@ import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
 import { HidrantFormFields } from "./HidrantFormFields";
 import { logError } from "@/utils/log";
 import { useAdf } from "@/contexts/AdfContext";
-import { CoordinatesLabel } from "@/components/shared/CoordinatesLabel";
+import { CoordinatesLabel } from "@/shared/ui/CoordinatesLabel";
 
 interface NewNodeFormProps {
   lat: number;

@@ -11,6 +11,7 @@ export const IncidenciaInfo = ({
   showRoute,
   setShowRoute,
   hasLocation,
+  showRouteButton,
   canEdit,
   editing,
   setEditing,
@@ -20,6 +21,7 @@ export const IncidenciaInfo = ({
   showRoute?: boolean;
   setShowRoute?: (v: boolean) => void;
   hasLocation?: boolean;
+  showRouteButton?: boolean;
   canEdit: boolean;
   editing: boolean;
   setEditing: (v: boolean) => void;
@@ -66,6 +68,7 @@ export const IncidenciaInfo = ({
           showRoute={showRoute ?? false}
           setShowRoute={setShowRoute}
           hasLocation={hasLocation}
+          showRouteButton={showRouteButton}
         />
       ) : (
         <IncidenciaEditForm

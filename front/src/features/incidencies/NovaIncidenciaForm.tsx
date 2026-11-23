@@ -9,7 +9,7 @@ import {
   secondaryButtonClass,
   selectClass,
 } from "@/styles/uiStyles";
-import { CoordinatesLabel } from "@/components/shared/CoordinatesLabel";
+import { CoordinatesLabel } from "@/shared/ui/CoordinatesLabel";
 import { logError } from "@/utils/log";
 import {
   PRIORITATS_INCIDENCIA,

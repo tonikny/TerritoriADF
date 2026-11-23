@@ -115,17 +115,19 @@ export type MapRasterSpec = {
   attribution?: string;
 };
 
-/** Ordre de càmera. `insetBottom` són els píxels tapats pel bottomsheet. */
-export type MapFocus =
+/** Ordre de càmera sense token; `useMapFocus` hi afegeix un token únic. */
+export type FocusCommand =
   | {
       kind: "point";
       position: LatLon;
       zoom?: number;
       keepZoom?: boolean;
       insetBottom?: number;
-      token: number;
     }
-  | { kind: "bounds"; bounds: GeoBounds; padding?: number; token: number };
+  | { kind: "bounds"; bounds: GeoBounds; padding?: number };
+
+/** Ordre de càmera amb token únic. `insetBottom` són els píxels tapats pel bottomsheet. */
+export type MapFocus = FocusCommand & { token: number };
 
 export type MapEngineProps = {
   initialView: ViewState;

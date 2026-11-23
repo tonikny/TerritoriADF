@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { can } from "@territoriadf/contracts/permissions";
 import type { Position } from "@territoriadf/contracts/tracking";
 
-import { MapCanvas } from "@/components/layout/MapCanvas";
+import { MapCanvas } from "@/features/map-view/MapCanvas";
 import { Panel, type BottomSheetHandle } from "@/components/layout/Panel";
 import { TrackingPopup } from "@/features/tracking/TrackingPopup";
 import { buildNodeSheet } from "@/components/layout/buildNodeSheet";
@@ -10,13 +10,13 @@ import { buildTabs } from "@/components/panel/PanelTabs";
 import { useAdf } from "@/contexts/AdfContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMapDeepLinks } from "@/hooks/map/useMapDeepLinks";
-import { useMapEngine } from "@/hooks/map/useMapEngine";
-import { useMapFocus } from "@/hooks/map/useMapFocus";
-import { useMapLayers } from "@/hooks/map/useMapLayers";
-import { useMapMarkers } from "@/hooks/map/useMapMarkers";
-import { useMapRoute } from "@/hooks/map/useMapRoute";
-import { useMapSheet } from "@/hooks/map/useMapSheet";
+import { useMapDeepLinks } from "@/features/map-view/useMapDeepLinks";
+import { useMapEngine } from "@/features/map-view/useMapEngine";
+import { useMapFocus } from "@/features/map-view/useMapFocus";
+import { useMapLayers } from "@/features/map-view/useMapLayers";
+import { useMapMarkers } from "@/features/map-view/useMapMarkers";
+import { useMapRoute } from "@/features/map-view/useMapRoute";
+import { useMapSheet } from "@/features/map-view/useMapSheet";
 import { useMapTracking } from "@/features/tracking/useMapTracking";
 import { useHidrantData } from "@/features/hidrants/useHidrantData";
 import { useIncidencies } from "@/features/incidencies/useIncidencies";
@@ -169,7 +169,8 @@ function MapPanelView() {
           engine={engine}
           focus={focus}
           layers={layers}
-          tracking={tracking}
+          tracking={tracking.tracking}
+          onToggleTracking={tracking.toggleTracking}
           markers={markers}
           polygons={polygons}
           polylines={polylines}

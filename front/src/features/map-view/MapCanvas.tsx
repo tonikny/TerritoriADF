@@ -1,10 +1,9 @@
 import type { ComponentProps } from "react";
 
-import { MapUIOverlays } from "@/components/controls/MapUIOverlays";
-import type { useMapEngine } from "@/hooks/map/useMapEngine";
-import type { useMapFocus } from "@/hooks/map/useMapFocus";
-import type { useMapLayers } from "@/hooks/map/useMapLayers";
-import type { useMapTracking } from "@/features/tracking/useMapTracking";
+import { MapUIOverlays } from "./MapUIOverlays";
+import type { useMapEngine } from "./useMapEngine";
+import type { useMapFocus } from "./useMapFocus";
+import type { useMapLayers } from "./useMapLayers";
 import { MapSurface } from "@/map/MapSurface";
 import type { LatLon, MapMarkerSpec, MapPolygonSpec, MapPolylineSpec } from "@/map/core/types";
 import { TERRAIN_ATTRIBUTION, uniqueAttributions } from "@/map/shared/attribution";
@@ -13,7 +12,6 @@ import { LayersPanel } from "@/map/ui/LayersPanel";
 type EngineState = ReturnType<typeof useMapEngine>;
 type FocusState = ReturnType<typeof useMapFocus>;
 type LayersState = ReturnType<typeof useMapLayers>;
-type TrackingState = ReturnType<typeof useMapTracking>;
 
 /**
  * El mapa i els seus controls. És presentacional: tot l'estat i els
@@ -24,6 +22,7 @@ export function MapCanvas({
   focus,
   layers,
   tracking,
+  onToggleTracking,
   markers,
   polygons,
   polylines,
@@ -39,7 +38,8 @@ export function MapCanvas({
   engine: EngineState;
   focus: FocusState;
   layers: LayersState;
-  tracking: TrackingState;
+  tracking: boolean;
+  onToggleTracking: () => void;
   markers: MapMarkerSpec[];
   polygons: MapPolygonSpec[];
   polylines: MapPolylineSpec[];
@@ -106,8 +106,8 @@ export function MapCanvas({
         }
         center={view.center}
         zoom={view.zoom}
-        tracking={tracking.tracking}
-        onToggleTracking={tracking.toggleTracking}
+        tracking={tracking}
+        onToggleTracking={onToggleTracking}
         loadingHidrants={loadingHidrants}
         hidrantsError={hidrantsError}
         hidrantsEmpty={hidrantsEmpty}

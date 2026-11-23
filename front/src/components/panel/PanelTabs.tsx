@@ -4,7 +4,8 @@ import type { IncidenciaFeature } from "@/types";
 import type { Position } from "@territoriadf/contracts/tracking";
 import type { EngineId } from "@/map/core/types";
 import type { EnginePreference } from "@/map/core/engineSelection";
-import { MapaTab } from "./tabs/MapaTab";
+import { MapaTab } from "@/features/adfs/MapaTab";
+import { OsmSyncPanel } from "@/features/osm/OsmSyncPanel";
 import { SeguimentTab } from "@/features/tracking/SeguimentTab";
 import { InformesTab } from "./tabs/InformesTab";
 import { UsuarisTab } from "@/features/users/UsuarisTab";
@@ -39,7 +40,7 @@ export function buildTabs({
       id: "mapa",
       icon: "🗺️",
       label: "ADF",
-      content: <MapaTab onSelectHidrant={onSelectHidrantById} />,
+      content: <MapaTab osmSyncPanel={<OsmSyncPanel onSelectHidrant={onSelectHidrantById} />} />,
     },
     {
       id: "seguiment",

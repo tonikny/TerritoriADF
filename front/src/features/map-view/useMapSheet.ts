@@ -6,13 +6,11 @@ import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { SessionUser } from "@territoriadf/contracts/users";
 
 import { fromLngLat } from "@/map/core/geometry";
-import type { LatLon } from "@/map/core/types";
+import type { FocusCommand, LatLon } from "@/map/core/types";
 import { getBottomSheetInset } from "@/map/shared/uiInset";
 import type { CreateType, IncidenciaFeature } from "@/types";
 import { isPointInBoundary } from "@/utils/geo";
 import { setIncidenciaUrlParam, setNodeUrlParam } from "@/utils/urlParams";
-
-import type { FocusCommand } from "./useMapFocus";
 
 /**
  * Què hi ha obert al bottomsheet: un hidrant, una incidència o una creació.
