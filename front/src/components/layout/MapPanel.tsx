@@ -45,7 +45,7 @@ import { useRoute } from "../../map/shared/useRoute";
 import { getBottomSheetInset } from "../../map/shared/uiInset";
 import { isRecentLongPress } from "../../map/shared/longPress";
 import { LayersPanel } from "../../map/ui/LayersPanel";
-import { useAdf, type AdfData } from "../../contexts/AdfContext";
+import { useAdf, type Adf } from "../../contexts/AdfContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { Panel, type BottomSheetHandle } from "./Panel";
 import { buildTabs } from "../panel/PanelTabs";
@@ -86,7 +86,7 @@ type FocusCommand =
 /** Comptador de mòdul: només cal que el token sigui únic i creixent. */
 let focusSequence = 0;
 
-function focusForAdf(adf: AdfData | null): FocusCommand {
+function focusForAdf(adf: Adf | null): FocusCommand {
   if (adf?.bbox) {
     return { kind: "bounds", bounds: bboxToBounds(adf.bbox), padding: 0 };
   }

@@ -68,7 +68,7 @@ function parseSyncError(syncError: string | null): string[] {
     return [];
   }
   try {
-    const parsed = JSON.parse(syncError);
+    const parsed: unknown = JSON.parse(syncError);
     if (Array.isArray(parsed)) {
       return parsed.map((e: { message?: string }) => e.message || JSON.stringify(e));
     }

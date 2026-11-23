@@ -1,3 +1,5 @@
+import type { OsmPushResult } from "@territoriadf/contracts/sync";
+
 import { HidrantsRepository, type HidrantData } from "../db/repositories/hidrantsRepository.js";
 import * as osmApi from "./osmApi.js";
 import { sendTelegramMessage } from "../utils/telegram.js";
@@ -10,19 +12,6 @@ import { adfs } from "../db/schema.js";
 import { inArray } from "drizzle-orm";
 
 const log = logger.child({ module: "osm", operation: "push" });
-
-export type PushSyncResult = {
-  synced: number;
-  conflicts: number;
-  errors: number;
-  reviewed: number;
-  details: Array<{
-    id: string;
-    osmId: number | null;
-    status: "synced" | "conflict" | "error" | "review";
-    message?: string;
-  }>;
-};
 
 export function parseOsmTags(osmTags: string | null | undefined): Record<string, string> {
   try {
@@ -106,7 +95,7 @@ export function buildChangesetComment(pending: HidrantData[]): string {
 export async function pushSyncToOSM(options?: {
   ids?: string[];
   adfId?: number;
-}): Promise<PushSyncResult> {
+}): Promise<OsmPushResult> {
   const startTime = Date.now();
   log.info({ ...options }, "Iniciant push sync");
 
@@ -151,7 +140,7 @@ export async function pushSyncToOSM(options?: {
   const changesetId = await osmApi.createChangeset(changesetComment);
   log.info({ changesetId, changesetComment }, "Changeset OSM creat");
 
-  const result: PushSyncResult = { synced: 0, conflicts: 0, errors: 0, reviewed: 0, details: [] };
+  const result: OsmPushResult = { synced: 0, conflicts: 0, errors: 0, reviewed: 0, details: [] };
   const conflictDetails: ConflictDetail[] = [];
 
   for (const h of pending) {
@@ -221,7 +210,7 @@ export async function pushSyncToOSM(options?: {
 
 // --- Processament individual ---
 
-async function processCreate(h: HidrantData, changesetId: number, result: PushSyncResult) {
+async function processCreate(h: HidrantData, changesetId: number, result: OsmPushResult) {
   const tags = parseOsmTags(h.osm_tags);
   log.info(
     { hydrantId: h.id, tagsCount: Object.keys(tags).length, changesetId },
@@ -284,7 +273,7 @@ async function processCreate(h: HidrantData, changesetId: number, result: PushSy
 async function processUpdate(
   h: HidrantData,
   changesetId: number,
-  result: PushSyncResult,
+  result: OsmPushResult,
   conflictDetails: ConflictDetail[],
 ) {
   const osmId = h.osm_id;
@@ -409,7 +398,7 @@ async function processUpdate(
 async function processDelete(
   h: HidrantData,
   changesetId: number,
-  result: PushSyncResult,
+  result: OsmPushResult,
   conflictDetails: ConflictDetail[],
 ) {
   if (!h.osm_id || !h.osm_version) {

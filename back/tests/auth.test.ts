@@ -148,7 +148,7 @@ describe("fre de força bruta al login", () => {
     const blocked = await login(app, "278/998", "Incorrecta123");
     expect(blocked.statusCode).toBe(429);
     expect(Number(blocked.headers["retry-after"])).toBeGreaterThan(0);
-    expect(blocked.json<{ error: string }>().error).toContain("Massa intents fallits");
+    expect(blocked.json<ErrorBody>().error).toContain("Massa intents fallits");
   });
 
   it("un login correcte neteja els comptadors de l'usuari", async () => {

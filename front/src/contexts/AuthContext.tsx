@@ -1,28 +1,17 @@
 // Context d'autenticació: gestor de sessió via cookie httpOnly, exposa user/login/logout.
 // Permet a un admin "veure com" un altre rol (coordinador/voluntari) sense canviar la sessió.
+import type { AppConfig } from "@territoriadf/contracts/config";
+import type { Permission, Role } from "@territoriadf/contracts/permissions";
+import type { SessionResponse, SessionUser } from "@territoriadf/contracts/users";
 import React, { createContext, useContext, useState, useEffect } from "react";
+
+import { ApiError, request } from "../shared/api/client";
 import { clearOfflineData } from "../utils/offlineData";
 import { storageKey } from "../utils/storageKeys";
 import { queryClient } from "../shared/query/queryClient";
 
-export interface User {
-  id: string;
-  username: string;
-  adf_id: number | null;
-  role: string;
-  mqtt_enabled: boolean;
-  permissions: string[];
-}
-
-/** Resposta de GET /api/auth/me. */
-export interface SessionResponse {
-  user: User;
-}
-
-/** Resposta de POST /api/auth/login: el mateix usuari + el token (l'auth real és la cookie httpOnly). */
-export interface LoginResponse extends SessionResponse {
-  token: string;
-}
+/** Usuari de la sessió (contracte compartit amb el backend). */
+export type User = SessionUser;
 
 type ViewRole = "admin" | "coordinador" | "voluntari";
 
@@ -31,7 +20,7 @@ const VIEW_ROLE_KEY = storageKey("view_role");
 // Matriu rol → permisos publicada pel backend (GET /api/config, que la treu de
 // back/src/permissions.ts). Es demana una sola vegada per sessió; mentre no ha arribat
 // (o si falla), la vista "veure com" queda sense permisos en lloc de duplicar la matriu aquí.
-let cachedRolePermissions: Record<string, string[]> | null = null;
+let cachedRolePermissions: Record<Role, readonly Permission[]> | null = null;
 
 interface AuthContextType {
   user: User | null;
@@ -58,9 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [loading, setLoading] = useState(true);
   const [prevRawUser, setPrevRawUser] = useState<User | null>(null);
-  const [rolePermissions, setRolePermissions] = useState<Record<string, string[]> | null>(
-    cachedRolePermissions,
-  );
+  const [rolePermissions, setRolePermissions] = useState<Record<
+    Role,
+    readonly Permission[]
+  > | null>(cachedRolePermissions);
 
   // Els usuaris no-admin no poden mantenir la vista "com": s'ajusta en render, sense setState a l'effect.
   if (rawUser !== prevRawUser) {
@@ -75,13 +65,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const verifyToken = async () => {
       try {
-        const response = await fetch("/api/auth/me", { credentials: "same-origin" });
-        if (response.ok) {
-          const data = await response.json();
+        try {
+          const data = await request<SessionResponse>("/api/auth/me");
           setRawUser(data.user);
-        } else {
+        } catch (err) {
           setRawUser(null);
-          if (response.status === 401) {
+          if (err instanceof ApiError && err.status === 401) {
             // Sessió caducada: no deixem respostes d'API al dispositiu ni a la caché en memòria.
             queryClient.clear();
             void clearOfflineData().catch(() => {});
@@ -102,15 +91,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     let cancelled = false;
-    void fetch("/api/config")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const value = data?.role_permissions;
-        if (value && typeof value === "object") {
-          cachedRolePermissions = value as Record<string, string[]>;
-          if (!cancelled) {
-            setRolePermissions(cachedRolePermissions);
-          }
+    void request<AppConfig>("/api/config")
+      .then((config) => {
+        cachedRolePermissions = config.role_permissions;
+        if (!cancelled) {
+          setRolePermissions(cachedRolePermissions);
         }
       })
       .catch(() => {
@@ -136,11 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
+      await request<void>("/api/auth/logout", { method: "POST", body: {} });
     } catch {
       /* ignore */
     }
@@ -158,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ? {
           ...rawUser,
           role: viewRole,
-          permissions: rolePermissions?.[viewRole] ?? [],
+          permissions: [...(rolePermissions?.[viewRole] ?? [])],
           adf_id: rawUser.adf_id ?? activeAdfId ?? null,
         }
       : rawUser;

@@ -7,7 +7,7 @@ import { adfs } from "../db/schema.js";
 import { requireAuth, requirePermission } from "../plugins/authorize.js";
 import { updateAdfBoundaries } from "../services/adfBoundaries.js";
 import { adfIdParamsSchema } from "../utils/identifiers.js";
-import type { AdfBbox, AdfCenter } from "../utils/geo.js";
+import type { AdfBbox, AdfCenter } from "@territoriadf/contracts/adfs";
 
 /**
  * POST /api/adfs/:id/boundaries

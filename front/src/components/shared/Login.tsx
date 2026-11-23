@@ -1,6 +1,9 @@
+import type { SessionResponse } from "@territoriadf/contracts/users";
 import React, { useState } from "react";
-import { useAuth, type LoginResponse } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
+
+import { useAuth } from "../../contexts/AuthContext";
+import { ApiError, request } from "../../shared/api/client";
 import { inputClass, primaryButtonClass } from "../../styles/uiStyles";
 import { PasswordInput } from "./PasswordInput";
 import { APP_NAME } from "../../utils/appInfo";
@@ -16,22 +19,14 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const data = await request<SessionResponse>("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: { username, password },
       });
-
-      const data = (await response.json()) as LoginResponse | { error?: string };
-
-      if (response.ok && "user" in data) {
-        login(data.user);
-        toast.success(`Benvingut, ${data.user.username}`);
-      } else {
-        toast.error(("error" in data && data.error) || "Error en el login");
-      }
-    } catch {
-      toast.error("No es pot connectar amb el servidor");
+      login(data.user);
+      toast.success(`Benvingut, ${data.user.username}`);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "No es pot connectar amb el servidor");
     } finally {
       setLoading(false);
     }

@@ -1,24 +1,8 @@
+import type { BoundaryGeometry } from "@territoriadf/contracts/adfs";
+
 // Distancia màxima que es pot arrossegar un hidrant respecte a la seva posició actual.
 // Única font de veritat: el frontend la consulta a GET /api/config (routes/appConfig.ts).
 export const MAX_HYDRANT_MOVE_METERS = 50;
-
-/** `bbox` d'una ADF tal com es desa a la BD: `[minLat, minLon, maxLat, maxLon]`. */
-export type AdfBbox = [number, number, number, number];
-
-/** `center` d'una ADF tal com es desa a la BD: `[lat, lon]`. */
-export type AdfCenter = [number, number];
-
-/** Geometria del `boundary_geojson` desat (GeoJSON Polygon o MultiPolygon). */
-export type BoundaryGeometry =
-  | { type: "Polygon"; coordinates: number[][][] }
-  | { type: "MultiPolygon"; coordinates: number[][][][] };
-
-/** `boundary_geojson` desat: Feature amb la geometria agregada de l'ADF. */
-export interface AdfBoundaryFeature {
-  type: "Feature";
-  properties: { adf_id: number; name: string };
-  geometry: BoundaryGeometry;
-}
 
 // Tolerància (en graus) per considerar dues coordenades iguals: ~11 cm de latitud. Mateix criteri que
 // osmConflictResolver; OSM només desa 7 decimals, així que diferències menors no són canvis reals.

@@ -1,4 +1,4 @@
-import type { AdfData } from "../contexts/AdfContext";
+import type { Adf } from "../contexts/AdfContext";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { IncidenciaFeature } from "../types";
 import type { PdfCell, PdfColumn } from "./pdfExport";
@@ -26,7 +26,7 @@ const INCIDENCIA_COLUMNS: PdfColumn[] = [
   { header: "Enllaç", weight: 0.7, align: "center" },
 ];
 
-function reportMeta(adf: AdfData | null, filterDescription: string) {
+function reportMeta(adf: Adf | null, filterDescription: string) {
   const now = new Date();
   return {
     subtitle: [
@@ -46,7 +46,7 @@ export async function exportHidrantListPdf({
   total,
   filterDescription,
 }: {
-  adf: AdfData | null;
+  adf: Adf | null;
   hidrants: HidrantFeature[];
   total: number;
   filterDescription: string;
@@ -85,7 +85,7 @@ export async function exportIncidenciaListPdf({
   total,
   filterDescription,
 }: {
-  adf: AdfData | null;
+  adf: Adf | null;
   incidencies: IncidenciaFeature[];
   total: number;
   filterDescription: string;

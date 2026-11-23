@@ -3,6 +3,8 @@ import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
+import type { TrackingSharingResult } from "@territoriadf/contracts/adfs";
+
 import { db } from "../db/index.js";
 import { adfs } from "../db/schema.js";
 import { requireAdfScope, requireAuth, requirePermission } from "../plugins/authorize.js";
@@ -43,7 +45,8 @@ export function registerTrackingSharingRoutes(app: FastifyInstance): void {
       }
 
       db.update(adfs).set({ tracking_shared: shared }).where(eq(adfs.id, adfId)).run();
-      return reply.send({ adf_id: adfId, tracking_shared: shared });
+      const result: TrackingSharingResult = { adf_id: adfId, tracking_shared: shared };
+      return reply.send(result);
     },
   );
 }

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+
+import { ApiError, request } from "../../shared/api/client";
 import { inputClass, primaryButtonClass } from "../../styles/uiStyles";
 import { PasswordInput } from "./PasswordInput";
 import { enterApp } from "../../utils/route";
@@ -23,19 +25,13 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
     let cancelled = false;
     void (async () => {
       try {
-        const r = await fetch(`/api/auth/access/${token}`, { credentials: "same-origin" });
-        const data = await r.json().catch(() => ({}));
-        if (cancelled) {
-          return;
-        }
-        if (r.ok) {
-          setUsername(data.username);
-        } else {
-          setError(data.error || "Aquest enllaç no és vàlid");
-        }
-      } catch {
+        const data = await request<{ username: string }>(`/api/auth/access/${token}`);
         if (!cancelled) {
-          setError("No es pot connectar amb el servidor");
+          setUsername(data.username);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : "No es pot connectar amb el servidor");
         }
       }
     })();
@@ -57,20 +53,13 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
     setSaving(true);
     setError(null);
     try {
-      const r = await fetch(`/api/auth/access/${token}`, {
+      await request<unknown>(`/api/auth/access/${token}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ password }),
+        body: { password },
       });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setError(data.error || `Error ${r.status}`);
-        return;
-      }
       enterApp();
-    } catch {
-      setError("No es pot connectar amb el servidor");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No es pot connectar amb el servidor");
     } finally {
       setSaving(false);
     }

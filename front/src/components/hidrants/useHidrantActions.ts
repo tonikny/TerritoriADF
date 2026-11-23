@@ -5,7 +5,7 @@ import { invalidateOsmPending } from "../../shared/query/invalidate";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
-import type { AdfData } from "../../contexts/AdfContext";
+import type { Adf } from "../../contexts/AdfContext";
 import { sendToTelegram } from "../../utils/sendToTelegram";
 import { logError } from "../../utils/log";
 
@@ -52,7 +52,7 @@ function calculateChanges(
 
 export function useHidrantActions(
   feature: HidrantFeature,
-  adf: AdfData | null,
+  adf: Adf | null,
   refreshHidrants?: () => Promise<void> | void,
 ) {
   const [busy, setBusy] = useState(false);

@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { and, eq } from "drizzle-orm";
+import type { SessionResponse, SessionUser } from "@territoriadf/contracts/users";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -21,7 +22,7 @@ export function toPublicUser(user: {
   username: string;
   adf_id: number | null;
   role: string | null;
-}) {
+}): SessionUser {
   // El rol a BD és nullable (default "voluntari"); normalitzem per no exposar null ni
   // signar un token amb un rol diferent del de la resposta.
   const role = user.role ?? "voluntari";
@@ -115,7 +116,8 @@ export function registerAuthRoutes(app: FastifyInstance): void {
           tv: user.token_version ?? 0,
         });
 
-        return reply.send({ user: publicUser });
+        const body: SessionResponse = { user: publicUser };
+        return reply.send(body);
       } catch (err) {
         request.log
           .child({ module: "auth", operation: "login" })
@@ -143,7 +145,8 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       if (!request.authUser) {
         return reply.code(401).send({ error: "No autenticat" });
       }
-      return reply.send({ user: toPublicUser(request.authUser) });
+      const body: SessionResponse = { user: toPublicUser(request.authUser) };
+      return reply.send(body);
     },
   );
 

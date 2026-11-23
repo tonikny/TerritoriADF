@@ -8,7 +8,7 @@ import { adfs, hidrants, incidencies, telegramBots, users } from "../db/schema.j
 import { BadRequestError } from "../errors.js";
 import { requireAuth, requirePermission } from "../plugins/authorize.js";
 import { adfIdParamsSchema, adfIdSchema } from "../utils/identifiers.js";
-import type { AdfBbox, AdfBoundaryFeature, AdfCenter } from "../utils/geo.js";
+import type { Adf, AdfBbox, AdfBoundaryFeature, AdfCenter } from "@territoriadf/contracts/adfs";
 
 type AdfRow = typeof adfs.$inferSelect;
 
@@ -17,7 +17,7 @@ type AdfRow = typeof adfs.$inferSelect;
  * quan el client demana el detall (`GET /api/adf`); a la llista i al detall per
  * `:id` s'omet, com ja documenta `docs/DEV.md`.
  */
-export function serializeAdf(adf: AdfRow, options: { includeBoundary?: boolean } = {}) {
+export function serializeAdf(adf: AdfRow, options: { includeBoundary?: boolean } = {}): Adf {
   const { boundary_geojson, ...rest } = adf;
   return {
     ...rest,

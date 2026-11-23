@@ -1,7 +1,7 @@
 // Funcions pures de la feature OSM: consulta de pendents i accions de push/pull.
 // Les mutacions que hi ha darrere canvien hidrants i estats de sync, així que qui
 // les crida ha d'invalidar les consultes afectades (`osmPending` i `hidrants`).
-import type { SyncStatus } from "@territoriadf/contracts/sync";
+import type { OsmPushResult, SyncStatus } from "@territoriadf/contracts/sync";
 
 import { request } from "./client";
 
@@ -32,20 +32,6 @@ export interface OsmSyncStats {
 export interface OsmPendingResponse {
   pending: PendingHidrant[];
   stats: OsmSyncStats | null;
-}
-
-/** Resultat de `POST /api/osm/push-selected` i `push-sync`. */
-export interface OsmPushResult {
-  synced: number;
-  conflicts: number;
-  errors: number;
-  reviewed: number;
-  details: Array<{
-    id: string;
-    osmId: number | null;
-    status: "synced" | "conflict" | "error" | "review";
-    message?: string;
-  }>;
 }
 
 export interface OsmDiscardResult {

@@ -1,3 +1,4 @@
+import type { AdfBbox, AdfCenter } from "@territoriadf/contracts/adfs";
 import type { GeoBounds, LatLon, ViewState } from "./types";
 
 const EARTH_RADIUS_M = 6_371_008.8;
@@ -12,8 +13,7 @@ export const toLngLat = (position: LatLon): [number, number] => [position.lon, p
 
 export const fromLngLat = (lng: number, lat: number): LatLon => ({ lat, lon: lng });
 
-/** `bbox` del backend: [minLat, minLon, maxLat, maxLon]. */
-export function bboxToBounds(bbox: readonly [number, number, number, number]): GeoBounds {
+export function bboxToBounds(bbox: AdfBbox): GeoBounds {
   return { south: bbox[0], west: bbox[1], north: bbox[2], east: bbox[3] };
 }
 
@@ -60,7 +60,7 @@ export function clampToMaxDistance(original: LatLon, target: LatLon, maxMeters: 
 }
 
 export function viewForAdf(
-  adf: { bbox: [number, number, number, number] | null; center: [number, number] | null } | null,
+  adf: { bbox: AdfBbox | null; center: AdfCenter | null } | null,
 ): ViewState {
   if (adf?.center) {
     return { center: { lat: adf.center[0], lon: adf.center[1] }, zoom: 14 };

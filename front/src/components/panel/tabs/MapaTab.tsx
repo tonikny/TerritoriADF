@@ -11,7 +11,7 @@ import { queryKeys } from "../../../shared/query/keys";
 import { toast } from "react-toastify";
 import turfArea from "@turf/area";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useAdf, type AdfData } from "../../../contexts/AdfContext";
+import { useAdf, type Adf } from "../../../contexts/AdfContext";
 import { OsmSyncPanel } from "../../osm/OsmSyncPanel";
 import { OfflineMapSection } from "../shared/OfflineMapSection";
 import { adfLabel } from "../../../utils/adfLabel";
@@ -33,7 +33,7 @@ type DraftMode = "create" | "edit";
 
 const EMPTY_DRAFT: Draft = { numero: "", nom: "", relations: "" };
 
-const draftFrom = (adf: AdfData): Draft => ({
+const draftFrom = (adf: Adf): Draft => ({
   numero: String(adf.id),
   nom: adf.nom,
   relations: adf.osm_relations.join(", "),
@@ -66,7 +66,7 @@ function boundaryAreaKm2(boundaryGeojson: string | null): number | null {
     return null;
   }
   try {
-    return turfArea(JSON.parse(boundaryGeojson)) / 1_000_000;
+    return turfArea(JSON.parse(boundaryGeojson) as Parameters<typeof turfArea>[0]) / 1_000_000;
   } catch {
     return null;
   }
@@ -105,7 +105,7 @@ export function MapaTab({
     setDraftMode("create");
   }
 
-  function startEdit(adf: AdfData) {
+  function startEdit(adf: Adf) {
     setDraft(draftFrom(adf));
     setDraftMode("edit");
   }

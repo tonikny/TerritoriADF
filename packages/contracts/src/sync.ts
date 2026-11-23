@@ -20,3 +20,20 @@ export const SYNC_STATUSES = [
 ] as const;
 
 export type SyncStatus = (typeof SYNC_STATUSES)[number];
+
+/** Detall d'un hidrant al resultat d'un push a OSM. */
+interface OsmPushDetail {
+  id: string;
+  osmId: number | null;
+  status: "synced" | "conflict" | "error" | "review";
+  message?: string;
+}
+
+/** Resultat de `POST /api/osm/push-selected` i `POST /api/osm/push-sync`. */
+export interface OsmPushResult {
+  synced: number;
+  conflicts: number;
+  errors: number;
+  reviewed: number;
+  details: OsmPushDetail[];
+}

@@ -1,3 +1,5 @@
+import type { BoundaryGeometry } from "@territoriadf/contracts/adfs";
+
 function pointInRing(lat: number, lon: number, ring: number[][]): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -21,12 +23,19 @@ export function isPointInBoundary(
     return true;
   }
   try {
-    const geom = JSON.parse(boundaryGeojson).geometry;
+    const geom = (JSON.parse(boundaryGeojson) as { geometry?: BoundaryGeometry }).geometry;
+    if (!geom) {
+      return true;
+    }
     if (geom.type === "Polygon") {
-      return pointInRing(lat, lon, geom.coordinates[0]);
+      const ring = geom.coordinates[0];
+      return ring ? pointInRing(lat, lon, ring) : true;
     }
     if (geom.type === "MultiPolygon") {
-      return geom.coordinates.some((polygon: number[][][]) => pointInRing(lat, lon, polygon[0]));
+      return geom.coordinates.some((polygon) => {
+        const ring = polygon[0];
+        return ring ? pointInRing(lat, lon, ring) : false;
+      });
     }
   } catch {
     /* ignore parse errors */

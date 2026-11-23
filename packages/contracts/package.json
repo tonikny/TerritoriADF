@@ -20,6 +20,18 @@
     "./hidrants": {
       "types": "./dist/hidrants.d.ts",
       "default": "./dist/hidrants.js"
+    },
+    "./adfs": {
+      "types": "./dist/adfs.d.ts",
+      "default": "./dist/adfs.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
+    },
+    "./users": {
+      "types": "./dist/users.d.ts",
+      "default": "./dist/users.js"
     }
   },
   "files": [

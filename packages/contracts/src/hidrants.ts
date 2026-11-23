@@ -192,7 +192,7 @@ export interface HidrantSyncIssue {
  * l'estat: el JSON d'un conflicte, la llista de warnings d'una revisió, o el
  * text pla d'un error inesperat. Buit quan no hi ha res a dir.
  */
-export type HidrantSyncError = HidrantSyncConflict | HidrantSyncIssue[] | string | null;
+type HidrantSyncError = HidrantSyncConflict | HidrantSyncIssue[] | string | null;
 
 /** Observacions privades: només surten amb la sessió iniciada. */
 export type HidrantPrivateTags = Record<string, unknown> & { observacions?: string };

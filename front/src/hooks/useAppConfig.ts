@@ -1,4 +1,7 @@
+import type { AppConfig } from "@territoriadf/contracts/config";
 import { useEffect, useState } from "react";
+
+import { request } from "../shared/api/client";
 
 // Es demana una sola vegada per sessió i només es cacheja si la resposta és vàlida
 // (si falla, el següent muntatge ho tornarà a intentar).
@@ -27,8 +30,7 @@ export function useAppConfig() {
       return;
     }
     let cancelled = false;
-    void fetch("/api/config")
-      .then((r) => (r.ok ? r.json() : null))
+    void request<AppConfig>("/api/config")
       .then((data) => {
         const maxMeters = data?.max_hydrant_move_meters;
         if (typeof maxMeters === "number" && maxMeters > 0) {

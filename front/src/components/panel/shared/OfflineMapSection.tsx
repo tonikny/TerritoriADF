@@ -1,3 +1,4 @@
+import type { AdfBbox } from "@territoriadf/contracts/adfs";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import {
@@ -12,13 +13,7 @@ import { primaryButtonClass, secondaryButtonClass } from "../../../styles/uiStyl
 
 const MB_FORMAT = new Intl.NumberFormat("ca-ES", { maximumFractionDigits: 1 });
 
-export function OfflineMapSection({
-  adfId,
-  bbox,
-}: {
-  adfId: number;
-  bbox: [number, number, number, number] | null;
-}) {
+export function OfflineMapSection({ adfId, bbox }: { adfId: number; bbox: AdfBbox | null }) {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [info, setInfo] = useState(() => getOfflineMapInfo(adfId));

@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 
+import type { AppConfig } from "@territoriadf/contracts/config";
+
 import { ROLE_PERMISSIONS } from "../permissions.js";
 import { MAX_HYDRANT_MOVE_METERS } from "../utils/geo.js";
 import { MIN_PASSWORD_LENGTH } from "../utils/password.js";
@@ -23,11 +25,13 @@ export function registerAppConfigRoutes(app: FastifyInstance): void {
         summary: "Configuració pública compartida amb el front (permisos, límits)",
       },
     },
-    async (_request, reply) =>
-      reply.send({
+    async (_request, reply) => {
+      const config: AppConfig = {
         max_hydrant_move_meters: MAX_HYDRANT_MOVE_METERS,
         role_permissions: ROLE_PERMISSIONS,
         min_password_length: MIN_PASSWORD_LENGTH,
-      }),
+      };
+      return reply.send(config);
+    },
   );
 }

@@ -6,20 +6,21 @@ import { useAuth } from "./AuthContext";
 import { adfLabel } from "../utils/adfLabel";
 import { getQueryParam, setAdfUrlParam, setNodeUrlParam } from "../utils/urlParams";
 import { APP_NAME } from "../utils/appInfo";
-import { getAdfs, getAdfBoundary, type AdfData } from "../shared/api/adfs";
+import type { Adf } from "@territoriadf/contracts/adfs";
+import { getAdfs, getAdfBoundary } from "../shared/api/adfs";
 import { apiErrorMessage } from "../shared/api/client";
 import { queryKeys } from "../shared/query/keys";
 
-export type { AdfData };
+export type { Adf };
 
 interface AdfContextType {
-  activeAdf: AdfData | null;
-  setActiveAdf: (adf: AdfData | null) => void;
-  adfs: AdfData[];
+  activeAdf: Adf | null;
+  setActiveAdf: (adf: Adf | null) => void;
+  adfs: Adf[];
   isLoading: boolean;
   error: string | null;
   boundaryGeojson: string | null;
-  refreshAdfs: () => Promise<AdfData[]>;
+  refreshAdfs: () => Promise<Adf[]>;
 }
 
 const AdfContext = createContext<AdfContextType | undefined>(undefined);
@@ -27,10 +28,10 @@ const AdfContext = createContext<AdfContextType | undefined>(undefined);
 export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, setActiveAdfId: setAuthActiveAdfId } = useAuth();
   const queryClient = useQueryClient();
-  const [activeAdf, setActiveAdfState] = useState<AdfData | null>(null);
+  const [activeAdf, setActiveAdfState] = useState<Adf | null>(null);
 
   const setActiveAdf = useCallback(
-    (adf: AdfData | null) => {
+    (adf: Adf | null) => {
       setActiveAdfState(adf);
       if (adf) {
         localStorage.setItem("active_adf_id", adf.id.toString());
@@ -54,7 +55,7 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const adfs = useMemo(() => adfsQuery.data ?? [], [adfsQuery.data]);
 
   /** Torna a carregar la llista d'ADFs (després de crear, editar o eliminar-ne una). */
-  const refreshAdfs = useCallback(async (): Promise<AdfData[]> => {
+  const refreshAdfs = useCallback(async (): Promise<Adf[]> => {
     return queryClient.fetchQuery({
       queryKey: queryKeys.adfs,
       queryFn: ({ signal }) => getAdfs(signal),

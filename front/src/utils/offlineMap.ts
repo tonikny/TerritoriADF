@@ -2,13 +2,11 @@
 // mapa sense cobertura. Les peticions surten de la pàgina i passen pel service
 // worker, que les desa a les cachés `tiles-*` (vegeu `front/vite.config.ts`).
 
+import type { AdfBbox } from "@territoriadf/contracts/adfs";
 import { bboxToBounds } from "../map/core/geometry";
 import type { GeoBounds } from "../map/core/types";
 import { BASEMAPS } from "../map/shared/basemaps";
 import { storageKey } from "./storageKeys";
-
-/** `bbox` del backend: [minLat, minLon, maxLat, maxLon]. */
-type AdfBbox = readonly [number, number, number, number];
 
 export const OFFLINE_MIN_ZOOM = 10;
 export const OFFLINE_MAX_ZOOM = 15;

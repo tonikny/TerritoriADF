@@ -49,6 +49,20 @@ export default tseslint.config(
     },
   },
 
+  // N-17: el front tampoc no pot reintroduir `any` implícits des de `fetch` o
+  // `JSON.parse`; cada component declara la forma que rep abans de fer-la servir.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+
+    rules: {
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-argument": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+    },
+  },
+
   // Aïllament dels motors: cap tipus ni API de tercers fora del seu adaptador.
   {
     files: ["src/**/*.{ts,tsx}"],
