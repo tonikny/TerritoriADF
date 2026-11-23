@@ -218,7 +218,11 @@ Detalls de la implementació a `PwaBanner.tsx`:
   `/api/incidencies*` perquè l'app sigui útil sense cobertura. `/api/auth/*` no es
   cacheja mai. Les cachés existents s'esborren en tancar sessió i en rebre un `401`, així
   que en un dispositiu compartit les incidències d'un usuari no sobreviuen al logout (sí
-  que poden veure's mentre la sessió continua oberta).
+  que poden veure's mentre la sessió continua oberta). A més, es purguen les consultes
+  privades de la caché en memòria de TanStack Query; només s'hi conserven les públiques
+  (`session`, `config` i la llista d'ADFs). Com que l'app continua demanant dades
+  anònimes, les cachés `api-*` es poden tornar a omplir tot seguit, però només amb
+  respostes públiques: no recuperen les dades privades de la sessió tancada.
 
 ## Fase 2: lectura offline de dades
 
@@ -233,7 +237,11 @@ Detalls de la implementació a `PwaBanner.tsx`:
   (`territoriadf-last-sync:<adf>`). Sense connexió, el mapa mostra
   «Sense connexió · dades de fa X», perquè una còpia no es confongui amb l'estat real.
 - **Neteja en tancar sessió**: `logout` i qualsevol `401` a `/api/auth/me` esborren les
-  cachés `api-*` i les marques de frescor. El precache de l'app shell i les cachés `tiles-*` es conserven (no són dades d'usuari).
+  cachés `api-*` i les marques de frescor, i purguen les consultes privades de la caché
+  en memòria. Només es conserven `session`, `config` i `adfs`, que són públiques (i
+  `adfs` pot estar en vol en un `401` inicial). El precache de l'app shell i les cachés
+  `tiles-*` es conserven (no són dades d'usuari). Després del tancament, les peticions
+  anònimes que faci l'app poden recrear `api-*`, però només amb dades públiques.
 - **Emmagatzematge persistent**: `navigator.storage.persist()` des de `PwaBanner`. El
   navegador decideix (pot dir que no) i aquí no es fa res si falla.
 - **Sense cache-buster**: `useHidrantData` ja no afegeix `?_t=<timestamp>`, que feia que
