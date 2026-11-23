@@ -1,5 +1,5 @@
 import { NodeInfo } from "@/components/hidrants/NodeInfo";
-import { IncidenciaInfo } from "@/components/incidencies/IncidenciaInfo";
+import { IncidenciaInfo } from "@/features/incidencies/IncidenciaInfo";
 import { CreateNodePanel } from "@/components/panel/CreateNodePanel";
 import { createTitle } from "@/components/panel/createTitle";
 import type { useMapSheet } from "@/hooks/map/useMapSheet";

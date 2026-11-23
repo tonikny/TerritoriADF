@@ -7,7 +7,7 @@ import type {
   IncidenciaFeature,
 } from "@territoriadf/contracts/incidencies";
 
-import { request } from "./client";
+import { request } from "@/shared/api/client";
 
 export interface CreateIncidenciaInput {
   titol: string;

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useIncidencies } from "@/hooks/useIncidencies";
+import { useIncidencies } from "./useIncidencies";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf } from "@/contexts/AdfContext";
 import { toast } from "react-toastify";

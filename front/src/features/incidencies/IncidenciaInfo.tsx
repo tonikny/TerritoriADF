@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useIncidencies } from "@/hooks/useIncidencies";
+import { useIncidencies } from "./useIncidencies";
 import type { Incidencia, IncidenciaEvent, IncidenciaFeature } from "@/types";
 import { IncidenciaInfoView } from "./IncidenciaInfoView";
 import { IncidenciaEditForm } from "./IncidenciaEditForm";

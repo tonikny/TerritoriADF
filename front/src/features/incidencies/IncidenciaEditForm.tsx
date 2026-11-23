@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Incidencia } from "@/types";
-import { useIncidencies } from "@/hooks/useIncidencies";
+import { useIncidencies } from "./useIncidencies";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-toastify";
 import {

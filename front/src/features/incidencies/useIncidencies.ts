@@ -10,7 +10,7 @@ import {
   getIncidencia as getIncidenciaRequest,
   getIncidencies,
   type CreateIncidenciaInput,
-} from "@/shared/api/incidencies";
+} from "./api";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 import { markDataSynced } from "@/utils/offlineData";
 
