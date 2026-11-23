@@ -1,0 +1,52 @@
+// Gestió d'usuaris (GET/POST/PUT/DELETE /api/users) i enllaços d'accés.
+import { request } from "./client";
+
+export interface ManagedUser {
+  id: string;
+  username: string;
+  adf_id: number | null;
+  role: string;
+  created_at?: string;
+}
+
+/** Enllaç d'accés d'un sol ús: el token en clar només surt en aquesta resposta. */
+export interface AccessLink {
+  username: string;
+  access_url: string;
+  access_expires_at: string;
+}
+
+/** Alta d'usuari: pot portar l'enllaç d'accés acabat de generar. */
+export interface CreatedUser {
+  id?: string;
+  username?: string;
+  adf_id?: number | null;
+  role?: string;
+  access_url?: string;
+  access_expires_at?: string;
+}
+
+export function getUsers(signal?: AbortSignal): Promise<ManagedUser[]> {
+  return request<ManagedUser[]>("/api/users", { signal });
+}
+
+export function createUser(input: { username: string; role: string }): Promise<CreatedUser> {
+  return request<CreatedUser>("/api/users", { method: "POST", body: input });
+}
+
+export async function updateUser(
+  id: string,
+  input: { username?: string; role?: string },
+): Promise<void> {
+  await request<unknown>(`/api/users/${encodeURIComponent(id)}`, { method: "PUT", body: input });
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await request<unknown>(`/api/users/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function createAccessLink(id: string): Promise<AccessLink> {
+  return request<AccessLink>(`/api/users/${encodeURIComponent(id)}/access-link`, {
+    method: "POST",
+  });
+}

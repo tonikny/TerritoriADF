@@ -1,98 +1,96 @@
-import { useState, useEffect, useCallback } from "react";
-import { useAdf } from "../contexts/AdfContext";
-import { markDataSynced } from "../utils/offlineData";
-import { apiFetch } from "../utils/api";
-import type { IncidenciaFeature, Incidencia, IncidenciaEvent } from "../types";
+import { useCallback, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAdf } from "../contexts/AdfContext";
+import { useAuth } from "../contexts/AuthContext";
+import { apiErrorMessage } from "../shared/api/client";
+import {
+  addIncidenciaEvent,
+  createIncidencia as createIncidenciaRequest,
+  getIncidencia as getIncidenciaRequest,
+  getIncidencies,
+  type CreateIncidenciaInput,
+} from "../shared/api/incidencies";
+import { queryKeys, viewerKey } from "../shared/query/keys";
+import { markDataSynced } from "../utils/offlineData";
+
+/**
+ * Incidències de l'ADF activa i les seves mutacions.
+ *
+ * Abans, canviar d'ADF mentre volava una petició podia deixar a la pantalla les
+ * incidències de l'ADF anterior. Ara la clau de caché porta l'ADF (i el visor),
+ * de manera que cada resposta cau a la seva entrada i només es llegeix la de
+ * l'ADF activa. Les mutacions invaliden la llista i el detall tocats.
+ */
 export function useIncidencies() {
   const { activeAdf } = useAdf();
-  const [features, setFeatures] = useState<IncidenciaFeature[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const adfId = activeAdf?.id ?? null;
+  const viewer = viewerKey(user);
 
-  const fetchIncidencies = useCallback(async () => {
-    if (!activeAdf) {
-      setFeatures([]);
-      return;
-    }
-    try {
-      setLoading(true);
-      const response = await apiFetch(`/api/incidencies?adf=${activeAdf.id}`);
-      if (!response.ok) {
-        throw new Error("Error al carregar incidències");
-      }
-      const data = await response.json();
-      setFeatures(data.features || []);
-      setError(null);
-      markDataSynced(activeAdf.id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconegut");
-    } finally {
-      setLoading(false);
-    }
-  }, [activeAdf]);
+  const listQuery = useQuery({
+    queryKey: queryKeys.incidencies(adfId, viewer),
+    queryFn: ({ signal }) => (adfId === null ? Promise.resolve([]) : getIncidencies(adfId, signal)),
+    enabled: adfId !== null,
+  });
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- càrrega asíncrona legítima
-    void fetchIncidencies();
-  }, [fetchIncidencies]);
-
-  const getIncidencia = async (id: string): Promise<Incidencia & { events: IncidenciaEvent[] }> => {
-    const response = await apiFetch(`/api/incidencies/${id}`);
-    if (!response.ok) {
-      throw new Error("Error al carregar el detall de la incidència");
+    if (adfId !== null && listQuery.data) {
+      markDataSynced(adfId);
     }
-    return response.json();
-  };
+  }, [adfId, listQuery.data]);
 
-  const createIncidencia = async (data: {
-    titol: string;
-    tipus: string;
-    prioritat: string;
-    precisio?: string;
-    visibilitat?: string;
-    lat: number;
-    lon: number;
-    comentari: string;
-  }) => {
-    const response = await apiFetch("/api/incidencies", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, adf_id: activeAdf?.id }),
-    });
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || "Error al crear la incidència");
+  const refresh = useCallback(async (): Promise<void> => {
+    if (adfId === null) {
+      return;
     }
-    const result = await response.json();
-    void fetchIncidencies(); // Recarregar llista
-    return result;
-  };
+    await queryClient.invalidateQueries({ queryKey: queryKeys.incidencies(adfId, viewer) });
+  }, [adfId, viewer, queryClient]);
 
-  const addEvent = async (
-    incidenciaId: string,
-    tipusEvent: string,
-    dades: Record<string, unknown>,
-  ) => {
-    const response = await apiFetch(`/api/incidencies/${incidenciaId}/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tipus_event: tipusEvent, dades }),
-    });
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || "Error al afegir l'esdeveniment");
-    }
-    const result = await response.json();
-    void fetchIncidencies(); // Recarregar llista per actualitzar estat denormalitzat
-    return result;
-  };
+  const getIncidencia = useCallback(
+    (id: string) =>
+      queryClient.fetchQuery({
+        queryKey: queryKeys.incidencia(id, adfId, viewer),
+        queryFn: ({ signal }) => getIncidenciaRequest(id, signal),
+        // El detall inclou l'historial: sempre es vol la versió més nova.
+        staleTime: 0,
+      }),
+    [adfId, queryClient, viewer],
+  );
+
+  const createIncidencia = useCallback(
+    async (data: CreateIncidenciaInput) => {
+      const result = await createIncidenciaRequest({
+        ...data,
+        adf_id: data.adf_id ?? adfId ?? undefined,
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.incidencies(adfId, viewer) });
+      return result;
+    },
+    [adfId, viewer, queryClient],
+  );
+
+  const addEvent = useCallback(
+    async (incidenciaId: string, tipusEvent: string, dades: Record<string, unknown>) => {
+      const result = await addIncidenciaEvent(incidenciaId, tipusEvent, dades);
+      // La llista porta l'estat denormalitzat i el detall porta l'historial: tots dos queden vells.
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.incidencia(incidenciaId, adfId, viewer),
+        }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.incidencies(adfId, viewer) }),
+      ]);
+      return result;
+    },
+    [adfId, viewer, queryClient],
+  );
 
   return {
-    features,
-    loading,
-    error,
-    refresh: fetchIncidencies,
+    features: adfId === null ? [] : (listQuery.data ?? []),
+    loading: adfId !== null && listQuery.isFetching,
+    error: listQuery.error ? apiErrorMessage(listQuery.error, "Error desconegut") : null,
+    refresh,
     getIncidencia,
     createIncidencia,
     addEvent,

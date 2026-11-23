@@ -1,31 +1,14 @@
-import { apiFetch } from "./api";
 import { logError } from "./log";
+import { sendHydrantNotification, type HydrantNotification } from "../shared/api/telegram";
 
-interface SendPayload {
-  lat: number;
-  lon: number;
-  tags?: unknown;
-  originalData?: unknown;
-  changes?: unknown;
-  adf_id?: number;
-  isEdit?: boolean;
-  action?: "create" | "delete";
-}
-
-export async function sendToTelegram(data: SendPayload): Promise<void> {
+/**
+ * Notifica a Telegram un canvi d'hidrant. La crida va pel client d'API; aquí
+ * només s'hi afegeix el log (les crides a Telegram no han de tombar l'operació,
+ * i qui crida decideix si la fallada importa).
+ */
+export async function sendToTelegram(data: HydrantNotification): Promise<void> {
   try {
-    const res = await apiFetch("/api/sendToTelegram", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Error enviant el missatge: ${text}`);
-    }
+    await sendHydrantNotification(data);
   } catch (err) {
     logError("Error enviant a Telegram", err);
     throw err;

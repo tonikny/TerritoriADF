@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { clearOfflineData } from "../utils/offlineData";
 import { storageKey } from "../utils/storageKeys";
+import { queryClient } from "../shared/query/queryClient";
 
 export interface User {
   id: string;
@@ -81,7 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setRawUser(null);
           if (response.status === 401) {
-            // Sessió caducada: no deixem respostes d'API al dispositiu.
+            // Sessió caducada: no deixem respostes d'API al dispositiu ni a la caché en memòria.
+            queryClient.clear();
             void clearOfflineData().catch(() => {});
           }
         }
@@ -144,7 +146,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setRawUser(null);
     setViewRole(null);
-    // Dispositiu compartit: fora les dades d'API que hagi pogut deixar el SW.
+    // Dispositiu compartit: fora les dades d'API del service worker i de la caché en memòria.
+    queryClient.clear();
     void clearOfflineData().catch(() => {});
   };
 

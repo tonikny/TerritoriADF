@@ -1,5 +1,13 @@
-import { apiFetch } from "../../../utils/api";
 import React, { useState, useEffect, useMemo } from "react";
+import { changePassword } from "../../../shared/api/auth";
+import {
+  createAccessLink,
+  createUser,
+  deleteUser,
+  getUsers,
+  updateUser,
+  type ManagedUser,
+} from "../../../shared/api/users";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdf } from "../../../contexts/AdfContext";
 import { Login } from "../../shared/Login";
@@ -14,13 +22,6 @@ import {
 } from "../../../styles/uiStyles";
 import { adfLabel } from "../../../utils/adfLabel";
 import { useAppConfig } from "../../../hooks/useAppConfig";
-
-interface ManagedUser {
-  id: string;
-  username: string;
-  adf_id: number | null;
-  role: string;
-}
 
 const ROLES_ADMIN = ["admin", "coordinador", "voluntari"];
 const ROLES_COORD = ["coordinador", "voluntari"];
@@ -89,11 +90,7 @@ export function UsuarisTab() {
 
   async function load() {
     try {
-      const r = await apiFetch("/api/users", { credentials: "same-origin" });
-      if (!r.ok) {
-        throw new Error(`API ${r.status}`);
-      }
-      setRows(await r.json());
+      setRows(await getUsers());
     } catch (err) {
       logError("Error carregant usuaris", err);
     }
@@ -151,20 +148,6 @@ export function UsuarisTab() {
     setPwDraft({ current: "", next: "", repeat: "" });
   }
 
-  async function doRequest<T = unknown>(url: string, method: string, body: unknown): Promise<T> {
-    const r = await apiFetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(body),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      throw new Error(data.error || `API ${r.status}`);
-    }
-    return data as T;
-  }
-
   async function submitCreate(e: React.FormEvent) {
     e.preventDefault();
     if (createAdf === null) {
@@ -173,11 +156,7 @@ export function UsuarisTab() {
     setSubmitting(true);
     const username = `${prefixFor(createAdf, createDraft.gi)}${pad3(Math.min(Math.max(Number(createDraft.numero) || 0, 1), 999))}`;
     try {
-      const created = await doRequest<{ access_url?: string; access_expires_at?: string }>(
-        "/api/users",
-        "POST",
-        { username, role: createDraft.role },
-      );
+      const created = await createUser({ username, role: createDraft.role });
       toast.success(`Usuari ${username} creat`);
       if (created?.access_url && created.access_expires_at) {
         setAccessLink({ username, url: created.access_url, expires_at: created.access_expires_at });
@@ -200,7 +179,7 @@ export function UsuarisTab() {
     const username = `${prefixFor(editDraft.adfId, editDraft.gi)}${pad3(Math.min(Math.max(Number(editDraft.numero) || 0, 1), 999))}`;
     try {
       const target = rows.find((rr) => rr.username === editDraft.username)!;
-      await doRequest(`/api/users/${target.id}`, "PUT", { username, role: editDraft.role });
+      await updateUser(target.id, { username, role: editDraft.role });
       toast.success("Usuari actualitzat");
       setEditDraft(null);
       await load();
@@ -222,7 +201,7 @@ export function UsuarisTab() {
     }
     setPwSubmitting(true);
     try {
-      await doRequest("/api/auth/password", "PUT", {
+      await changePassword({
         currentPassword: pwDraft.current,
         newPassword: pwDraft.next,
       });
@@ -238,11 +217,7 @@ export function UsuarisTab() {
   /** Genera un enllaç d'un sol ús (invalida l'anterior) perquè l'usuari triï contrasenya. */
   async function generateAccessLink(u: ManagedUser) {
     try {
-      const data = await doRequest<{
-        username: string;
-        access_url: string;
-        access_expires_at: string;
-      }>(`/api/users/${u.id}/access-link`, "POST", {});
+      const data = await createAccessLink(u.id);
       setAccessLink({
         username: data.username,
         url: data.access_url,
@@ -267,7 +242,7 @@ export function UsuarisTab() {
       return;
     }
     try {
-      await doRequest(`/api/users/${u.id}`, "DELETE", {});
+      await deleteUser(u.id);
       toast.success("Usuari eliminat");
       await load();
     } catch (err) {

@@ -1,4 +1,3 @@
-import { apiFetch } from "../../utils/api";
 import { can } from "@territoriadf/contracts/permissions";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
@@ -13,30 +12,15 @@ import {
 } from "../../styles/uiStyles";
 import { CollapsibleSection } from "../panel/shared/CollapsibleSection";
 import { PasswordInput } from "./PasswordInput";
-
-type TelegramStatus =
-  | "NO_CONFIGURAT"
-  | "BOT_CONFIGURAT"
-  | "GRUP_PENDENT"
-  | "CONFIGURAT"
-  | "DESACTIVAT"
-  /** El token desat no es pot desxifrar: cal tornar-lo a introduir. */
-  | "TOKEN_INVALID";
-
-interface StatusResponse {
-  status?: TelegramStatus;
-  bot_username?: string;
-  bot_name?: string;
-  group_name?: string;
-  error?: string;
-}
-
-interface LinkResponse {
-  url?: string;
-  expires_at?: string;
-  bot_username?: string;
-  error?: string;
-}
+import {
+  createTelegramLink,
+  deleteTelegram,
+  getTelegramStatus,
+  registerTelegramBot,
+  sendTelegramTest,
+  type TelegramStatus,
+  type TelegramStatusResponse,
+} from "../../shared/api/telegram";
 
 const POLL_MS = 10000;
 
@@ -45,19 +29,13 @@ const POLL_MS = 10000;
  *  Només s'activa mentre el col·lapsable de Telegram està obert i l'element
  *  és visible (IntersectionObserver a l'efecte del component): en col·lapsar
  *  o tancar el panell no es fan crides. */
-type TelegramListener = (data: StatusResponse) => void;
+type TelegramListener = (data: TelegramStatusResponse) => void;
 const perAdf = new Map<number, Set<TelegramListener>>();
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 async function pollAdf(adfId: number) {
   try {
-    const res = await apiFetch(`/api/adfs/${adfId}/telegram/status`, {
-      credentials: "same-origin",
-    });
-    if (!res.ok) {
-      return;
-    }
-    const data = (await res.json()) as StatusResponse;
+    const data = await getTelegramStatus(adfId);
     perAdf.get(adfId)?.forEach((l) => l(data));
   } catch {
     /* ignore: el servidor pot no estar disponible */
@@ -151,7 +129,7 @@ export function TelegramConfigPanel() {
     }
     let unsub: (() => void) | null = null;
 
-    const handleData = (data: StatusResponse) => {
+    const handleData = (data: TelegramStatusResponse) => {
       if (data.status) {
         setStatus(data.status);
       }
@@ -209,16 +187,7 @@ export function TelegramConfigPanel() {
     }
     setRegistering(true);
     try {
-      const res = await apiFetch(`/api/adfs/${adfId}/telegram`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ token }),
-      });
-      const data = (await res.json().catch(() => ({}))) as StatusResponse;
-      if (!res.ok) {
-        throw new Error(data.error || `API ${res.status}`);
-      }
+      const data = await registerTelegramBot(adfId, token);
       setStatus(data.status ?? "BOT_CONFIGURAT");
       setBotUsername(data.bot_username);
       setBotName(data.bot_name);
@@ -238,13 +207,9 @@ export function TelegramConfigPanel() {
     setLinking(true);
     setLinkUrl(undefined);
     try {
-      const res = await apiFetch(`/api/adfs/${adfId}/telegram/link`, {
-        method: "POST",
-        credentials: "same-origin",
-      });
-      const data = (await res.json().catch(() => ({}))) as LinkResponse;
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || `API ${res.status}`);
+      const data = await createTelegramLink(adfId);
+      if (!data.url) {
+        throw new Error("No s'ha pogut generar l'enllaç");
       }
       setLinkUrl(data.url);
       if (data.bot_username) {
@@ -272,16 +237,7 @@ export function TelegramConfigPanel() {
     }
     setSending(true);
     try {
-      const res = await apiFetch(`/api/adfs/${adfId}/telegram/test`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ message }),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as StatusResponse;
-        throw new Error(data.error || `API ${res.status}`);
-      }
+      await sendTelegramTest(adfId, message);
       setCustomMsg("");
       toast.success("📨 Missatge enviat al grup");
     } catch (err) {
@@ -302,14 +258,7 @@ export function TelegramConfigPanel() {
     }
     setDeleting(true);
     try {
-      const res = await apiFetch(`/api/adfs/${adfId}/telegram`, {
-        method: "DELETE",
-        credentials: "same-origin",
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as StatusResponse;
-        throw new Error(data.error || `API ${res.status}`);
-      }
+      await deleteTelegram(adfId);
       setStatus("NO_CONFIGURAT");
       setBotUsername(undefined);
       setBotName(undefined);

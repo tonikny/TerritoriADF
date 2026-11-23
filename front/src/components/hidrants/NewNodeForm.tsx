@@ -1,5 +1,7 @@
-import { apiFetch } from "../../utils/api";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { createHidrant } from "../../shared/api/hidrants";
+import { invalidateOsmPending } from "../../shared/query/invalidate";
 import { sendToTelegram } from "../../utils/sendToTelegram";
 import type { LatLon } from "../../map/core/types";
 import { toast } from "react-toastify";
@@ -27,6 +29,7 @@ export const NewNodeForm = ({
 }: NewNodeFormProps) => {
   const [observacions, setObservacions] = useState("");
   const { activeAdf } = useAdf();
+  const queryClient = useQueryClient();
   const [isInspected, setIsInspected] = useState(false);
 
   const [data, setData] = useState<HidrantUiFields>({
@@ -70,22 +73,14 @@ export const NewNodeForm = ({
     try {
       // La creació es fa via l'endpoint protegit (valida permís i abast ADF);
       // sendToTelegram només notifica, ja no escriu a la BD.
-      const createdRes = await apiFetch(`/api/hidrants?adf=${activeAdf.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat,
-          lon,
-          ui_fields: data,
-          private_tags: {
-            observacions: observacions.trim() || undefined,
-          },
-        }),
+      const created = await createHidrant(activeAdf.id, {
+        lat,
+        lon,
+        ui_fields: data,
+        private_tags: {
+          observacions: observacions.trim() || undefined,
+        },
       });
-      if (!createdRes.ok) {
-        throw new Error("Error creant l'hidrant");
-      }
-      const created = (await createdRes.json()) as { id: string };
 
       try {
         await sendToTelegram({
@@ -107,6 +102,7 @@ export const NewNodeForm = ({
       }
       toast.success("Hidrant afegit");
       setObservacions("");
+      await invalidateOsmPending(queryClient);
       if (refreshHidrants) {
         await refreshHidrants();
       }

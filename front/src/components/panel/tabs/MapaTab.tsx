@@ -1,6 +1,13 @@
-import { apiFetch } from "../../../utils/api";
 import { can } from "@territoriadf/contracts/permissions";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  createAdf,
+  deleteAdf,
+  recalculateAdfBoundaries,
+  updateAdf,
+} from "../../../shared/api/adfs";
+import { queryKeys } from "../../../shared/query/keys";
 import { toast } from "react-toastify";
 import turfArea from "@turf/area";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -78,6 +85,7 @@ export function MapaTab({
   onRefresh?: () => void;
 }) {
   const { adfs, isLoading, activeAdf, setActiveAdf, refreshAdfs, boundaryGeojson } = useAdf();
+  const queryClient = useQueryClient();
   const areaKm2 = boundaryAreaKm2(boundaryGeojson);
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -129,21 +137,10 @@ export function MapaTab({
 
     setSubmitting(true);
     try {
-      const url = draftMode === "create" ? "/api/adfs" : `/api/adfs/${adfId}`;
-      const body =
+      const data =
         draftMode === "create"
-          ? { id: adfId, nom, osm_relations: relations }
-          : { nom, osm_relations: relations };
-      const res = await apiFetch(url, {
-        method: draftMode === "create" ? "POST" : "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || `API ${res.status}`);
-      }
+          ? await createAdf({ id: adfId, nom, osm_relations: relations })
+          : await updateAdf(adfId, { nom, osm_relations: relations });
 
       setDraft(null);
       toast.success(draftMode === "create" ? `ADF ${data.id} creada` : "ADF actualitzada");
@@ -164,14 +161,9 @@ export function MapaTab({
   async function recalculateBoundaries(adfId: number) {
     setRecalculating(true);
     try {
-      const res = await apiFetch(`/api/adfs/${adfId}/boundaries`, {
-        method: "POST",
-        credentials: "same-origin",
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || `API ${res.status}`);
-      }
+      await recalculateAdfBoundaries(adfId);
+      // La frontera ha canviat: la consulta que la pinta ha de tornar a demanar-la.
+      await queryClient.invalidateQueries({ queryKey: queryKeys.adfBoundary(adfId) });
       const list = await refreshAdfs();
       setActiveAdf(list.find((a) => a.id === adfId) ?? null);
       toast.success("Límits territorials actualitzats");
@@ -197,14 +189,7 @@ export function MapaTab({
     }
     setDeleting(true);
     try {
-      const res = await apiFetch(`/api/adfs/${activeAdf.id}`, {
-        method: "DELETE",
-        credentials: "same-origin",
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || `API ${res.status}`);
-      }
+      await deleteAdf(activeAdf.id);
       const list = await refreshAdfs();
       setActiveAdf(list[0] ?? null);
       setDraft(null);

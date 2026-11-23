@@ -1,32 +1,20 @@
-import { apiFetch } from "../../utils/api";
-import { useState, useEffect, useCallback } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import type { SyncStatus } from "@territoriadf/contracts/sync";
 import { useAdf } from "../../contexts/AdfContext";
-import { logError } from "../../utils/log";
-
-interface PendingHidrant {
-  id: string;
-  osm_id: number | null;
-  lat: number;
-  lon: number;
-  /** `GET /api/osm/pending` filtra els SYNCED: aquí no hi poden arribar. */
-  sync_status: Exclude<SyncStatus, "SYNCED">;
-  sync_error: string | null;
-  street: string;
-  num: string;
-}
-
-interface SyncStats {
-  PENDING_CREATE: number;
-  PENDING_UPDATE: number;
-  PENDING_DELETE: number;
-  CONFLICT: number;
-  ERROR: number;
-  REVIEW: number;
-  MISSING_IN_OSM: number;
-  total_pending: number;
-}
+import { useAuth } from "../../contexts/AuthContext";
+import { apiErrorMessage } from "../../shared/api/client";
+import {
+  discardOsmChanges,
+  getOsmPending,
+  pullHydrantFromOsm,
+  purgeMissingFromOsm,
+  pushToOsm,
+  syncAdfFromOsm,
+  type PendingHidrant,
+} from "../../shared/api/osm";
+import { queryKeys, viewerKey } from "../../shared/query/keys";
 
 type SectionKey = Exclude<SyncStatus, "SYNCED">;
 
@@ -98,12 +86,14 @@ export function OsmSyncPanel({
   onRefresh?: () => void;
 }) {
   const { activeAdf } = useAdf();
-  const [pending, setPending] = useState<PendingHidrant[]>([]);
-  const [stats, setStats] = useState<SyncStats | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const adfId = activeAdf?.id ?? null;
+  const viewer = viewerKey(user);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState(false);
+  const [pulling, setPulling] = useState(false);
 
   const selectHidrant = (id: string) => {
     onSelectHidrant?.(id);
@@ -113,59 +103,32 @@ export function OsmSyncPanel({
     onRefresh?.();
   };
 
-  useEffect(() => {
-    if (!activeAdf) {
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const res = await apiFetch(`/api/osm/pending?adf=${activeAdf.id}`);
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          const items = data.pending || [];
-          setPending(items);
-          setStats(data.stats || null);
-          // Obrir automàticament les seccions que tenen items
-          const open: Record<string, boolean> = {};
-          for (const h of items) {
-            open[h.sync_status] = true;
-          }
-          setOpenSections(open);
-        }
-      } catch (err) {
-        logError("Error carregant canvis pendents", err);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeAdf]);
+  const pendingQuery = useQuery({
+    queryKey: queryKeys.osmPending(adfId, viewer),
+    queryFn: ({ signal }) =>
+      adfId === null ? Promise.resolve({ pending: [], stats: null }) : getOsmPending(adfId, signal),
+    enabled: adfId !== null,
+  });
 
-  const reload = useCallback(async () => {
-    if (!activeAdf) {
+  const pending = pendingQuery.data?.pending ?? [];
+  const stats = pendingQuery.data?.stats ?? null;
+  const loading = pendingQuery.isFetching || pulling;
+  const loadError = pendingQuery.error
+    ? apiErrorMessage(pendingQuery.error, "Error carregant canvis pendents")
+    : null;
+
+  // Una selecció feta en una altra ADF no ha de comptar en aquesta.
+  const selectedIds = useMemo(
+    () => (pendingQuery.data?.pending ?? []).filter((h) => selected.has(h.id)).map((h) => h.id),
+    [pendingQuery.data, selected],
+  );
+
+  const reload = async () => {
+    if (adfId === null) {
       return;
     }
-    setLoading(true);
-    try {
-      const res = await apiFetch(`/api/osm/pending?adf=${activeAdf.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPending(data.pending || []);
-        setStats(data.stats || null);
-      }
-    } catch (err) {
-      logError("Error carregant canvis pendents", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeAdf]);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.osmPending(adfId, viewer) });
+  };
 
   const grouped = pending.reduce<Record<SectionKey, PendingHidrant[]>>(
     (acc, h) => {
@@ -186,8 +149,11 @@ export function OsmSyncPanel({
     },
   );
 
-  const toggleSection = (key: string) => {
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  // Les seccions amb items surten obertes per defecte.
+  const isSectionOpen = (key: SectionKey) => openSections[key] ?? true;
+
+  const toggleSection = (key: SectionKey) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
   };
 
   const toggleSelect = (id: string) => {
@@ -218,17 +184,12 @@ export function OsmSyncPanel({
   // --- Accions per lots ---
 
   const handlePushSelected = async () => {
-    if (selected.size === 0) {
+    if (selectedIds.length === 0) {
       return;
     }
     setActionLoading(true);
     try {
-      const res = await apiFetch("/api/osm/push-selected", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selected) }),
-      });
-      const data = await res.json();
+      const data = await pushToOsm(selectedIds);
       if (data.synced > 0) {
         toast.success(`${data.synced} hidrants pujats`);
       }
@@ -245,27 +206,22 @@ export function OsmSyncPanel({
       refreshHidrants();
       void reload();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleDiscardSelected = async () => {
-    if (selected.size === 0) {
+    if (selectedIds.length === 0) {
       return;
     }
-    if (!window.confirm(`Descartar ${selected.size} canvis seleccionats?`)) {
+    if (!window.confirm(`Descartar ${selectedIds.length} canvis seleccionats?`)) {
       return;
     }
     setActionLoading(true);
     try {
-      const res = await apiFetch("/api/osm/discard-selected", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selected) }),
-      });
-      const data = await res.json();
+      const data = await discardOsmChanges(selectedIds);
       const parts: string[] = [];
       if (data.discarded > 0) {
         parts.push(`${data.discarded} descartats`);
@@ -278,7 +234,7 @@ export function OsmSyncPanel({
       refreshHidrants();
       void reload();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
@@ -309,14 +265,9 @@ export function OsmSyncPanel({
         return;
       }
     }
-    setLoading(true);
+    setPulling(true);
     try {
-      const res = await apiFetch(`/api/hidrants/sync?adf=${activeAdf.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
+      const data = await syncAdfFromOsm(activeAdf.id);
       if (data.success) {
         toast.success(data.message);
         refreshHidrants();
@@ -325,9 +276,9 @@ export function OsmSyncPanel({
         toast.error(data.message || "Error desconegut");
       }
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
-      setLoading(false);
+      setPulling(false);
     }
   };
 
@@ -336,12 +287,7 @@ export function OsmSyncPanel({
   const handlePushOne = async (id: string) => {
     setActionLoading(true);
     try {
-      const res = await apiFetch("/api/osm/push-selected", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [id] }),
-      });
-      const data = await res.json();
+      const data = await pushToOsm([id]);
       if (data.synced > 0) {
         toast.success("Pujat a OSM");
       }
@@ -357,7 +303,7 @@ export function OsmSyncPanel({
       refreshHidrants();
       void reload();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
@@ -373,16 +319,12 @@ export function OsmSyncPanel({
     }
     setActionLoading(true);
     try {
-      await apiFetch("/api/osm/discard-selected", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [id] }),
-      });
+      await discardOsmChanges([id]);
       toast.success("Descartat");
       refreshHidrants();
       void reload();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
@@ -399,18 +341,13 @@ export function OsmSyncPanel({
     }
     setActionLoading(true);
     try {
-      const res = await apiFetch("/api/osm/missing/purge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adf_id: adfId, ids }),
-      });
-      const data = await res.json();
-      toast.success(`${data.deleted ?? 0} hidrants esborrats`);
+      const data = await purgeMissingFromOsm(adfId, ids);
+      toast.success(`${data.deleted} hidrants esborrats`);
       setSelected(new Set());
       refreshHidrants();
       void reload();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
@@ -424,21 +361,12 @@ export function OsmSyncPanel({
     }
     setActionLoading(true);
     try {
-      const res = await apiFetch(`/api/osm/pull-hydrant`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Dades d'OSM aplicades");
-        refreshHidrants();
-      } else {
-        toast.error(data.error || "Error");
-      }
+      await pullHydrantFromOsm(id);
+      toast.success("Dades d'OSM aplicades");
+      refreshHidrants();
       void reload();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
@@ -449,7 +377,7 @@ export function OsmSyncPanel({
   }
 
   const hasItems = pending.length > 0;
-  const hasSelected = selected.size > 0;
+  const hasSelected = selectedIds.length > 0;
 
   return (
     <div className="border border-border rounded overflow-hidden">
@@ -469,6 +397,7 @@ export function OsmSyncPanel({
         <p className="m-0 mt-1 text-[0.7rem] text-muted">
           Actualitza els hidrants SYNCED des d'OSM. Els canvis locals no es perden.
         </p>
+        {loadError && <p className="m-0 mt-1 text-[0.7rem] text-red-600">{loadError}</p>}
       </div>
 
       {/* Contingut */}
@@ -486,14 +415,14 @@ export function OsmSyncPanel({
                 disabled={actionLoading}
                 className="flex-1 text-[0.8rem] px-2 py-1.5 bg-blue-600 text-white border border-blue-700 rounded cursor-pointer disabled:opacity-50"
               >
-                Pujar ({selected.size})
+                Pujar ({selectedIds.length})
               </button>
               <button
                 onClick={() => void handleDiscardSelected()}
                 disabled={actionLoading}
                 className="flex-1 text-[0.8rem] px-2 py-1.5 bg-white text-ink border border-border rounded cursor-pointer disabled:opacity-50"
               >
-                Descartar ({selected.size})
+                Descartar ({selectedIds.length})
               </button>
             </div>
           )}
@@ -506,7 +435,7 @@ export function OsmSyncPanel({
                 return null;
               }
               const config = SECTION_CONFIG[key];
-              const isOpen = openSections[key];
+              const isOpen = isSectionOpen(key);
 
               return (
                 <div key={key}>

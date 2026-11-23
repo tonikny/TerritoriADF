@@ -1,7 +1,11 @@
-import { apiFetch } from "../../../utils/api";
 import { can } from "@territoriadf/contracts/permissions";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../../contexts/AuthContext";
+import { apiErrorMessage } from "../../../shared/api/client";
+import { setAdfTrackingSharing } from "../../../shared/api/adfs";
+import { enableTracking, getTrackingConfig, getTrackingStatus } from "../../../shared/api/tracking";
+import { queryKeys, viewerKey } from "../../../shared/query/keys";
 import { useAdf } from "../../../contexts/AdfContext";
 import type { Position } from "../../../hooks/usePositionPolling";
 import { timeAgo } from "../../../utils/time";
@@ -49,9 +53,20 @@ export function SeguimentTab({
   const { user } = useAuth();
   const { activeAdf, setActiveAdf } = useAdf();
   const [loading, setLoading] = useState(false);
-  const [available, setAvailable] = useState(false);
-  const [enabled, setEnabled] = useState(!!user?.mqtt_enabled);
+  const [enabledOverride, setEnabledOverride] = useState<boolean | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const queryClient = useQueryClient();
+  const viewer = viewerKey(user);
+
+  // L'estat d'OwnTracks depèn de l'usuari: es repolla cada 5 min com abans.
+  const statusQuery = useQuery({
+    queryKey: queryKeys.trackingStatus(viewer),
+    queryFn: ({ signal }) => getTrackingStatus(signal),
+    enabled: !!user,
+    refetchInterval: 300_000,
+  });
+  const available = statusQuery.data?.available ?? false;
+  const enabled = enabledOverride ?? statusQuery.data?.enabled ?? !!user?.mqtt_enabled;
   const [shared, setShared] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -73,21 +88,14 @@ export function SeguimentTab({
     setShared(checked);
     setSaving(true);
     try {
-      const r = await apiFetch(`/api/adfs/${activeAdf.id}/tracking-sharing`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ shared: checked }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        throw new Error(data.error || `API ${r.status}`);
-      }
+      await setAdfTrackingSharing(activeAdf.id, checked);
       setActiveAdf({ ...activeAdf, tracking_shared: checked });
+      // La llista d'ADFs porta `tracking_shared`: cal refrescar-la a la caché.
+      await queryClient.invalidateQueries({ queryKey: queryKeys.adfs });
       toast.success(checked ? "Tracking compartit amb totes les ADFs" : "Tracking privat de l'ADF");
     } catch (err) {
       setShared(!checked);
-      toast.error(err instanceof Error ? err.message : "Error actualitzant el tracking");
+      toast.error(apiErrorMessage(err, "Error actualitzant el tracking"));
     } finally {
       setSaving(false);
     }
@@ -98,54 +106,26 @@ export function SeguimentTab({
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await apiFetch("/api/tracking/status", { credentials: "same-origin" });
-        if (res.ok) {
-          const data = await res.json();
-          setAvailable(data.available);
-          setEnabled(data.enabled);
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    void poll();
-    const t = setInterval(() => {
-      void poll();
-    }, 300000);
-    return () => clearInterval(t);
-  }, []);
-
   const handleEnable = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch("/api/tracking/enable", {
-        method: "POST",
-        credentials: "same-origin",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        toast.error(err.error || "Error activant OwnTracks");
-        return;
-      }
-      setEnabled(true);
-    } catch {
-      toast.error("Error de connexió");
+      await enableTracking();
+      setEnabledOverride(true);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.trackingStatus(viewer) });
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Error activant OwnTracks"));
     } finally {
       setLoading(false);
     }
   };
 
   const loadOtrc = async (): Promise<Record<string, unknown> | null> => {
-    const res = await apiFetch("/api/tracking/config", { credentials: "same-origin" });
-    if (!res.ok) {
-      const err = await res.json();
-      toast.error(err.error || "Error descarregant config");
+    try {
+      return await getTrackingConfig();
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Error descarregant config"));
       return null;
     }
-    return (await res.json()) as Record<string, unknown>;
   };
 
   const handleConfig = async () => {
@@ -155,8 +135,6 @@ export function SeguimentTab({
       if (otrc) {
         downloadOtrc(otrc);
       }
-    } catch {
-      toast.error("Error de connexió");
     } finally {
       setLoading(false);
     }
@@ -170,8 +148,6 @@ export function SeguimentTab({
       if (cfg) {
         launchUrl(owntracksConfigHref(cfg));
       }
-    } catch {
-      toast.error("Error de connexió");
     } finally {
       setLoading(false);
     }

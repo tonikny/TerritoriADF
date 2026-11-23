@@ -1,10 +1,13 @@
-import { apiFetch } from "../../utils/api";
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useAdf } from "../../contexts/AdfContext";
 import { sendToTelegram } from "../../utils/sendToTelegram";
 import { logError } from "../../utils/log";
+import { apiErrorMessage } from "../../shared/api/client";
+import { discardOsmChanges, getOsmDiff, pullHydrantFromOsm, pushToOsm } from "../../shared/api/osm";
+import { invalidateOsmPending } from "../../shared/query/invalidate";
 
 type SyncStatus = HidrantFeature["properties"]["sync_status"];
 type SyncError = HidrantFeature["properties"]["sync_error"];
@@ -128,6 +131,7 @@ export function HidrantSyncActions({
   refreshHidrants?: () => Promise<void>;
 }) {
   const { activeAdf } = useAdf();
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [diffState, setDiff] = useState<DiffData | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
@@ -148,23 +152,23 @@ export function HidrantSyncActions({
     const load = async () => {
       setDiffLoading(true);
       try {
-        const res = await apiFetch(`/api/osm/diff/${id}`);
-        const data = await res.json();
-        if (!cancelled && data.diff) {
-          // Mapejar la resposta del backend (osmTags=local, remoteOsmTags=remote) a la interfície frontend (localTags, osmTags)
-          const backendDiff = data.diff;
+        const backendDiff = await getOsmDiff(id);
+        if (cancelled) {
+          return;
+        }
+        if (backendDiff) {
+          // Mapejar la resposta del backend (osmTags=local, remoteOsmTags=remote)
+          // a la interfície del panell (localTags, osmTags).
           setDiff({
-            localTags: backendDiff.osmTags || {},
-            osmTags: backendDiff.remoteOsmTags || {},
+            localTags: backendDiff.osmTags,
+            osmTags: backendDiff.remoteOsmTags,
             localLat: backendDiff.localLat,
             localLon: backendDiff.localLon,
             osmLat: backendDiff.remoteLat,
             osmLon: backendDiff.remoteLon,
           });
         } else {
-          if (!cancelled) {
-            setDiff(null);
-          }
+          setDiff(null);
         }
       } catch (err) {
         logError("Error carregant diff OSM", err);
@@ -206,12 +210,7 @@ export function HidrantSyncActions({
   const handlePush = async () => {
     setBusy(true);
     try {
-      const res = await apiFetch("/api/osm/push-selected", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [id] }),
-      });
-      const data = await res.json();
+      const data = await pushToOsm([id]);
       if (data.synced > 0) {
         toast.success("Pujat a OSM");
       }
@@ -227,9 +226,10 @@ export function HidrantSyncActions({
       if (sync_status === "PENDING_DELETE" && data.synced > 0) {
         await notifyDeleted();
       }
+      await invalidateOsmPending(queryClient);
       refresh();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -241,20 +241,12 @@ export function HidrantSyncActions({
     }
     setBusy(true);
     try {
-      const res = await apiFetch("/api/osm/pull-hydrant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Dades d'OSM aplicades");
-      } else {
-        toast.error(data.error || "Error");
-      }
+      await pullHydrantFromOsm(id);
+      toast.success("Dades d'OSM aplicades");
+      await invalidateOsmPending(queryClient);
       refresh();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -270,21 +262,15 @@ export function HidrantSyncActions({
     }
     setBusy(true);
     try {
-      const res = await apiFetch("/api/osm/discard-selected", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [id] }),
-      });
-      if (!res.ok) {
-        throw new Error("Error descartant el canvi");
-      }
+      await discardOsmChanges([id]);
       if (sync_status === "PENDING_CREATE") {
         await notifyDeleted();
       }
+      await invalidateOsmPending(queryClient);
       toast.success("Descartat");
       refresh();
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(apiErrorMessage(err));
     } finally {
       setBusy(false);
     }
