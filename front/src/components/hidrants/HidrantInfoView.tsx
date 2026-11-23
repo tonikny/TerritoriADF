@@ -3,7 +3,7 @@ import { getHidrantDisplayData, getHidrantImages } from "@/utils/hidrantDisplay"
 import { HidrantImages } from "./HidrantImages";
 import { QuickStatusButtons } from "./QuickStatusButtons";
 import { HidrantActions } from "./HidrantActions";
-import { HidrantSyncActions } from "./HidrantSyncActions";
+import { HidrantSyncActions } from "@/features/osm/HidrantSyncActions";
 
 export function HidrantInfoView({
   feature,

@@ -4,9 +4,9 @@ import { toast } from "react-toastify";
 import type { OsmPendingResponse, OsmSyncStats, PendingHidrant } from "@territoriadf/contracts/osm";
 import { useAdf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOsmMutations } from "@/features/osm/mutations";
+import { useOsmMutations } from "./mutations";
 import { apiErrorMessage } from "@/shared/api/client";
-import { getOsmPending } from "@/shared/api/osm";
+import { getOsmPending } from "./api";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 
 type SectionKey = PendingHidrant["sync_status"];

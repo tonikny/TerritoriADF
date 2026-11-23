@@ -5,7 +5,7 @@ import turfArea from "@turf/area";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf, type Adf } from "@/contexts/AdfContext";
 import { useAdfMutations } from "@/features/adfs/mutations";
-import { OsmSyncPanel } from "@/components/osm/OsmSyncPanel";
+import { OsmSyncPanel } from "@/features/osm/OsmSyncPanel";
 import { OfflineMapSection } from "@/components/panel/shared/OfflineMapSection";
 import { adfLabel } from "@/utils/adfLabel";
 import { logError } from "@/utils/log";

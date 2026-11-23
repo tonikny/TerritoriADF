@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useAdf } from "@/contexts/AdfContext";
-import { useOsmMutations } from "@/features/osm/mutations";
+import { useOsmMutations } from "./mutations";
 import { sendToTelegram } from "@/shared/api/notifications";
 import { logError } from "@/utils/log";
 import { apiErrorMessage } from "@/shared/api/client";
-import { getOsmDiff } from "@/shared/api/osm";
+import { getOsmDiff } from "./api";
 
 type SyncStatus = HidrantFeature["properties"]["sync_status"];
 type SyncError = HidrantFeature["properties"]["sync_error"];

@@ -9,7 +9,7 @@ import {
   purgeMissingFromOsm,
   pushToOsm,
   syncAdfFromOsm,
-} from "@/shared/api/osm";
+} from "./api";
 import { viewerKey } from "@/shared/query/keys";
 
 /**

@@ -10,7 +10,7 @@ import type {
 } from "@territoriadf/contracts/osm";
 import type { OsmPushResult } from "@territoriadf/contracts/sync";
 
-import { request } from "./client";
+import { request } from "@/shared/api/client";
 
 export async function getOsmPending(
   adfId: number,
