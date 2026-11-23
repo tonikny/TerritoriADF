@@ -5,9 +5,8 @@
 // serialitza el cos com a JSON, tradueix les respostes d'error a `ApiError`
 // (amb `status` i `code`) i propaga l'`AbortSignal` que li passi qui crida.
 //
-// `rawRequest()` queda per als llocs que encara necessiten el `Response` cru
-// (`apiFetch`); comparteix la injecció de capçaleres amb `request` perquè només
-// hi hagi una implementació.
+// La injecció de capçaleres del mode "veure com" viu aquí i només aquí: cap
+// component fa `fetch` a `/api/*` pel seu compte.
 //
 // Capçaleres del mode "veure com" de l'admin (`x-view-role` + `x-view-adf-id`,
 // llegides de `localStorage`). El backend les ignora si la sessió no és
@@ -33,7 +32,7 @@ function readLS(key: string): string | null {
 }
 
 /** Capçaleres de "veure com" (buit si no hi ha cap vista activa). */
-export function getViewAsHeaders(): Record<string, string> {
+function getViewAsHeaders(): Record<string, string> {
   const role = readLS(VIEW_ROLE_KEY);
   if (role !== "coordinador" && role !== "voluntari") {
     return {};
@@ -44,13 +43,6 @@ export function getViewAsHeaders(): Record<string, string> {
     headers["x-view-adf-id"] = adf.trim();
   }
   return headers;
-}
-
-function urlOf(input: RequestInfo | URL): string {
-  if (typeof input === "string") {
-    return input;
-  }
-  return input instanceof URL ? input.href : input.url;
 }
 
 function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
@@ -67,22 +59,18 @@ function headersToObject(headers: HeadersInit | undefined): Record<string, strin
 }
 
 /**
- * `fetch` amb les capçaleres de "veure com". Mateixa signatura que `fetch`.
- * Les rutes d'identitat (`/api/auth/*`, `/api/config`) no les duen mai.
+ * Afegeix les capçaleres de "veure com" a una petició de `/api/*`. Les rutes
+ * d'identitat (`/api/auth/*`, `/api/config`) no les duen mai.
  */
-export function rawRequest(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const url = urlOf(input);
+function withViewAsHeaders(url: string, init: RequestInit): RequestInit {
   if (!url.includes("/api/") || PASSTHROUGH.some((p) => url.includes(p))) {
-    return fetch(input, init);
+    return init;
   }
   const extra = getViewAsHeaders();
   if (Object.keys(extra).length === 0) {
-    return fetch(input, init);
+    return init;
   }
-  return fetch(input, {
-    ...init,
-    headers: { ...headersToObject(init?.headers), ...extra },
-  });
+  return { ...init, headers: { ...headersToObject(init.headers), ...extra } };
 }
 
 /** Error d'una resposta HTTP de l'API (o de xarxa, amb `status` 0). */
@@ -189,7 +177,8 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     init.headers = { "Content-Type": "application/json", ...headers };
   }
 
-  const response = await rawRequest(buildUrl(path, query), init);
+  const url = buildUrl(path, query);
+  const response = await fetch(url, withViewAsHeaders(url, init));
   if (!response.ok) {
     throw await toApiError(response);
   }

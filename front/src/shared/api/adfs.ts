@@ -44,3 +44,25 @@ export function setAdfTrackingSharing(
     body: { shared },
   });
 }
+
+export interface AdfInput {
+  nom: string;
+  osm_relations: string[];
+}
+
+export function createAdf(input: AdfInput & { id: number }): Promise<AdfData> {
+  return request<AdfData>("/api/adfs", { method: "POST", body: input });
+}
+
+export function updateAdf(adfId: number, input: AdfInput): Promise<AdfData> {
+  return request<AdfData>(`/api/adfs/${adfId}`, { method: "PUT", body: input });
+}
+
+export async function deleteAdf(adfId: number): Promise<void> {
+  await request<unknown>(`/api/adfs/${adfId}`, { method: "DELETE" });
+}
+
+/** Recalcula límits, bbox i centre des de les relacions OSM (operació externa lenta). */
+export async function recalculateAdfBoundaries(adfId: number): Promise<void> {
+  await request<unknown>(`/api/adfs/${adfId}/boundaries`, { method: "POST" });
+}

@@ -100,6 +100,25 @@ export function purgeMissingFromOsm(adfId: number, ids?: string[]): Promise<OsmP
   });
 }
 
+/** Diff entre les dades locals i les d'OSM d'un hidrant, o `null` si no n'hi ha. */
+export interface OsmDiff {
+  /** Etiquetes locals (el backend les anomena `osmTags`). */
+  osmTags: Record<string, string>;
+  /** Etiquetes remotes d'OSM (el backend les anomena `remoteOsmTags`). */
+  remoteOsmTags: Record<string, string>;
+  localLat: number;
+  localLon: number;
+  remoteLat: number;
+  remoteLon: number;
+}
+
+export async function getOsmDiff(id: string, signal?: AbortSignal): Promise<OsmDiff | null> {
+  const data = await request<{ diff: OsmDiff | null }>(`/api/osm/diff/${encodeURIComponent(id)}`, {
+    signal,
+  });
+  return data.diff ?? null;
+}
+
 /** Baixa d'OSM els hidrants sincronitzats de l'ADF; els canvis locals es mantenen. */
 export function syncAdfFromOsm(
   adfId: number,

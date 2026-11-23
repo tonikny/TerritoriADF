@@ -1,5 +1,7 @@
-import { apiFetch } from "../../utils/api";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { deleteHidrant, updateHidrant } from "../../shared/api/hidrants";
+import { invalidateHidrantData } from "../../shared/query/invalidate";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
@@ -54,6 +56,7 @@ export function useHidrantActions(
   refreshHidrants?: () => Promise<void> | void,
 ) {
   const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
   const poi = {
     lat: feature.geometry.coordinates[1],
     lng: feature.geometry.coordinates[0],
@@ -93,18 +96,11 @@ export function useHidrantActions(
         { lat: poi.lat, lon: poi.lng },
         hasNewPosition ? { lat: finalLat, lon: finalLon } : undefined,
       );
-      const response = await apiFetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ui_fields: opts.uiFields,
-          private_tags: privateTags,
-          ...(hasNewPosition ? { lat: opts.newLat, lon: opts.newLon } : {}),
-        }),
+      await updateHidrant(feature.id, adf.id, {
+        ui_fields: opts.uiFields,
+        private_tags: privateTags,
+        ...(hasNewPosition ? { lat: opts.newLat, lon: opts.newLon } : {}),
       });
-      if (!response.ok) {
-        throw new Error("Error actualitzant dades");
-      }
 
       await sendToTelegram({
         lat: finalLat,
@@ -116,6 +112,7 @@ export function useHidrantActions(
         isEdit: true,
       });
 
+      await invalidateHidrantData(queryClient);
       toast.success("Hidrant actualitzat");
       await afterChange();
       return true;
@@ -145,14 +142,8 @@ export function useHidrantActions(
         surveyDate: today,
         estat: isOperative ? "Operatiu" : "Fora de servei",
       };
-      const response = await apiFetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ui_fields: newData }),
-      });
-      if (!response.ok) {
-        throw new Error("Error actualitzant");
-      }
+      await updateHidrant(feature.id, adf.id, { ui_fields: newData });
+      await invalidateHidrantData(queryClient);
       toast.success(`Hidrant actualitzat a ${statusText}`);
 
       await sendToTelegram({
@@ -188,12 +179,7 @@ export function useHidrantActions(
 
     setBusy(true);
     try {
-      const response = await apiFetch(`/api/hidrants/${feature.id}?adf=${adf.id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        throw new Error("Error esborrant l'hidrant");
-      }
+      await deleteHidrant(feature.id, adf.id);
       try {
         await sendToTelegram({
           lat: poi.lat,
@@ -206,6 +192,7 @@ export function useHidrantActions(
         // L'esborrat ja s'ha fet: una fallada de Telegram no ha de fer-lo semblar fallit.
         logError("Error notificant l'esborrat a Telegram", err);
       }
+      await invalidateHidrantData(queryClient);
       toast.success("Hidrant esborrat");
       await afterChange();
     } catch (err) {
