@@ -1,7 +1,7 @@
 import type { LatLon } from "@/map/core/types";
 import type { CreateType } from "@/types";
 import { CreationSelector } from "@/components/shared/CreationSelector";
-import { NewNodeForm } from "@/components/hidrants/NewNodeForm";
+import { NewNodeForm } from "@/features/hidrants/NewNodeForm";
 import { NovaIncidenciaForm } from "@/features/incidencies/NovaIncidenciaForm";
 
 export function CreateNodePanel({

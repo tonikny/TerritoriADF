@@ -1,14 +1,14 @@
+import type { ReactNode } from "react";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import { getHidrantDisplayData, getHidrantImages } from "@/utils/hidrantDisplay";
+import { getHidrantDisplayData, getHidrantImages } from "./hidrantDisplay";
 import { HidrantImages } from "./HidrantImages";
 import { QuickStatusButtons } from "./QuickStatusButtons";
 import { HidrantActions } from "./HidrantActions";
-import { HidrantSyncActions } from "@/features/osm/HidrantSyncActions";
 
 export function HidrantInfoView({
   feature,
   canEdit,
-  isAdmin,
+  syncActions,
   showRoute,
   setShowRoute,
   hasLocation,
@@ -16,7 +16,7 @@ export function HidrantInfoView({
 }: {
   feature: HidrantFeature;
   canEdit: boolean;
-  isAdmin: boolean;
+  syncActions?: ReactNode;
   showRoute?: boolean;
   setShowRoute?: (v: boolean) => void;
   hasLocation?: boolean;
@@ -52,7 +52,7 @@ export function HidrantInfoView({
         </div>
       )}
 
-      {isAdmin && <HidrantSyncActions feature={feature} />}
+      {syncActions}
 
       {canEdit && (
         <QuickStatusButtons

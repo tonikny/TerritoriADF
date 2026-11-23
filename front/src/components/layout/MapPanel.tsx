@@ -18,7 +18,7 @@ import { useMapMarkers } from "@/hooks/map/useMapMarkers";
 import { useMapRoute } from "@/hooks/map/useMapRoute";
 import { useMapSheet } from "@/hooks/map/useMapSheet";
 import { useMapTracking } from "@/features/tracking/useMapTracking";
-import { useHidrantData } from "@/hooks/useHidrantData";
+import { useHidrantData } from "@/features/hidrants/useHidrantData";
 import { useIncidencies } from "@/features/incidencies/useIncidencies";
 import { boundaryPolygons, routePolylines } from "@/map/core/builders";
 import { fromLngLat } from "@/map/core/geometry";
@@ -203,6 +203,7 @@ function MapPanelView() {
       node={buildNodeSheet({
         sheet,
         canEdit,
+        isAdmin: user?.role === "admin",
         hasUser: !!user,
         hasLocation: !!tracking.position,
         showRoute,

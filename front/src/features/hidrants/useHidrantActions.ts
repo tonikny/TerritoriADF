@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import type { Adf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { invalidateHidrantQueries } from "@/shared/query/invalidate";
-import { deleteHidrant, updateHidrant } from "@/shared/api/hidrants";
+import { deleteHidrant, updateHidrant } from "./api";
 import { viewerKey } from "@/shared/query/keys";
 import { logError } from "@/utils/log";
 import { sendToTelegram } from "@/shared/api/notifications";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCreateHidrant } from "@/features/hidrants/mutations";
+import { useCreateHidrant } from "./mutations";
 import { sendToTelegram } from "@/shared/api/notifications";
 import type { LatLon } from "@/map/core/types";
 import { toast } from "react-toastify";

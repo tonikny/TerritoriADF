@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { can } from "@territoriadf/contracts/permissions";
 import type { LatLon } from "@/map/core/types";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf } from "@/contexts/AdfContext";
-import { useHidrantActions } from "@/features/hidrants/useHidrantActions";
+import { useHidrantActions } from "./useHidrantActions";
 import { HidrantInfoView } from "./HidrantInfoView";
 import { HidrantEditForm } from "./HidrantEditForm";
 import { usePreventLeave } from "@/hooks/usePreventLeave";
@@ -15,6 +15,7 @@ export const NodeInfo = ({
   setShowRoute,
   hasLocation,
   canEdit,
+  syncActions,
   editing,
   setEditing,
   draftPosition,
@@ -26,6 +27,7 @@ export const NodeInfo = ({
   setShowRoute?: (value: boolean) => void;
   hasLocation?: boolean;
   canEdit: boolean;
+  syncActions?: ReactNode;
   editing: boolean;
   setEditing: (v: boolean) => void;
   draftPosition?: LatLon | null;
@@ -45,7 +47,6 @@ export const NodeInfo = ({
     setObservacions(props.private_tags?.observacions || "");
   }, [props.ui_fields, props.private_tags?.observacions]);
 
-  const isAdmin = user?.role === "admin";
   const canDelete = canEdit && can(user?.permissions, "delete_hydrant");
 
   const { busy, save, quickStatus, remove } = useHidrantActions(feature, activeAdf);
@@ -96,7 +97,7 @@ export const NodeInfo = ({
         <HidrantInfoView
           feature={feature}
           canEdit={canEdit}
-          isAdmin={isAdmin}
+          syncActions={syncActions}
           showRoute={showRoute ?? false}
           setShowRoute={setShowRoute}
           hasLocation={hasLocation}

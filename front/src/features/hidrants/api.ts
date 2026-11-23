@@ -1,13 +1,13 @@
 // Funcions pures de la feature d'hidrants: només URL, mètode i forma de les
 // dades. L'estat (caché, càrrega, errors) el gestiona TanStack Query a
-// `hooks/useHidrantData.ts`.
+// `features/hidrants/useHidrantData.ts`.
 import type {
   HidrantFeature,
   HidrantPrivateTags,
   HidrantUiFields,
 } from "@territoriadf/contracts/hidrants";
 
-import { request } from "./client";
+import { request } from "@/shared/api/client";
 
 export interface HidrantCreateInput {
   lat: number;

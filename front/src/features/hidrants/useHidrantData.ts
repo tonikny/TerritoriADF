@@ -1,16 +1,12 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 
 import { useAdf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiErrorMessage } from "@/shared/api/client";
-import { getHidrants } from "@/shared/api/hidrants";
+import { getHidrants } from "./api";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 import { markDataSynced } from "@/utils/offlineData";
-
-// La forma del GeoJSON ve del contracte compartit amb el backend.
-export type { HidrantFeature };
 
 /**
  * Hidrants de l'ADF activa.

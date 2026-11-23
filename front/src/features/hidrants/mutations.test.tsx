@@ -10,7 +10,7 @@ import { useCreateHidrant } from "./mutations";
 
 const api = vi.hoisted(() => ({ createHidrant: vi.fn() }));
 
-vi.mock("@/shared/api/hidrants", () => api);
+vi.mock("./api", () => api);
 
 const ctx = vi.hoisted(() => ({
   activeAdf: { id: 278 } as { id: number } | null,

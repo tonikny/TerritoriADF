@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { HidrantImage } from "@/utils/hidrantDisplay";
+import type { HidrantImage } from "./hidrantDisplay";
 
 interface HidrantImagesProps {
   images: HidrantImage[];

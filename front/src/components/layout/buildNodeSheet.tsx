@@ -1,5 +1,6 @@
-import { NodeInfo } from "@/components/hidrants/NodeInfo";
+import { NodeInfo } from "@/features/hidrants/NodeInfo";
 import { IncidenciaInfo } from "@/features/incidencies/IncidenciaInfo";
+import { HidrantSyncActions } from "@/features/osm/HidrantSyncActions";
 import { CreateNodePanel } from "@/components/panel/CreateNodePanel";
 import { createTitle } from "@/components/panel/createTitle";
 import type { useMapSheet } from "@/hooks/map/useMapSheet";
@@ -15,6 +16,7 @@ import type { PanelNode } from "./types";
 export function buildNodeSheet({
   sheet,
   canEdit,
+  isAdmin,
   hasUser,
   hasLocation,
   showRoute,
@@ -22,6 +24,7 @@ export function buildNodeSheet({
 }: {
   sheet: ReturnType<typeof useMapSheet>;
   canEdit: boolean;
+  isAdmin: boolean;
   hasUser: boolean;
   hasLocation: boolean;
   showRoute: boolean;
@@ -36,6 +39,7 @@ export function buildNodeSheet({
         <NodeInfo
           feature={selectedNode}
           canEdit={canEdit}
+          syncActions={isAdmin ? <HidrantSyncActions feature={selectedNode} /> : undefined}
           editing={editing}
           setEditing={sheet.setEditing}
           draftPosition={sheet.draftPosition}
