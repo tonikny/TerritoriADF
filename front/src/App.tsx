@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./shared/query/queryClient";
 import { AdfProvider } from "./contexts/AdfContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { MapPanel } from "./components/layout/MapPanel";
@@ -17,12 +19,14 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <AdfProvider>
-        <MapPanel />
-        <PwaBanner />
-        <ToastContainer position="top-center" autoClose={3000} theme="colored" />
-      </AdfProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AdfProvider>
+          <MapPanel />
+          <PwaBanner />
+          <ToastContainer position="top-center" autoClose={3000} theme="colored" />
+        </AdfProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

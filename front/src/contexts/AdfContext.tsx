@@ -1,19 +1,15 @@
-import { apiFetch } from "../utils/api";
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { useAuth } from "./AuthContext";
 import { adfLabel } from "../utils/adfLabel";
 import { getQueryParam, setAdfUrlParam, setNodeUrlParam } from "../utils/urlParams";
 import { APP_NAME } from "../utils/appInfo";
+import { getAdfs, getAdfBoundary, type AdfData } from "../shared/api/adfs";
+import { queryKeys } from "../shared/query/keys";
 
-export interface AdfData {
-  id: number;
-  nom: string;
-  osm_relations: string[];
-  bbox: [number, number, number, number] | null;
-  center: [number, number] | null;
-  tracking_shared?: boolean;
-}
+export type { AdfData };
 
 interface AdfContextType {
   activeAdf: AdfData | null;
@@ -29,11 +25,8 @@ const AdfContext = createContext<AdfContextType | undefined>(undefined);
 
 export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, setActiveAdfId: setAuthActiveAdfId } = useAuth();
+  const queryClient = useQueryClient();
   const [activeAdf, setActiveAdfState] = useState<AdfData | null>(null);
-  const [adfs, setAdfs] = useState<AdfData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [boundaryGeojsonRaw, setBoundaryGeojsonRaw] = useState<string | null>(null);
 
   const setActiveAdf = useCallback(
     (adf: AdfData | null) => {
@@ -53,87 +46,103 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     [setAuthActiveAdfId],
   );
 
+  const adfsQuery = useQuery({
+    queryKey: queryKeys.adfs,
+    queryFn: ({ signal }) => getAdfs(signal),
+  });
+  const adfs = useMemo(() => adfsQuery.data ?? [], [adfsQuery.data]);
+
   /** Torna a carregar la llista d'ADFs (després de crear, editar o eliminar-ne una). */
-  const refreshAdfs = useCallback(async () => {
-    const response = await apiFetch("/api/adfs");
-    if (!response.ok) {
-      throw new Error("Error carregant ADFs");
-    }
-    const data = (await response.json()) as AdfData[];
-    setAdfs(data);
-    return data;
-  }, []);
+  const refreshAdfs = useCallback(async (): Promise<AdfData[]> => {
+    return queryClient.fetchQuery({
+      queryKey: queryKeys.adfs,
+      queryFn: ({ signal }) => getAdfs(signal),
+      staleTime: 0,
+    });
+  }, [queryClient]);
 
-  // Carregar llista d'ADFs inicial
+  // Triar l'ADF inicial quan arriba la llista: URL > preferència desada > ADF de l'usuari.
+  // La tria no es pot fer al render perquè també escriu la URL i `localStorage`.
   useEffect(() => {
-    const fetchAdfs = async () => {
-      try {
-        setIsLoading(true);
-        const response = await apiFetch("/api/adfs");
-        if (!response.ok) {
-          throw new Error("Error carregant ADFs");
-        }
-        const data = await response.json();
-        setAdfs(data);
-
-        const urlAdfId = getQueryParam("adf");
-
-        // Prioritat 0: Paràmetre ADF a la URL
-        if (urlAdfId) {
-          const urlAdf = data.find((a: AdfData) => a.id === Number(urlAdfId));
-          if (urlAdf) {
-            setActiveAdf(urlAdf);
-            return;
-          }
-        }
-
-        // Prioritat 1: Recuperar de localStorage (el que l'usuari estava veient realment)
-        const savedAdfId = localStorage.getItem("active_adf_id");
-        if (savedAdfId) {
-          const savedAdf = data.find((a: AdfData) => a.id === Number(savedAdfId));
-          if (savedAdf) {
-            setActiveAdf(savedAdf);
-            return;
-          }
-        }
-
-        // Prioritat 2: ADF de l'usuari si té ADF assignada (només si no hi ha res guardat)
-        if (user && user.role !== "admin" && user.adf_id) {
-          const userAdf = data.find((a: AdfData) => a.id === user.adf_id);
-          if (userAdf) {
-            setActiveAdf(userAdf);
-            return;
-          }
-        }
-
-        // Si teníem un adf a la URL però no era vàlid, el netegem
-        if (urlAdfId) {
-          setActiveAdf(null);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void fetchAdfs();
-  }, [user, setActiveAdf]);
-
-  useEffect(() => {
-    if (!activeAdf) {
+    if (!adfsQuery.data) {
       return;
     }
-    void apiFetch(`/api/adf/boundary?adf=${activeAdf.id}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((gj) => setBoundaryGeojsonRaw(gj ? JSON.stringify(gj) : null))
-      .catch(() => setBoundaryGeojsonRaw(null));
-  }, [activeAdf]);
+    /* eslint-disable react-hooks/set-state-in-effect -- selecció inicial sobre dades asíncrones */
+    const data = adfsQuery.data;
+    const urlAdfId = getQueryParam("adf");
 
-  const boundaryGeojson = activeAdf ? boundaryGeojsonRaw : null;
+    // Prioritat 0: Paràmetre ADF a la URL
+    if (urlAdfId) {
+      const urlAdf = data.find((a) => a.id === Number(urlAdfId));
+      if (urlAdf) {
+        setActiveAdf(urlAdf);
+        return;
+      }
+    }
+
+    // Prioritat 1: Recuperar de localStorage (el que l'usuari estava veient realment)
+    const savedAdfId = localStorage.getItem("active_adf_id");
+    if (savedAdfId) {
+      const savedAdf = data.find((a) => a.id === Number(savedAdfId));
+      if (savedAdf) {
+        setActiveAdf(savedAdf);
+        return;
+      }
+    }
+
+    // Prioritat 2: ADF de l'usuari si té ADF assignada (només si no hi ha res guardat)
+    if (user && user.role !== "admin" && user.adf_id) {
+      const userAdf = data.find((a) => a.id === user.adf_id);
+      if (userAdf) {
+        setActiveAdf(userAdf);
+        return;
+      }
+    }
+
+    // Si teníem un adf a la URL però no era vàlid, el netegem
+    if (urlAdfId) {
+      setActiveAdf(null);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [adfsQuery.data, user, setActiveAdf]);
+
+  // La frontera va per clau d'ADF: en canviar d'ADF la consulta és una altra i la
+  // resposta de l'anterior no es pot pintar mai com si fos l'actual.
+  const boundaryQuery = useQuery({
+    queryKey: queryKeys.adfBoundary(activeAdf?.id ?? null),
+    queryFn: ({ signal }) =>
+      activeAdf === null ? Promise.resolve(null) : getAdfBoundary(activeAdf.id, signal),
+    enabled: activeAdf !== null,
+  });
+
+  const boundaryGeojson = useMemo(
+    () => (activeAdf && boundaryQuery.data ? JSON.stringify(boundaryQuery.data) : null),
+    [activeAdf, boundaryQuery.data],
+  );
 
   const value = useMemo(
-    () => ({ activeAdf, setActiveAdf, adfs, isLoading, error, boundaryGeojson, refreshAdfs }),
-    [activeAdf, setActiveAdf, adfs, isLoading, error, boundaryGeojson, refreshAdfs],
+    () => ({
+      activeAdf,
+      setActiveAdf,
+      adfs,
+      isLoading: adfsQuery.isPending,
+      error: adfsQuery.error
+        ? adfsQuery.error instanceof Error
+          ? adfsQuery.error.message
+          : "Error carregant ADFs"
+        : null,
+      boundaryGeojson,
+      refreshAdfs,
+    }),
+    [
+      activeAdf,
+      setActiveAdf,
+      adfs,
+      adfsQuery.isPending,
+      adfsQuery.error,
+      boundaryGeojson,
+      refreshAdfs,
+    ],
   );
 
   return <AdfContext.Provider value={value}>{children}</AdfContext.Provider>;
