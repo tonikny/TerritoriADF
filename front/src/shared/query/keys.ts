@@ -12,6 +12,8 @@ export const queryKeys = {
   session: ["session"] as const,
   adfs: ["adfs"] as const,
   adfBoundary: (adfId: number | null) => ["adf-boundary", adfId] as const,
+  users: (viewer: string) => ["users", viewer] as const,
+  telegramStatus: (adfId: number | null) => ["telegram-status", adfId] as const,
   hidrants: (adfId: number | null, viewer: string) => ["hidrants", adfId, viewer] as const,
   incidencies: (adfId: number | null, viewer: string) => ["incidencies", adfId, viewer] as const,
   // El detall també depèn de l'ADF efectiva: la visibilitat d'una `ADF_PRIVADA`

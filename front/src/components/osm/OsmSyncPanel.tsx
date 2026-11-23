@@ -1,18 +1,12 @@
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import type { OsmPendingResponse, OsmSyncStats, PendingHidrant } from "@territoriadf/contracts/osm";
 import { useAdf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOsmMutations } from "@/features/osm/mutations";
 import { apiErrorMessage } from "@/shared/api/client";
-import {
-  discardOsmChanges,
-  getOsmPending,
-  pullHydrantFromOsm,
-  purgeMissingFromOsm,
-  pushToOsm,
-  syncAdfFromOsm,
-} from "@/shared/api/osm";
+import { getOsmPending } from "@/shared/api/osm";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 
 type SectionKey = PendingHidrant["sync_status"];
@@ -90,30 +84,16 @@ function parseSyncError(syncError?: string | null): string[] {
   }
 }
 
-export function OsmSyncPanel({
-  onSelectHidrant,
-  onRefresh,
-}: {
-  onSelectHidrant?: (id: string) => void;
-  onRefresh?: () => void;
-}) {
+export function OsmSyncPanel({ onSelectHidrant }: { onSelectHidrant?: (id: string) => void }) {
   const { activeAdf } = useAdf();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const adfId = activeAdf?.id ?? null;
   const viewer = viewerKey(user);
+  const actions = useOsmMutations();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [actionLoading, setActionLoading] = useState(false);
-  const [pulling, setPulling] = useState(false);
 
-  const selectHidrant = (id: string) => {
-    onSelectHidrant?.(id);
-  };
-
-  const refreshHidrants = () => {
-    onRefresh?.();
-  };
+  const selectHidrant = (id: string) => onSelectHidrant?.(id);
 
   const pendingQuery = useQuery({
     queryKey: queryKeys.osmPending(adfId, viewer),
@@ -126,7 +106,7 @@ export function OsmSyncPanel({
 
   const pending = pendingQuery.data?.pending ?? [];
   const stats = pendingQuery.data?.stats ?? null;
-  const loading = pendingQuery.isFetching || pulling;
+  const loading = pendingQuery.isFetching || actions.pullSync.isPending;
   const loadError = pendingQuery.error
     ? apiErrorMessage(pendingQuery.error, "Error carregant canvis pendents")
     : null;
@@ -136,13 +116,6 @@ export function OsmSyncPanel({
     () => (pendingQuery.data?.pending ?? []).filter((h) => selected.has(h.id)).map((h) => h.id),
     [pendingQuery.data, selected],
   );
-
-  const reload = async () => {
-    if (adfId === null) {
-      return;
-    }
-    await queryClient.invalidateQueries({ queryKey: queryKeys.osmPending(adfId, viewer) });
-  };
 
   const grouped = pending.reduce<Record<SectionKey, PendingHidrant[]>>(
     (acc, h) => {
@@ -198,9 +171,8 @@ export function OsmSyncPanel({
     if (selectedIds.length === 0) {
       return;
     }
-    setActionLoading(true);
     try {
-      const data = await pushToOsm(selectedIds);
+      const data = await actions.push.mutateAsync(selectedIds);
       if (data.synced > 0) {
         toast.success(`${data.synced} hidrants pujats`);
       }
@@ -214,12 +186,8 @@ export function OsmSyncPanel({
         toast.info(`${data.reviewed} per revisar`);
       }
       setSelected(new Set());
-      refreshHidrants();
-      void reload();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -230,9 +198,8 @@ export function OsmSyncPanel({
     if (!window.confirm(`Descartar ${selectedIds.length} canvis seleccionats?`)) {
       return;
     }
-    setActionLoading(true);
     try {
-      const data = await discardOsmChanges(selectedIds);
+      const data = await actions.discard.mutateAsync(selectedIds);
       const parts: string[] = [];
       if (data.discarded > 0) {
         parts.push(`${data.discarded} descartats`);
@@ -242,12 +209,8 @@ export function OsmSyncPanel({
       }
       toast.success(parts.join(", ") || "Fet");
       setSelected(new Set());
-      refreshHidrants();
-      void reload();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -276,29 +239,23 @@ export function OsmSyncPanel({
         return;
       }
     }
-    setPulling(true);
     try {
-      const data = await syncAdfFromOsm(activeAdf.id);
+      const data = await actions.pullSync.mutateAsync();
       if (data.success) {
         toast.success(data.message);
-        refreshHidrants();
-        void reload();
       } else {
         toast.error(data.message || "Error desconegut");
       }
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setPulling(false);
     }
   };
 
   // --- Accions individuals ---
 
   const handlePushOne = async (id: string) => {
-    setActionLoading(true);
     try {
-      const data = await pushToOsm([id]);
+      const data = await actions.push.mutateAsync([id]);
       if (data.synced > 0) {
         toast.success("Pujat a OSM");
       }
@@ -311,12 +268,8 @@ export function OsmSyncPanel({
       if (data.reviewed > 0) {
         toast.info("Per revisar abans de pujar");
       }
-      refreshHidrants();
-      void reload();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -328,21 +281,16 @@ export function OsmSyncPanel({
     if (!window.confirm(msg)) {
       return;
     }
-    setActionLoading(true);
     try {
-      await discardOsmChanges([id]);
+      await actions.discard.mutateAsync([id]);
       toast.success("Descartat");
-      refreshHidrants();
-      void reload();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setActionLoading(false);
     }
   };
 
   /** Purga manual dels hidrants que ja no són a OSM (no s'esborren durant el pull). */
-  const handlePurgeMissing = async (adfId: number, ids?: string[]) => {
+  const handlePurgeMissing = async (ids?: string[]) => {
     const msg =
       ids && ids.length > 0
         ? `Esborrar definitivament ${ids.length} hidrant(s) de la base de dades?\nLes seves dades locals (observacions incloses) es perdran.`
@@ -350,17 +298,12 @@ export function OsmSyncPanel({
     if (!window.confirm(msg)) {
       return;
     }
-    setActionLoading(true);
     try {
-      const data = await purgeMissingFromOsm(adfId, ids);
+      const data = await actions.purge.mutateAsync(ids);
       toast.success(`${data.deleted} hidrants esborrats`);
       setSelected(new Set());
-      refreshHidrants();
-      void reload();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -370,16 +313,11 @@ export function OsmSyncPanel({
     ) {
       return;
     }
-    setActionLoading(true);
     try {
-      await pullHydrantFromOsm(id);
+      await actions.pull.mutateAsync(id);
       toast.success("Dades d'OSM aplicades");
-      refreshHidrants();
-      void reload();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -423,14 +361,14 @@ export function OsmSyncPanel({
             <div className="flex gap-2 px-3 py-2 border-t border-border bg-bg">
               <button
                 onClick={() => void handlePushSelected()}
-                disabled={actionLoading}
+                disabled={actions.isPending}
                 className="flex-1 text-[0.8rem] px-2 py-1.5 bg-blue-600 text-white border border-blue-700 rounded cursor-pointer disabled:opacity-50"
               >
                 Pujar ({selectedIds.length})
               </button>
               <button
                 onClick={() => void handleDiscardSelected()}
-                disabled={actionLoading}
+                disabled={actions.isPending}
                 className="flex-1 text-[0.8rem] px-2 py-1.5 bg-white text-ink border border-border rounded cursor-pointer disabled:opacity-50"
               >
                 Descartar ({selectedIds.length})
@@ -479,8 +417,8 @@ export function OsmSyncPanel({
                       {config.hint}
                       {key === "MISSING_IN_OSM" && activeAdf && (
                         <button
-                          onClick={() => void handlePurgeMissing(activeAdf.id)}
-                          disabled={actionLoading}
+                          onClick={() => void handlePurgeMissing()}
+                          disabled={actions.isPending}
                           className="ml-2 text-[0.7rem] px-1.5 py-0.5 bg-white text-red-600 border border-border rounded cursor-pointer disabled:opacity-50"
                         >
                           Esborrar-los tots
@@ -536,7 +474,7 @@ export function OsmSyncPanel({
                                 key === "REVIEW") && (
                                 <button
                                   onClick={() => void handlePushOne(h.id)}
-                                  disabled={actionLoading}
+                                  disabled={actions.isPending}
                                   className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
                                   title={
                                     key === "ERROR"
@@ -553,7 +491,7 @@ export function OsmSyncPanel({
                               {key === "CONFLICT" && (
                                 <button
                                   onClick={() => void handlePullFromOsm(h.id, hidrantLabel(h))}
-                                  disabled={actionLoading}
+                                  disabled={actions.isPending}
                                   className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
                                   title="Aplicar versió d'OSM"
                                 >
@@ -564,7 +502,7 @@ export function OsmSyncPanel({
                               {key === "PENDING_DELETE" && (
                                 <button
                                   onClick={() => void handlePushOne(h.id)}
-                                  disabled={actionLoading}
+                                  disabled={actions.isPending}
                                   className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
                                   title="Confirmar esborrat a OSM"
                                 >
@@ -574,10 +512,8 @@ export function OsmSyncPanel({
                               {/* Ja no és a OSM → purga manual; la resta → descartar */}
                               {key === "MISSING_IN_OSM" ? (
                                 <button
-                                  onClick={() =>
-                                    activeAdf && void handlePurgeMissing(activeAdf.id, [h.id])
-                                  }
-                                  disabled={actionLoading}
+                                  onClick={() => void handlePurgeMissing([h.id])}
+                                  disabled={actions.isPending}
                                   className="text-[0.7rem] px-1.5 py-0.5 bg-white text-red-600 border border-border rounded cursor-pointer disabled:opacity-50"
                                   title="Esborrar definitivament de la base de dades"
                                 >
@@ -586,7 +522,7 @@ export function OsmSyncPanel({
                               ) : (
                                 <button
                                   onClick={() => void handleDiscardOne(h.id, key, hidrantLabel(h))}
-                                  disabled={actionLoading}
+                                  disabled={actions.isPending}
                                   className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
                                   title={
                                     key === "PENDING_CREATE"

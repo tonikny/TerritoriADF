@@ -13,7 +13,6 @@ export function HidrantInfoView({
   setShowRoute,
   hasLocation,
   onQuickStatus,
-  refreshHidrants,
 }: {
   feature: HidrantFeature;
   canEdit: boolean;
@@ -22,7 +21,6 @@ export function HidrantInfoView({
   setShowRoute?: (v: boolean) => void;
   hasLocation?: boolean;
   onQuickStatus: (isOperative: boolean) => void;
-  refreshHidrants?: () => Promise<void>;
 }) {
   const props = feature.properties;
   const displayData = getHidrantDisplayData(props.ui_fields);
@@ -54,7 +52,7 @@ export function HidrantInfoView({
         </div>
       )}
 
-      {isAdmin && <HidrantSyncActions feature={feature} refreshHidrants={refreshHidrants} />}
+      {isAdmin && <HidrantSyncActions feature={feature} />}
 
       {canEdit && (
         <QuickStatusButtons

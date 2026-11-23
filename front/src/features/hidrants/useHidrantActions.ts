@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { deleteHidrant, updateHidrant } from "@/shared/api/hidrants";
-import { invalidateOsmPending } from "@/shared/query/invalidate";
+import type { HidrantFeature, HidrantUiFields } from "@territoriadf/contracts/hidrants";
 import { toast } from "react-toastify";
-import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
+
 import type { Adf } from "@/contexts/AdfContext";
-import { sendToTelegram } from "@/utils/sendToTelegram";
+import { useAuth } from "@/contexts/AuthContext";
+import { invalidateHidrantQueries } from "@/features/hidrants/mutations";
+import { deleteHidrant, updateHidrant } from "@/shared/api/hidrants";
+import { viewerKey } from "@/shared/query/keys";
 import { logError } from "@/utils/log";
+import { sendToTelegram } from "@/utils/sendToTelegram";
 
 type FieldPatch = Partial<HidrantUiFields & { observacions: string; coordinates: string }>;
 
@@ -50,23 +52,21 @@ function calculateChanges(
   return { changes, originalValues };
 }
 
-export function useHidrantActions(
-  feature: HidrantFeature,
-  adf: Adf | null,
-  refreshHidrants?: () => Promise<void> | void,
-) {
+/**
+ * Edició, estat ràpid i esborrat d'un hidrant. Cada acció invalida la llista
+ * d'hidrants i els pendents d'OSM: el panell no ha de rebre cap `refresh`.
+ */
+export function useHidrantActions(feature: HidrantFeature, adf: Adf | null) {
   const [busy, setBusy] = useState(false);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const viewer = viewerKey(user);
   const poi = {
     lat: feature.geometry.coordinates[1],
     lng: feature.geometry.coordinates[0],
   };
 
-  const afterChange = async () => {
-    if (refreshHidrants) {
-      await refreshHidrants();
-    }
-  };
+  const afterChange = () => invalidateHidrantQueries(queryClient, adf?.id ?? null, viewer);
 
   const save = async (opts: {
     uiFields: HidrantUiFields;
@@ -112,9 +112,8 @@ export function useHidrantActions(
         isEdit: true,
       });
 
-      await invalidateOsmPending(queryClient);
-      toast.success("Hidrant actualitzat");
       await afterChange();
+      toast.success("Hidrant actualitzat");
       return true;
     } catch (err) {
       logError("Error en actualitzar l'hidrant", err);
@@ -143,7 +142,7 @@ export function useHidrantActions(
         estat: isOperative ? "Operatiu" : "Fora de servei",
       };
       await updateHidrant(feature.id, adf.id, { ui_fields: newData });
-      await invalidateOsmPending(queryClient);
+      await afterChange();
       toast.success(`Hidrant actualitzat a ${statusText}`);
 
       await sendToTelegram({
@@ -159,7 +158,6 @@ export function useHidrantActions(
         isEdit: true,
       });
 
-      await afterChange();
       return newData;
     } catch (err) {
       logError("Error en l'actualització ràpida", err);
@@ -192,9 +190,8 @@ export function useHidrantActions(
         // L'esborrat ja s'ha fet: una fallada de Telegram no ha de fer-lo semblar fallit.
         logError("Error notificant l'esborrat a Telegram", err);
       }
-      await invalidateOsmPending(queryClient);
-      toast.success("Hidrant esborrat");
       await afterChange();
+      toast.success("Hidrant esborrat");
     } catch (err) {
       logError("Error en esborrar l'hidrant", err);
       toast.error("Error en esborrar l'hidrant");
@@ -203,5 +200,5 @@ export function useHidrantActions(
     }
   };
 
-  return { busy, save, quickStatus, remove, poi };
+  return { busy, save, quickStatus, remove };
 }

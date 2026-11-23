@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useAdf } from "@/contexts/AdfContext";
+import { useOsmMutations } from "@/features/osm/mutations";
 import { sendToTelegram } from "@/utils/sendToTelegram";
 import { logError } from "@/utils/log";
 import { apiErrorMessage } from "@/shared/api/client";
-import { discardOsmChanges, getOsmDiff, pullHydrantFromOsm, pushToOsm } from "@/shared/api/osm";
-import { invalidateOsmPending } from "@/shared/query/invalidate";
+import { getOsmDiff } from "@/shared/api/osm";
 
 type SyncStatus = HidrantFeature["properties"]["sync_status"];
 type SyncError = HidrantFeature["properties"]["sync_error"];
@@ -123,16 +122,9 @@ function DiffTable({ diff }: { diff: DiffData }) {
   );
 }
 
-export function HidrantSyncActions({
-  feature,
-  refreshHidrants,
-}: {
-  feature: HidrantFeature;
-  refreshHidrants?: () => Promise<void>;
-}) {
+export function HidrantSyncActions({ feature }: { feature: HidrantFeature }) {
   const { activeAdf } = useAdf();
-  const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
+  const actions = useOsmMutations();
   const [diffState, setDiff] = useState<DiffData | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const { id, sync_status, sync_error, osm_id, synced_at } = feature.properties;
@@ -186,10 +178,6 @@ export function HidrantSyncActions({
 
   const diff = conflictDiff ?? diffState;
 
-  const refresh = () => {
-    void refreshHidrants?.();
-  };
-
   const notifyDeleted = async () => {
     if (!activeAdf) {
       return;
@@ -208,9 +196,8 @@ export function HidrantSyncActions({
   };
 
   const handlePush = async () => {
-    setBusy(true);
     try {
-      const data = await pushToOsm([id]);
+      const data = await actions.push.mutateAsync([id]);
       if (data.synced > 0) {
         toast.success("Pujat a OSM");
       }
@@ -226,12 +213,8 @@ export function HidrantSyncActions({
       if (sync_status === "PENDING_DELETE" && data.synced > 0) {
         await notifyDeleted();
       }
-      await invalidateOsmPending(queryClient);
-      refresh();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -239,16 +222,11 @@ export function HidrantSyncActions({
     if (!window.confirm("Aplicar versió d'OSM?\nLes dades locals es sobreescriuran.")) {
       return;
     }
-    setBusy(true);
     try {
-      await pullHydrantFromOsm(id);
+      await actions.pull.mutateAsync(id);
       toast.success("Dades d'OSM aplicades");
-      await invalidateOsmPending(queryClient);
-      refresh();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -260,19 +238,14 @@ export function HidrantSyncActions({
     if (!window.confirm(msg)) {
       return;
     }
-    setBusy(true);
     try {
-      await discardOsmChanges([id]);
+      await actions.discard.mutateAsync([id]);
       if (sync_status === "PENDING_CREATE") {
         await notifyDeleted();
       }
-      await invalidateOsmPending(queryClient);
       toast.success("Descartat");
-      refresh();
     } catch (err) {
       toast.error(apiErrorMessage(err));
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -356,7 +329,7 @@ export function HidrantSyncActions({
             sync_status === "REVIEW") && (
             <button
               onClick={() => void handlePush()}
-              disabled={busy}
+              disabled={actions.isPending}
               className="flex-1 text-[0.75rem] px-2 py-1.5 bg-blue-600 text-white border border-blue-700 rounded cursor-pointer disabled:opacity-50 font-semibold"
             >
               {sync_status === "ERROR"
@@ -369,7 +342,7 @@ export function HidrantSyncActions({
           {sync_status === "PENDING_DELETE" && (
             <button
               onClick={() => void handlePush()}
-              disabled={busy}
+              disabled={actions.isPending}
               className="flex-1 text-[0.75rem] px-2 py-1.5 bg-red-600 text-white border border-red-700 rounded cursor-pointer disabled:opacity-50 font-semibold"
             >
               Confirmar esborrat
@@ -378,7 +351,7 @@ export function HidrantSyncActions({
           {sync_status === "CONFLICT" && (
             <button
               onClick={() => void handlePull()}
-              disabled={busy}
+              disabled={actions.isPending}
               className="flex-1 text-[0.75rem] px-2 py-1.5 bg-orange-600 text-white border border-orange-700 rounded cursor-pointer disabled:opacity-50 font-semibold"
             >
               Aplicar versió OSM
@@ -386,7 +359,7 @@ export function HidrantSyncActions({
           )}
           <button
             onClick={() => void handleDiscard()}
-            disabled={busy}
+            disabled={actions.isPending}
             className="flex-1 text-[0.75rem] px-2 py-1.5 bg-white text-ink border border-border rounded cursor-pointer disabled:opacity-50"
           >
             {sync_status === "PENDING_CREATE" ? "Esborrar" : "Revertir"}

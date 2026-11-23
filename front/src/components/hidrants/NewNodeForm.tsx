@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { createHidrant } from "@/shared/api/hidrants";
-import { invalidateOsmPending } from "@/shared/query/invalidate";
+import { useCreateHidrant } from "@/features/hidrants/mutations";
 import { sendToTelegram } from "@/utils/sendToTelegram";
 import type { LatLon } from "@/map/core/types";
 import { toast } from "react-toastify";
@@ -17,19 +15,12 @@ interface NewNodeFormProps {
   lon: number;
   onClose: () => void;
   setNewNodePosition: (position: LatLon | null) => void;
-  refreshHidrants?: () => void;
 }
 
-export const NewNodeForm = ({
-  lat,
-  lon,
-  onClose,
-  setNewNodePosition,
-  refreshHidrants,
-}: NewNodeFormProps) => {
+export const NewNodeForm = ({ lat, lon, onClose, setNewNodePosition }: NewNodeFormProps) => {
   const [observacions, setObservacions] = useState("");
   const { activeAdf } = useAdf();
-  const queryClient = useQueryClient();
+  const createHidrant = useCreateHidrant();
   const [isInspected, setIsInspected] = useState(false);
 
   const [data, setData] = useState<HidrantUiFields>({
@@ -73,7 +64,7 @@ export const NewNodeForm = ({
     try {
       // La creació es fa via l'endpoint protegit (valida permís i abast ADF);
       // sendToTelegram només notifica, ja no escriu a la BD.
-      const created = await createHidrant(activeAdf.id, {
+      const created = await createHidrant.mutateAsync({
         lat,
         lon,
         ui_fields: data,
@@ -102,10 +93,6 @@ export const NewNodeForm = ({
       }
       toast.success("Hidrant afegit");
       setObservacions("");
-      await invalidateOsmPending(queryClient);
-      if (refreshHidrants) {
-        await refreshHidrants();
-      }
       onClose();
       setNewNodePosition(null);
     } catch {

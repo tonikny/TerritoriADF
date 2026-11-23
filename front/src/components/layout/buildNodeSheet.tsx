@@ -17,21 +17,15 @@ export function buildNodeSheet({
   canEdit,
   hasUser,
   hasLocation,
-  nodeInfoKey,
   showRoute,
   setShowRoute,
-  refreshHidrants,
-  refreshIncidencies,
 }: {
   sheet: ReturnType<typeof useMapSheet>;
   canEdit: boolean;
   hasUser: boolean;
   hasLocation: boolean;
-  nodeInfoKey: number;
   showRoute: boolean;
   setShowRoute: (value: boolean) => void;
-  refreshHidrants: () => Promise<void>;
-  refreshIncidencies: () => void | Promise<void>;
 }): PanelNode | null {
   const { selectedNode, selectedIncidencia, editing, creation, close } = sheet;
 
@@ -40,14 +34,12 @@ export function buildNodeSheet({
       id: selectedNode.id,
       content: (
         <NodeInfo
-          key={nodeInfoKey}
           feature={selectedNode}
           canEdit={canEdit}
           editing={editing}
           setEditing={sheet.setEditing}
           draftPosition={sheet.draftPosition}
           setDraftPosition={sheet.setDraftPosition}
-          refreshHidrants={refreshHidrants}
           showRoute={showRoute}
           setShowRoute={setShowRoute}
           hasLocation={hasLocation}
@@ -72,9 +64,6 @@ export function buildNodeSheet({
           setEditing={sheet.setEditing}
           showRoute={showRoute}
           setShowRoute={setShowRoute}
-          refreshIncidencies={() => {
-            void refreshIncidencies();
-          }}
           hasLocation={hasLocation}
         />
       ),
@@ -95,12 +84,6 @@ export function buildNodeSheet({
           setForm={creation.setForm}
           onClose={close}
           setNewNodePosition={creation.setPosition}
-          refreshHidrants={() => {
-            void refreshHidrants();
-          }}
-          refreshIncidencies={() => {
-            void refreshIncidencies();
-          }}
         />
       ),
       onClose: close,

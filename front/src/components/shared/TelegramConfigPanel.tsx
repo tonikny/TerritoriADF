@@ -1,10 +1,10 @@
 import { can } from "@territoriadf/contracts/permissions";
-import type { TelegramStatus, TelegramStatusResponse } from "@territoriadf/contracts/telegram";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { adfLabel } from "@/utils/adfLabel";
 import { useAdf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTelegramActions, useTelegramStatus } from "@/features/telegram/useTelegram";
 import {
   dangerButtonClass,
   inputClass,
@@ -13,63 +13,6 @@ import {
 } from "@/styles/uiStyles";
 import { CollapsibleSection } from "@/components/panel/shared/CollapsibleSection";
 import { PasswordInput } from "./PasswordInput";
-import {
-  createTelegramLink,
-  deleteTelegram,
-  getTelegramStatus,
-  registerTelegramBot,
-  sendTelegramTest,
-} from "@/shared/api/telegram";
-
-const POLL_MS = 10000;
-
-/** Poller compartit per ADF: encara que el panell es munti a dos contenidors
- *  (sidebar desktop + BottomSheet mòbil), només es fa UNA petició per ADF.
- *  Només s'activa mentre el col·lapsable de Telegram està obert i l'element
- *  és visible (IntersectionObserver a l'efecte del component): en col·lapsar
- *  o tancar el panell no es fan crides. */
-type TelegramListener = (data: TelegramStatusResponse) => void;
-const perAdf = new Map<number, Set<TelegramListener>>();
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-
-async function pollAdf(adfId: number) {
-  try {
-    const data = await getTelegramStatus(adfId);
-    perAdf.get(adfId)?.forEach((l) => l(data));
-  } catch {
-    /* ignore: el servidor pot no estar disponible */
-  }
-}
-
-function subscribeTelegram(adfId: number, listener: TelegramListener) {
-  let set = perAdf.get(adfId);
-  if (!set) {
-    set = new Set();
-    perAdf.set(adfId, set);
-  }
-  set.add(listener);
-  void pollAdf(adfId);
-  if (!pollTimer) {
-    pollTimer = setInterval(() => {
-      if (document.visibilityState === "hidden") {
-        return; // no farruquejar si la pestanya no es veu
-      }
-      for (const id of perAdf.keys()) {
-        void pollAdf(id);
-      }
-    }, POLL_MS);
-  }
-  return () => {
-    set!.delete(listener);
-    if (set!.size === 0) {
-      perAdf.delete(adfId);
-    }
-    if (perAdf.size === 0 && pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
-  };
-}
 
 /** Exemple d'usuari de bot per a @BotFather: curts (màxim ~32 caràcters a Telegram). */
 function botUsernameExample(adf: { id: number; nom?: string }): string {
@@ -101,59 +44,38 @@ function StepNumber({ number, muted }: { number: string; muted?: boolean }) {
 export function TelegramConfigPanel() {
   const { user } = useAuth();
   const { activeAdf } = useAdf();
-  const [status, setStatus] = useState<TelegramStatus | null>(null);
-  const [botUsername, setBotUsername] = useState<string>();
-  const [botName, setBotName] = useState<string>();
-  const [groupName, setGroupName] = useState<string>();
   const [tokenInput, setTokenInput] = useState("");
   const [customMsg, setCustomMsg] = useState("");
-  const [registering, setRegistering] = useState(false);
-  const [linking, setLinking] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [linkUrl, setLinkUrl] = useState<string>();
   const [telegramOpen, setTelegramOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
+  const adfId = activeAdf?.id ?? null;
   const perms = user?.permissions ?? [];
   const canManage =
     !!activeAdf &&
     can(perms, "manage_telegram") &&
     (user?.role === "admin" || activeAdf.id === user?.adf_id);
 
+  // La consulta només polla mentre el panell és obert i realment visible:
+  // en col·lapsar-lo o tancar el bottom sheet no es fan crides.
+  const statusQuery = useTelegramStatus(adfId, canManage && telegramOpen && visible);
+  const actions = useTelegramActions(adfId);
+  const status = statusQuery.data?.status ?? null;
+  const botUsername = statusQuery.data?.bot_username ?? undefined;
+  const botName = statusQuery.data?.bot_name ?? undefined;
+  const groupName = statusQuery.data?.group_name ?? undefined;
+
   useEffect(() => {
-    const adfId = activeAdf?.id;
-    if (!adfId || !canManage || !telegramOpen || !wrapperRef.current) {
+    const el = wrapperRef.current;
+    if (!el) {
       return;
     }
-    let unsub: (() => void) | null = null;
-
-    const handleData = (data: TelegramStatusResponse) => {
-      if (data.status) {
-        setStatus(data.status);
-      }
-      setBotUsername(data.bot_username ?? undefined);
-      setBotName(data.bot_name ?? undefined);
-      setGroupName(data.group_name ?? undefined);
-    };
-
-    // Només fem polling mentre el panell és realment visible: en tancar el
-    // bottom sheet o canviar de pestanya no es fan crides al backend.
-    const io = new IntersectionObserver((entries) => {
-      const visible = entries.some((e) => e.isIntersecting);
-      if (visible && !unsub) {
-        unsub = subscribeTelegram(adfId, handleData);
-      } else if (!visible && unsub) {
-        unsub();
-        unsub = null;
-      }
-    });
-    io.observe(wrapperRef.current);
-    return () => {
-      io.disconnect();
-      unsub?.();
-    };
-  }, [activeAdf?.id, canManage, telegramOpen]);
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [adfId, user]);
 
   if (!user) {
     return (
@@ -173,8 +95,7 @@ export function TelegramConfigPanel() {
     );
   }
 
-  const adfId = activeAdf.id;
-  const groupAdf = adfLabel(adfId, activeAdf.nom);
+  const groupAdf = adfLabel(activeAdf.id, activeAdf.nom);
   const botReady = status === "BOT_CONFIGURAT" || status === "GRUP_PENDENT";
   const configured = status === "CONFIGURAT";
 
@@ -184,47 +105,31 @@ export function TelegramConfigPanel() {
       toast.warn("Enganxa primer el token del bot.");
       return;
     }
-    setRegistering(true);
     try {
-      const data = await registerTelegramBot(adfId, token);
-      setStatus(data.status);
-      setBotUsername(data.bot_username ?? undefined);
-      setBotName(data.bot_name ?? undefined);
-      if (data.group_name) {
-        setGroupName(data.group_name);
-      }
+      await actions.register.mutateAsync(token);
       setTokenInput("");
       toast.success("✅ Bot validat i connectat");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error inesperat");
-    } finally {
-      setRegistering(false);
     }
   }
 
   async function handleLink() {
-    setLinking(true);
     setLinkUrl(undefined);
     try {
-      const data = await createTelegramLink(adfId);
+      const data = await actions.link.mutateAsync();
       if (!data.url) {
         throw new Error("No s'ha pogut generar l'enllaç");
       }
       setLinkUrl(data.url);
-      if (data.bot_username) {
-        setBotUsername(data.bot_username);
-      }
       const win = window.open(data.url, "_blank");
       if (win) {
         toast.info("Obre Telegram, escull el grup de la teva ADF i prem «Afegeix».");
       } else {
         toast.info("Si no s'ha obert Telegram, toca l'enllaç de sota.");
       }
-      setStatus("GRUP_PENDENT");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error generant l'enllaç");
-    } finally {
-      setLinking(false);
     }
   }
 
@@ -234,15 +139,12 @@ export function TelegramConfigPanel() {
       toast.warn("Escriu primer el missatge que vols enviar.");
       return;
     }
-    setSending(true);
     try {
-      await sendTelegramTest(adfId, message);
+      await actions.sendTest.mutateAsync(message);
       setCustomMsg("");
       toast.success("📨 Missatge enviat al grup");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error enviant el missatge");
-    } finally {
-      setSending(false);
     }
   }
 
@@ -255,19 +157,12 @@ export function TelegramConfigPanel() {
     ) {
       return;
     }
-    setDeleting(true);
     try {
-      await deleteTelegram(adfId);
-      setStatus("NO_CONFIGURAT");
-      setBotUsername(undefined);
-      setBotName(undefined);
-      setGroupName(undefined);
+      await actions.remove.mutateAsync();
       setLinkUrl(undefined);
       toast.success("Telegram desconnectat");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error desconnectant");
-    } finally {
-      setDeleting(false);
     }
   }
 
@@ -319,11 +214,11 @@ export function TelegramConfigPanel() {
                 onClick={() => {
                   void handleRegister();
                 }}
-                disabled={registering}
+                disabled={actions.register.isPending}
                 className={`${primaryButtonClass} w-full`}
                 title="Torna a validar el token del bot"
               >
-                {registering ? "⏳ Validant..." : "🆔 Tornar a validar el bot"}
+                {actions.register.isPending ? "⏳ Validant..." : "🆔 Tornar a validar el bot"}
               </button>
             </div>
           )}
@@ -377,11 +272,11 @@ export function TelegramConfigPanel() {
                     onClick={() => {
                       void handleRegister();
                     }}
-                    disabled={registering}
+                    disabled={actions.register.isPending}
                     className={`${primaryButtonClass} w-full mt-2`}
                     title="Valida el token contra Telegram i activa el bot"
                   >
-                    {registering ? "⏳ Validant..." : "🆔 Validar bot"}
+                    {actions.register.isPending ? "⏳ Validant..." : "🆔 Validar bot"}
                   </button>
                 </li>
                 <li className="text-muted">
@@ -437,11 +332,13 @@ export function TelegramConfigPanel() {
                     onClick={() => {
                       void handleLink();
                     }}
-                    disabled={linking}
+                    disabled={actions.link.isPending}
                     className={`${primaryButtonClass} w-full`}
                     title="Obre Telegram per afegir el bot al grup de la teva ADF"
                   >
-                    {linking ? "⏳ Generant enllaç..." : "📎 Vincular grup de Telegram"}
+                    {actions.link.isPending
+                      ? "⏳ Generant enllaç..."
+                      : "📎 Vincular grup de Telegram"}
                   </button>
                   {linkUrl && (
                     <a
@@ -478,11 +375,11 @@ export function TelegramConfigPanel() {
                   onClick={() => {
                     void handleSend();
                   }}
-                  disabled={sending || customMsg.trim() === ""}
+                  disabled={actions.sendTest.isPending || customMsg.trim() === ""}
                   className={`${primaryButtonClass} w-full`}
                   title="Envia el missatge al grup a través del bot"
                 >
-                  {sending ? "⏳ Enviant..." : "📨 Enviar missatge al grup"}
+                  {actions.sendTest.isPending ? "⏳ Enviant..." : "📨 Enviar missatge al grup"}
                 </button>
                 <p className="m-0 text-[0.75rem] text-muted">
                   Tot el que escriguis aquí es publicarà al grup a través del bot d'aquesta ADF.
@@ -493,11 +390,11 @@ export function TelegramConfigPanel() {
                   onClick={() => {
                     void handleLink();
                   }}
-                  disabled={linking}
+                  disabled={actions.link.isPending}
                   className={`${secondaryButtonClass} w-full`}
                   title="Genera un enllaç nou per canviar el grup"
                 >
-                  {linking ? "⏳ Generant enllaç..." : "🔄 Canviar el grup"}
+                  {actions.link.isPending ? "⏳ Generant enllaç..." : "🔄 Canviar el grup"}
                 </button>
                 <p className="m-0 text-[0.75rem] text-muted">
                   Canvia el grup de destí sense crear un bot nou: generaràs un enllaç d'un sol ús
@@ -509,11 +406,11 @@ export function TelegramConfigPanel() {
                   onClick={() => {
                     void handleDelete();
                   }}
-                  disabled={deleting}
+                  disabled={actions.remove.isPending}
                   className={`${dangerButtonClass}`}
                   title="Desconnecta Telegram d'aquesta ADF"
                 >
-                  {deleting ? "⏳ Desconnectant..." : "⛔ Desconnectar Telegram"}
+                  {actions.remove.isPending ? "⏳ Desconnectant..." : "⛔ Desconnectar Telegram"}
                 </button>
                 <p className="m-0 text-[0.75rem] text-muted">
                   Deixa de rebre notificacions al grup i esborra la configuració. Podràs tornar a

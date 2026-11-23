@@ -1,10 +1,10 @@
 import { can } from "@territoriadf/contracts/permissions";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTrackingMutations } from "@/features/tracking/mutations";
 import { apiErrorMessage } from "@/shared/api/client";
-import { setAdfTrackingSharing } from "@/shared/api/adfs";
-import { enableTracking, getTrackingConfig, getTrackingStatus } from "@/shared/api/tracking";
+import { getTrackingConfig, getTrackingStatus } from "@/shared/api/tracking";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 import { useAdf } from "@/contexts/AdfContext";
 import type { Position } from "@/hooks/usePositionPolling";
@@ -51,11 +51,10 @@ export function SeguimentTab({
   onCenterCoordinates?: (coords: [number, number]) => void;
 }) {
   const { user } = useAuth();
-  const { activeAdf, setActiveAdf } = useAdf();
+  const { activeAdf } = useAdf();
   const [loading, setLoading] = useState(false);
-  const [enabledOverride, setEnabledOverride] = useState<boolean | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const queryClient = useQueryClient();
+  const mutations = useTrackingMutations();
   const viewer = viewerKey(user);
 
   // L'estat d'OwnTracks depèn de l'usuari: es repolla cada 5 min com abans.
@@ -66,7 +65,7 @@ export function SeguimentTab({
     refetchInterval: 300_000,
   });
   const available = statusQuery.data?.available ?? false;
-  const enabled = enabledOverride ?? statusQuery.data?.enabled ?? !!user?.mqtt_enabled;
+  const enabled = statusQuery.data?.enabled ?? !!user?.mqtt_enabled;
   const [shared, setShared] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -88,10 +87,8 @@ export function SeguimentTab({
     setShared(checked);
     setSaving(true);
     try {
-      await setAdfTrackingSharing(activeAdf.id, checked);
-      setActiveAdf({ ...activeAdf, tracking_shared: checked });
-      // La llista d'ADFs porta `tracking_shared`: cal refrescar-la a la caché.
-      await queryClient.invalidateQueries({ queryKey: queryKeys.adfs });
+      // La mutació invalida la llista d'ADFs: el context en recalcula l'activa.
+      await mutations.setSharing.mutateAsync({ adfId: activeAdf.id, shared: checked });
       toast.success(checked ? "Tracking compartit amb totes les ADFs" : "Tracking privat de l'ADF");
     } catch (err) {
       setShared(!checked);
@@ -109,9 +106,7 @@ export function SeguimentTab({
   const handleEnable = async () => {
     setLoading(true);
     try {
-      await enableTracking();
-      setEnabledOverride(true);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.trackingStatus(viewer) });
+      await mutations.enable.mutateAsync();
     } catch (err) {
       toast.error(apiErrorMessage(err, "Error activant OwnTracks"));
     } finally {

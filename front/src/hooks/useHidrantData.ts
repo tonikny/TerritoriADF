@@ -1,5 +1,5 @@
-import { useCallback, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 
 import { useAdf } from "@/contexts/AdfContext";
@@ -24,7 +24,6 @@ export type { HidrantFeature };
 export function useHidrantData() {
   const { activeAdf } = useAdf();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const adfId = activeAdf?.id ?? null;
   const viewer = viewerKey(user);
 
@@ -41,19 +40,11 @@ export function useHidrantData() {
     }
   }, [adfId, query.data]);
 
-  const mutate = useCallback(async (): Promise<void> => {
-    if (adfId === null) {
-      return;
-    }
-    await queryClient.invalidateQueries({ queryKey: queryKeys.hidrants(adfId, viewer) });
-  }, [adfId, viewer, queryClient]);
-
   return {
     features: adfId === null ? [] : (query.data ?? []),
     loading: adfId !== null && query.isFetching,
     // `loaded` vol dir que la primera càrrega d'aquesta ADF ja ha acabat (bé o malament).
     loaded: adfId !== null && !query.isPending,
     error: query.error ? apiErrorMessage(query.error, "Error desconegut") : null,
-    mutate,
   };
 }

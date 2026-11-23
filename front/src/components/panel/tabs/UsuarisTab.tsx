@@ -1,13 +1,13 @@
 import type { ManagedUser } from "@territoriadf/contracts/users";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { changePassword } from "@/shared/api/auth";
-import { createAccessLink, createUser, deleteUser, getUsers, updateUser } from "@/shared/api/users";
+import { createAccessLink } from "@/shared/api/users";
+import { useUserMutations, useUsers } from "@/features/users/useUsers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf } from "@/contexts/AdfContext";
 import { Login } from "@/components/shared/Login";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { toast } from "react-toastify";
-import { logError } from "@/utils/log";
 import {
   inputClass,
   selectClass,
@@ -55,8 +55,11 @@ export function UsuarisTab() {
   const isAdmin = user?.role === "admin";
   const canManage = isAdmin || user?.role === "coordinador";
 
-  const [rows, setRows] = useState<ManagedUser[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+  const usersQuery = useUsers(canManage);
+  const rows = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
+  const mutations = useUserMutations();
+  const submitting =
+    mutations.create.isPending || mutations.update.isPending || mutations.remove.isPending;
   const [expanded, setExpanded] = useState<number[]>([]);
   const [createAdf, setCreateAdf] = useState<number | null>(null);
   const [createDraft, setCreateDraft] = useState<Draft>({
@@ -73,22 +76,6 @@ export function UsuarisTab() {
     null,
   );
   const [pwSubmitting, setPwSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!canManage) {
-      return;
-    }
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, user?.adf_id]);
-
-  async function load() {
-    try {
-      setRows(await getUsers());
-    } catch (err) {
-      logError("Error carregant usuaris", err);
-    }
-  }
 
   const groups = useMemo(() => {
     const map = new Map<number, ManagedUser[]>();
@@ -147,20 +134,19 @@ export function UsuarisTab() {
     if (createAdf === null) {
       return;
     }
-    setSubmitting(true);
     const username = `${prefixFor(createAdf, createDraft.gi)}${pad3(Math.min(Math.max(Number(createDraft.numero) || 0, 1), 999))}`;
     try {
-      const created = await createUser({ username, role: createDraft.role });
+      const created = await mutations.create.mutateAsync({
+        username,
+        role: createDraft.role,
+      });
       toast.success(`Usuari ${username} creat`);
       if (created?.access_url && created.access_expires_at) {
         setAccessLink({ username, url: created.access_url, expires_at: created.access_expires_at });
       }
       setCreateAdf(null);
-      await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -169,18 +155,17 @@ export function UsuarisTab() {
     if (!editDraft) {
       return;
     }
-    setSubmitting(true);
     const username = `${prefixFor(editDraft.adfId, editDraft.gi)}${pad3(Math.min(Math.max(Number(editDraft.numero) || 0, 1), 999))}`;
     try {
       const target = rows.find((rr) => rr.username === editDraft.username)!;
-      await updateUser(target.id, { username, role: editDraft.role });
+      await mutations.update.mutateAsync({
+        id: target.id,
+        input: { username, role: editDraft.role },
+      });
       toast.success("Usuari actualitzat");
       setEditDraft(null);
-      await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -236,9 +221,8 @@ export function UsuarisTab() {
       return;
     }
     try {
-      await deleteUser(u.id);
+      await mutations.remove.mutateAsync(u.id);
       toast.success("Usuari eliminat");
-      await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     }

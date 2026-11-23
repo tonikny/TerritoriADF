@@ -18,7 +18,6 @@ export function buildTabs({
   onSelectNode,
   onSelectIncidencia,
   onSelectHidrantById,
-  onRefreshHidrants,
   onCenterCoordinates,
   engine,
   enginePreference,
@@ -30,7 +29,6 @@ export function buildTabs({
   onSelectNode?: (feature: HidrantFeature) => void;
   onSelectIncidencia?: (feature: IncidenciaFeature) => void;
   onSelectHidrantById?: (id: string) => void;
-  onRefreshHidrants?: () => void;
   onCenterCoordinates?: (coords: [number, number]) => void;
   engine?: EngineId;
   enginePreference?: EnginePreference;
@@ -41,7 +39,7 @@ export function buildTabs({
       id: "mapa",
       icon: "🗺️",
       label: "ADF",
-      content: <MapaTab onSelectHidrant={onSelectHidrantById} onRefresh={onRefreshHidrants} />,
+      content: <MapaTab onSelectHidrant={onSelectHidrantById} />,
     },
     {
       id: "seguiment",

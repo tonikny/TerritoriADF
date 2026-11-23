@@ -4,7 +4,7 @@ import type { LatLon } from "@/map/core/types";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf } from "@/contexts/AdfContext";
-import { useHidrantActions } from "./useHidrantActions";
+import { useHidrantActions } from "@/features/hidrants/useHidrantActions";
 import { HidrantInfoView } from "./HidrantInfoView";
 import { HidrantEditForm } from "./HidrantEditForm";
 import { usePreventLeave } from "@/hooks/usePreventLeave";
@@ -13,7 +13,6 @@ export const NodeInfo = ({
   feature,
   showRoute,
   setShowRoute,
-  refreshHidrants,
   hasLocation,
   canEdit,
   editing,
@@ -25,7 +24,6 @@ export const NodeInfo = ({
   feature: HidrantFeature;
   showRoute?: boolean;
   setShowRoute?: (value: boolean) => void;
-  refreshHidrants?: () => Promise<void>;
   hasLocation?: boolean;
   canEdit: boolean;
   editing: boolean;
@@ -50,11 +48,7 @@ export const NodeInfo = ({
   const isAdmin = user?.role === "admin";
   const canDelete = canEdit && can(user?.permissions, "delete_hydrant");
 
-  const { busy, save, quickStatus, remove } = useHidrantActions(
-    feature,
-    activeAdf,
-    refreshHidrants,
-  );
+  const { busy, save, quickStatus, remove } = useHidrantActions(feature, activeAdf);
 
   const handleSave = async () => {
     const ok = await save({
@@ -109,7 +103,6 @@ export const NodeInfo = ({
           onQuickStatus={(v) => {
             void handleQuickStatus(v);
           }}
-          refreshHidrants={refreshHidrants}
         />
       ) : (
         <HidrantEditForm

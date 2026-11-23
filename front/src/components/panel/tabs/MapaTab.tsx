@@ -1,12 +1,10 @@
 import { can } from "@territoriadf/contracts/permissions";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { createAdf, deleteAdf, recalculateAdfBoundaries, updateAdf } from "@/shared/api/adfs";
-import { queryKeys } from "@/shared/query/keys";
 import { toast } from "react-toastify";
 import turfArea from "@turf/area";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf, type Adf } from "@/contexts/AdfContext";
+import { useAdfMutations } from "@/features/adfs/mutations";
 import { OsmSyncPanel } from "@/components/osm/OsmSyncPanel";
 import { OfflineMapSection } from "@/components/panel/shared/OfflineMapSection";
 import { adfLabel } from "@/utils/adfLabel";
@@ -72,15 +70,9 @@ const KM2_FORMAT = new Intl.NumberFormat("ca-ES", {
   maximumFractionDigits: 2,
 });
 
-export function MapaTab({
-  onSelectHidrant,
-  onRefresh,
-}: {
-  onSelectHidrant?: (id: string) => void;
-  onRefresh?: () => void;
-}) {
+export function MapaTab({ onSelectHidrant }: { onSelectHidrant?: (id: string) => void }) {
   const { adfs, isLoading, activeAdf, setActiveAdf, refreshAdfs, boundaryGeojson } = useAdf();
-  const queryClient = useQueryClient();
+  const mutations = useAdfMutations();
   const areaKm2 = boundaryAreaKm2(boundaryGeojson);
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -91,9 +83,9 @@ export function MapaTab({
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [draftMode, setDraftMode] = useState<DraftMode>("create");
-  const [submitting, setSubmitting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [recalculating, setRecalculating] = useState(false);
+  const submitting = mutations.create.isPending || mutations.update.isPending;
+  const deleting = mutations.remove.isPending;
+  const recalculating = mutations.recalculate.isPending;
 
   function startCreate() {
     setDraft(EMPTY_DRAFT);
@@ -130,44 +122,37 @@ export function MapaTab({
       draftMode === "edit" &&
       JSON.stringify(activeAdf?.osm_relations ?? []) !== JSON.stringify(relations);
 
-    setSubmitting(true);
     try {
-      const data =
+      const adf =
         draftMode === "create"
-          ? await createAdf({ id: adfId, nom, osm_relations: relations })
-          : await updateAdf(adfId, { nom, osm_relations: relations });
+          ? await mutations.create.mutateAsync({ id: adfId, nom, osm_relations: relations })
+          : await mutations.update.mutateAsync({ adfId, input: { nom, osm_relations: relations } });
 
       setDraft(null);
-      toast.success(draftMode === "create" ? `ADF ${data.id} creada` : "ADF actualitzada");
+      toast.success(draftMode === "create" ? `ADF ${adf.id} creada` : "ADF actualitzada");
       if (draftMode === "create" || relationsChanged) {
         // Els límits deriven de les relacions OSM: es recalculen sense sortir de l'app.
-        await recalculateBoundaries(Number(data.id));
+        await recalculateBoundaries(adf.id);
       } else {
-        const list = await refreshAdfs();
-        setActiveAdf(list.find((a) => a.id === data.id) ?? null);
+        setActiveAdf(adf);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
-    } finally {
-      setSubmitting(false);
     }
   }
 
   async function recalculateBoundaries(adfId: number) {
-    setRecalculating(true);
     try {
-      await recalculateAdfBoundaries(adfId);
-      // La frontera ha canviat: la consulta que la pinta ha de tornar a demanar-la.
-      await queryClient.invalidateQueries({ queryKey: queryKeys.adfBoundary(adfId) });
-      const list = await refreshAdfs();
-      setActiveAdf(list.find((a) => a.id === adfId) ?? null);
+      // La mutació invalida la frontera i actualitza bbox/center a la caché.
+      const updated = await mutations.recalculate.mutateAsync(adfId);
+      if (updated) {
+        setActiveAdf(updated);
+      }
       toast.success("Límits territorials actualitzats");
     } catch (err) {
       toast.warning(
         `No s'han pogut calcular els límits: ${err instanceof Error ? err.message : "Error"}`,
       );
-    } finally {
-      setRecalculating(false);
     }
   }
 
@@ -182,17 +167,14 @@ export function MapaTab({
     ) {
       return;
     }
-    setDeleting(true);
     try {
-      await deleteAdf(activeAdf.id);
-      const list = await refreshAdfs();
-      setActiveAdf(list[0] ?? null);
+      const remaining = adfs.filter((a) => a.id !== activeAdf.id);
+      await mutations.remove.mutateAsync(activeAdf.id);
+      setActiveAdf(remaining[0] ?? null);
       setDraft(null);
       toast.success("ADF eliminada");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
-    } finally {
-      setDeleting(false);
     }
   }
 
@@ -435,7 +417,7 @@ export function MapaTab({
             <span className="flex-1 h-px bg-border" />
           </div>
           <h4 className="m-0 mb-2 text-[0.9rem] font-semibold">Sincronització amb OSM</h4>
-          <OsmSyncPanel onSelectHidrant={onSelectHidrant} onRefresh={onRefresh} />
+          <OsmSyncPanel onSelectHidrant={onSelectHidrant} />
         </>
       )}
     </div>

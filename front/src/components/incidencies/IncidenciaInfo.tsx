@@ -10,7 +10,6 @@ export const IncidenciaInfo = ({
   incidencia,
   showRoute,
   setShowRoute,
-  refreshIncidencies,
   hasLocation,
   canEdit,
   editing,
@@ -20,14 +19,13 @@ export const IncidenciaInfo = ({
   incidencia: IncidenciaFeature;
   showRoute?: boolean;
   setShowRoute?: (v: boolean) => void;
-  refreshIncidencies?: () => void;
   hasLocation?: boolean;
   canEdit: boolean;
   editing: boolean;
   setEditing: (v: boolean) => void;
   className?: string;
 }) => {
-  const { getIncidencia } = useIncidencies();
+  const { getIncidencia, refresh } = useIncidencies();
   const [detail, setDetail] = useState<(Incidencia & { events: IncidenciaEvent[] }) | null>(null);
   const [loading, setLoading] = useState(true);
   const base: Incidencia = incidencia.properties;
@@ -75,7 +73,7 @@ export const IncidenciaInfo = ({
           onDone={() => {
             setEditing(false);
             void loadDetail();
-            refreshIncidencies?.();
+            void refresh();
           }}
           onCancel={handleCancelEdit}
         />

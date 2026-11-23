@@ -68,9 +68,8 @@ function MapPanelView() {
     loading: loadingHidrants,
     loaded: hidrantsLoaded,
     error: hidrantsError,
-    mutate: refreshHidrants,
   } = useHidrantData();
-  const { features: incidenciaFeatures, refresh: refreshIncidencies } = useIncidencies();
+  const { features: incidenciaFeatures } = useIncidencies();
 
   const sheet = useMapSheet({
     features,
@@ -91,7 +90,6 @@ function MapPanelView() {
   });
 
   const [showRoute, setShowRoute] = useState(false);
-  const [nodeInfoKey, setNodeInfoKey] = useState(0);
   // Avís d'ADF sense hidrants: es tanca per ADF i no torna a sortir fins a canviar-ne.
   const [emptyNoticeDismissedFor, setEmptyNoticeDismissedFor] = useState<number | null>(null);
   const sheetRef = useRef<BottomSheetHandle>(null);
@@ -197,9 +195,6 @@ function MapPanelView() {
         onSelectNode: sheet.selectNode,
         onSelectIncidencia: sheet.selectIncidencia,
         onSelectHidrantById: sheet.selectNodeById,
-        onRefreshHidrants: () => {
-          void refreshHidrants().then(() => setNodeInfoKey((prev) => prev + 1));
-        },
         onCenterCoordinates: focus.centerOnCoordinates,
         engine: engine.engine,
         enginePreference: engine.preference,
@@ -210,11 +205,8 @@ function MapPanelView() {
         canEdit,
         hasUser: !!user,
         hasLocation: !!tracking.position,
-        nodeInfoKey,
         showRoute,
         setShowRoute,
-        refreshHidrants,
-        refreshIncidencies,
       })}
     />
   );
