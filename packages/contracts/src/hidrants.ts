@@ -200,11 +200,10 @@ export type HidrantPrivateTags = Record<string, unknown> & { observacions?: stri
 /**
  * Un hidrant tal com el retorna `GET /api/hidrants`.
  *
- * `sync_status` pot ser `null`: la columna `hidrants.sync_status` té
- * `DEFAULT 'SYNCED'` però **no** `NOT NULL`, i l'API serialitza la fila tal com
- * és. Tipar-lo com a `SyncStatus` seria una promesa que la BD no compleix. El
- * dia que s'hi afegeixi `NOT NULL` (amb la migració corresponent), es pot
- * estrenyir el tipus.
+ * `sync_status` no pot ser `null`: la columna `hidrants.sync_status` és
+ * `NOT NULL DEFAULT 'SYNCED'` (migració `0011`). Això importa perquè les
+ * consultes amb `NOT IN` i `!=` descarten les files NULL en silenci: un hidrant
+ * sense estat desapareixeria del mapa, del panell OSM i del push alhora.
  */
 export interface HidrantFeature {
   type: "Feature";
@@ -219,7 +218,7 @@ export interface HidrantFeature {
     osm_tags: Record<string, string>;
     ui_fields: HidrantUiFields;
     private_tags?: HidrantPrivateTags;
-    sync_status: SyncStatus | null;
+    sync_status: SyncStatus;
     sync_error: HidrantSyncError;
     synced_at: string | null;
     remote_osm_tags: Record<string, string> | null;

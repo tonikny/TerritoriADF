@@ -1,6 +1,7 @@
 import { apiFetch } from "../../utils/api";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
+import type { SyncStatus } from "@territoriadf/contracts/sync";
 import { useAdf } from "../../contexts/AdfContext";
 import { logError } from "../../utils/log";
 
@@ -9,7 +10,8 @@ interface PendingHidrant {
   osm_id: number | null;
   lat: number;
   lon: number;
-  sync_status: string;
+  /** `GET /api/osm/pending` filtra els SYNCED: aquí no hi poden arribar. */
+  sync_status: Exclude<SyncStatus, "SYNCED">;
   sync_error: string | null;
   street: string;
   num: string;
@@ -26,14 +28,7 @@ interface SyncStats {
   total_pending: number;
 }
 
-type SectionKey =
-  | "PENDING_CREATE"
-  | "PENDING_UPDATE"
-  | "PENDING_DELETE"
-  | "CONFLICT"
-  | "ERROR"
-  | "REVIEW"
-  | "MISSING_IN_OSM";
+type SectionKey = Exclude<SyncStatus, "SYNCED">;
 
 const SECTION_CONFIG: Record<SectionKey, { label: string; color: string; hint: string }> = {
   PENDING_CREATE: {
@@ -135,8 +130,7 @@ export function OsmSyncPanel({
           // Obrir automàticament les seccions que tenen items
           const open: Record<string, boolean> = {};
           for (const h of items) {
-            const key = (h.sync_status || "PENDING_UPDATE") as SectionKey;
-            open[key] = true;
+            open[h.sync_status] = true;
           }
           setOpenSections(open);
         }
@@ -175,7 +169,7 @@ export function OsmSyncPanel({
 
   const grouped = pending.reduce<Record<SectionKey, PendingHidrant[]>>(
     (acc, h) => {
-      const key = (h.sync_status || "PENDING_UPDATE") as SectionKey;
+      const key = h.sync_status;
       if (key in acc) {
         acc[key].push(h);
       }

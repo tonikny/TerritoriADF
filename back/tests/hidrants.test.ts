@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -332,5 +332,41 @@ describe("DELETE /api/hidrants/:id", () => {
     });
 
     expect(response.statusCode).toBe(200);
+  });
+});
+
+/**
+ * `sync_status` és `NOT NULL DEFAULT 'SYNCED'` (migració 0011). No és cosmètic:
+ * les consultes del codi fan servir `NOT IN` i `!=`, que descarten les files NULL
+ * en silenci, i un hidrant sense estat desapareixeria del mapa, del panell OSM i
+ * del push alhora. La BD ha de rebutjar-lo, no el tipus.
+ */
+describe("esquema de hidrants: sync_status", () => {
+  it("rebutja un INSERT amb sync_status a NULL", () => {
+    let error: unknown = null;
+    try {
+      db.run(
+        sql`INSERT INTO hidrants (id, adf_id, lat, lon, sync_status)
+            VALUES ('hidrant-nul', ${ADF_278}, 41.6, 1.6, NULL)`,
+      );
+    } catch (e) {
+      error = e;
+    }
+
+    expect(error).toBeInstanceOf(Error);
+    // Drizzle embolcalla l'error de SQLite amb «Failed to run the query…»;
+    // el motiu real (la restricció) viatja a `cause`.
+    const causa = String((error as Error & { cause?: unknown }).cause);
+    expect(causa).toMatch(/NOT NULL constraint failed: hidrants\.sync_status/i);
+    expect(db.select().from(hidrants).where(eq(hidrants.id, "hidrant-nul")).get()).toBeUndefined();
+  });
+
+  it("aplica 'SYNCED' quan l'INSERT omet la columna", () => {
+    db.run(
+      sql`INSERT INTO hidrants (id, adf_id, lat, lon) VALUES ('hidrant-sense-estat', ${ADF_278}, 41.6, 1.6)`,
+    );
+
+    const row = db.select().from(hidrants).where(eq(hidrants.id, "hidrant-sense-estat")).get();
+    expect(row?.sync_status).toBe("SYNCED");
   });
 });

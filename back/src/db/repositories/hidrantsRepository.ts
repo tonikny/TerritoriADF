@@ -16,7 +16,8 @@ export interface HidrantData {
   lon: number;
   osm_tags?: string | null;
   private_tags?: string | null;
-  sync_status: string | null;
+  /** La columna és `NOT NULL DEFAULT 'SYNCED'`: mai no pot ser `null`. */
+  sync_status: SyncStatus;
   sync_error?: string | null;
   synced_at?: string | null;
   remote_lat?: number | null;
@@ -97,7 +98,7 @@ export const HidrantsRepository = {
         lon: data.lon,
         osm_tags: data.osm_tags || "{}",
         private_tags: data.private_tags || "{}",
-        sync_status: data.sync_status as SyncStatus,
+        sync_status: data.sync_status,
       })
       .run();
   },
@@ -109,7 +110,7 @@ export const HidrantsRepository = {
         lon: data.lon,
         osm_tags: data.osm_tags,
         private_tags: data.private_tags,
-        sync_status: data.sync_status as SyncStatus,
+        sync_status: data.sync_status,
         updated_at: nowISO(),
       })
       .where(and(eq(hidrants.id, id), eq(hidrants.adf_id, adfId)))

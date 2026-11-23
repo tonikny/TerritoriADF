@@ -18,12 +18,7 @@ interface DiffData {
   osmLon?: number;
 }
 
-function syncBadge(status: SyncStatus | null) {
-  if (!status) {
-    // La columna admet NULL: no inventem un estat, però cal pintar alguna cosa.
-    return { cls: "bg-gray-400", text: "Sense estat" };
-  }
-
+function syncBadge(status: SyncStatus) {
   switch (status) {
     case "SYNCED":
       return { cls: "bg-[#27ae60]", text: "Sincronitzat" };

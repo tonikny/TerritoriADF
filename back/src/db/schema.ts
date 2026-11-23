@@ -26,7 +26,12 @@ export const hidrants = sqliteTable(
     lon: real("lon").notNull(),
     osm_tags: text("osm_tags").default("{}"),
     private_tags: text("private_tags").default("{}"),
-    sync_status: text("sync_status", { enum: [...SYNC_STATUSES] }).default("SYNCED"),
+    // `NOT NULL` perquè `null` no és un estat vàlid: les consultes amb `NOT IN`
+    // i `!=` descarten les files NULL en silenci i l'hidrant desapareixeria del
+    // mapa, del panell OSM i del push sense cap manera d'arreglar-lo.
+    sync_status: text("sync_status", { enum: [...SYNC_STATUSES] })
+      .notNull()
+      .default("SYNCED"),
     sync_error: text("sync_error"), // JSON: detalls de l'error o del conflicte
     synced_at: text("synced_at"), // ISO: timestamp de l'última pujada exitosa a OSM
     remote_lat: real("remote_lat"), // Latitud de la versió remota d'OSM (per al diff)

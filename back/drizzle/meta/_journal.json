@@ -78,6 +78,13 @@
       "when": 1795195606910,
       "tag": "0010_chubby_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1795427582942,
+      "tag": "0011_flowery_scorpion",
+      "breakpoints": true
     }
   ]
 }
