@@ -1,5 +1,5 @@
 import React from "react";
-import { inputClass, selectClass } from "../../styles/uiStyles";
+import { inputClass, selectClass } from "@/styles/uiStyles";
 import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
 
 interface HidrantFormFieldsProps {

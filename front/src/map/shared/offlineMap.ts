@@ -3,10 +3,10 @@
 // worker, que les desa a les cachés `tiles-*` (vegeu `front/vite.config.ts`).
 
 import type { AdfBbox } from "@territoriadf/contracts/adfs";
-import { bboxToBounds } from "../map/core/geometry";
-import type { GeoBounds } from "../map/core/types";
-import { BASEMAPS } from "../map/shared/basemaps";
-import { storageKey } from "./storageKeys";
+import { bboxToBounds } from "@/map/core/geometry";
+import type { GeoBounds } from "@/map/core/types";
+import { BASEMAPS } from "@/map/shared/basemaps";
+import { storageKey } from "@/utils/storageKeys";
 
 export const OFFLINE_MIN_ZOOM = 10;
 export const OFFLINE_MAX_ZOOM = 15;

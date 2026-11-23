@@ -5,7 +5,7 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
   dangerButtonClass,
-} from "../../styles/uiStyles";
+} from "@/styles/uiStyles";
 
 export function HidrantEditForm({
   data,

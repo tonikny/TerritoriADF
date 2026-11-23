@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { useAdfHintVisible } from "../../hooks/useAdfHintVisible";
+import { useAdfHintVisible } from "@/hooks/useAdfHintVisible";
 
 type Box = { left: number; top: number; width: number; height: number };
 type HintLayout = { area: Box; icon: Box };

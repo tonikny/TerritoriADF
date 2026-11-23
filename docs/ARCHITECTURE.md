@@ -67,7 +67,7 @@ territoriadf/
 
 L'accés a dades dels serveis i les rutes passa sempre pels repositoris de `back/src/db/repositories/` (un per entitat: ADFs, hidrants, incidències, usuaris, identitats MQTT, tokens d'accés i Telegram); cap ruta ni servei no importa `db` ni l'esquema. Els scripts de `back/src/scripts/` en són l'excepció deliberada.
 
-Els tests de la capa de mapa viuen al costat del codi que proven, dins de `front/src/map/core/*.test.ts`. No hi ha una carpeta `tests/` separada.
+Els tests del front viuen al costat del codi que proven (`*.test.ts` / `*.test.tsx`), no en una carpeta `tests/` separada.
 
 ## 3. Motors de mapa
 
@@ -135,21 +135,25 @@ Els dos adaptadors implementen les mateixes peces: `Rasters`, `Shapes`, `Markers
 
 ### 4.1 Tests inclosos
 
-Actualment hi ha **3 fitxers i 13 tests**, tots de la capa de mapa:
+Els tests viuen al costat del codi que proven i es descobreixen sols: `npm test -w front` en diu quants n'hi ha i quins passen. Aquí no se'n fixa el nombre, que canvia amb cada funcionalitat.
 
-| Fitxer                                       | Què cobreix                                                                                                                        |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `front/src/map/core/zoom.test.ts`            | Conversió del zoom neutral a MapLibre, reversibilitat i casos de diversos nivells.                                                 |
-| `front/src/map/core/geometry.test.ts`        | `bboxToBounds`, distància entre coordenades, retallada a un radi màxim i vista per defecte d'una ADF.                              |
-| `front/src/map/core/engineSelection.test.ts` | MapLibre per defecte amb WebGL2, fallback sense WebGL2, overrides explícits i prioritat de `?engine=` sobre el fallback de sessió. |
+| Fitxer                                       | Què cobreix                                                                                                                            |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `front/src/map/core/zoom.test.ts`            | Conversió del zoom neutral a MapLibre, reversibilitat i casos de diversos nivells.                                                     |
+| `front/src/map/core/geometry.test.ts`        | `bboxToBounds`, distància entre coordenades, retallada a un radi màxim i vista per defecte d'una ADF.                                  |
+| `front/src/map/core/engineSelection.test.ts` | MapLibre per defecte amb WebGL2, fallback sense WebGL2, overrides explícits i prioritat de `?engine=` sobre el fallback de sessió.     |
+| `front/src/shared/api/client.test.ts`        | Client d'API: query serialitzada, cos JSON amb credencials, `ApiError` amb estat i codi, resposta 204 i propagació de l'`AbortSignal`. |
+| `front/src/hooks/useIncidencies.test.tsx`    | Cursa en canviar d'ADF: la resposta de l'ADF anterior no trepitja la de l'ADF activa.                                                  |
+| `front/src/utils/hidrantDisplay.test.ts`     | Imatges d'hidrant: UUID de Panoramax i llista d'hosts permesos, amb rebuig de path traversal i `javascript:`.                          |
 
-No hi ha encara una suite de tests del backend. Les comprovacions de Telegram que no necessiten xarxa es fan amb `npm run telegram:selftest -w back`.
+El backend té la seva pròpia suite (`npm test -w back`, detalls a [`TESTING.md`](TESTING.md)). Les comprovacions de Telegram que no necessiten xarxa es fan amb `npm run telegram:selftest -w back`.
 
 ### 4.2 Comandes
 
 ```bash
 npm test -w front          # Vitest, tots els tests del front
-npm run typecheck          # front + back
+npm run test:coverage -w front  # els mateixos tests amb cobertura (el que corre al CI)
+npm run typecheck          # contracts + front + back
 npm run lint               # front + back
 npm run build              # build de front + back
 ```
@@ -166,15 +170,20 @@ npm test -w front -- src/map/core/engineSelection.test.ts
 
 1. `npm ci`
 2. `npm run typecheck`
-3. `npm run lint`
-4. `npm test -w front`
-5. `npm run build`
+3. `npm test -w packages/contracts`
+4. `npm run lint`
+5. `npm run db:migrate -w back`
+6. `npm run db:check -w back`
+7. `npm run test:coverage -w back`
+8. `npm run test:coverage -w front`
+9. `npm run build`
 
 El pipeline no publica artefactes ni desplega.
 
 ## 5. Convencions de manteniment
 
 - Mantén el contracte neutral: la UI no ha de conèixer API de tercers del mapa.
+- Dins de `front/src`, els imports creuats es fan amb l'àlies `@/...` (`tsconfig.json` i `vite.config.ts`); ESLint prohibeix els imports amb `../`. Les fronteres entre `components`, `hooks`, `contexts`, `shared`, `map` i `utils` també estan imposades a `front/eslint.config.mjs`.
 - Si una funcionalitat no es pot implementar a Leaflet, amaga-la o degrada-la amb `EngineCapabilities`; no deixis controls morts.
 - Els textos d'interfície i la documentació són en català; els identificadors de codi, en anglès.
 - Abans de tancar un canvi: `typecheck`, `lint`, tests del front i build han de passar.

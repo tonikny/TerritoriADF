@@ -1,6 +1,6 @@
-import { useAdf } from "../../contexts/AdfContext";
-import { useOnlineStatus } from "../../hooks/useOnlineStatus";
-import { formatAge, getLastSync } from "../../utils/offlineData";
+import { useAdf } from "@/contexts/AdfContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { formatAge, getLastSync } from "@/utils/offlineData";
 
 /**
  * Avís discret quan l'app funciona amb dades emmagatzemades: recorda que el que

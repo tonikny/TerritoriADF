@@ -1,5 +1,5 @@
 import { logError } from "./log";
-import { sendHydrantNotification, type HydrantNotification } from "../shared/api/telegram";
+import { sendHydrantNotification, type HydrantNotification } from "@/shared/api/telegram";
 
 /**
  * Notifica a Telegram un canvi d'hidrant. La crida va pel client d'API; aquí

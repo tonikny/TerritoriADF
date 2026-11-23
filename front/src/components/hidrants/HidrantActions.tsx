@@ -1,6 +1,6 @@
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import { getNodeShareUrl } from "../../utils/urlParams";
-import { NodeActions } from "../shared/NodeActions";
+import { getNodeShareUrl } from "@/utils/urlParams";
+import { NodeActions } from "@/components/shared/NodeActions";
 
 export function HidrantActions({
   feature,

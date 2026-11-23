@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { floatingButtonClass } from "../../styles/uiStyles";
+import { floatingButtonClass } from "@/styles/uiStyles";
 
 export function FullscreenButton({
   targetId,

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 
-import { ApiError, request } from "../../shared/api/client";
-import { inputClass, primaryButtonClass } from "../../styles/uiStyles";
+import { ApiError, request } from "@/shared/api/client";
+import { inputClass, primaryButtonClass } from "@/styles/uiStyles";
 import { PasswordInput } from "./PasswordInput";
-import { enterApp } from "../../utils/route";
-import { useAppConfig } from "../../hooks/useAppConfig";
-import { APP_NAME } from "../../utils/appInfo";
+import { enterApp } from "@/utils/route";
+import { useAppConfig } from "@/hooks/useAppConfig";
+import { APP_NAME } from "@/utils/appInfo";
 
 /**
  * Pantalla d'un enllaç d'accés (/acces/<token>): l'usuari hi tria la seva contrasenya.

@@ -8,18 +8,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { IncidenciaFeature } from "../types";
+import type { IncidenciaFeature } from "@/types";
 import { useIncidencies } from "./useIncidencies";
 
 const adfState = vi.hoisted(() => ({
   activeAdf: { id: 278, nom: "ADF 278" } as { id: number; nom: string } | null,
 }));
 
-vi.mock("../contexts/AdfContext", () => ({
+vi.mock("@/contexts/AdfContext", () => ({
   useAdf: () => ({ activeAdf: adfState.activeAdf }),
 }));
 
-vi.mock("../contexts/AuthContext", () => ({
+vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: { id: "u1", role: "coordinador" } }),
 }));
 

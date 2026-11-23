@@ -2,16 +2,12 @@ import { FullscreenButton } from "./FullscreenButton";
 import { LocateButton } from "./LocateButton";
 import { MapLogo } from "./MapLogo";
 import type { ReactNode } from "react";
-import { OfflineNotice } from "../shared/OfflineNotice";
+import { OfflineNotice } from "@/components/shared/OfflineNotice";
 import { ZoomDisplay } from "./ZoomDisplay";
 import { MapScale } from "./MapScale";
-import { MapAttribution } from "../../map/ui/MapAttribution";
-import type { LatLon } from "../../map/core/types";
-import {
-  floatingButtonClass,
-  controlContainerClass,
-  controlItemClass,
-} from "../../styles/uiStyles";
+import { MapAttribution } from "@/map/ui/MapAttribution";
+import type { LatLon } from "@/map/core/types";
+import { floatingButtonClass, controlContainerClass, controlItemClass } from "@/styles/uiStyles";
 
 interface MapUIOverlaysProps {
   layers?: ReactNode;

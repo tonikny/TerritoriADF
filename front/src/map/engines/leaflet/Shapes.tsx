@@ -1,6 +1,6 @@
 import { GeoJSON, Polyline, Tooltip } from "react-leaflet";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
-import type { MapPolygonSpec, MapPolylineSpec } from "../../core/types";
+import type { MapPolygonSpec, MapPolylineSpec } from "@/map/core/types";
 
 export function LeafletPolygon({ spec }: { spec: MapPolygonSpec }) {
   const data: Feature<Polygon | MultiPolygon> = {

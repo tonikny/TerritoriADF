@@ -3,12 +3,12 @@
 // resultat es comparteix entre els consumidors del mateix visor.
 import { useQuery } from "@tanstack/react-query";
 
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Position } from "@territoriadf/contracts/tracking";
 
-import { getTrackingPositions } from "../shared/api/tracking";
-import { queryKeys, viewerKey } from "../shared/query/keys";
-import { storageKey } from "../utils/storageKeys";
+import { getTrackingPositions } from "@/shared/api/tracking";
+import { queryKeys, viewerKey } from "@/shared/query/keys";
+import { storageKey } from "@/utils/storageKeys";
 
 export type { Position };
 

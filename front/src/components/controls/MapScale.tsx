@@ -1,4 +1,4 @@
-import type { LatLon } from "../../map/core/types";
+import type { LatLon } from "@/map/core/types";
 
 const METERS_PER_PIXEL_AT_ZOOM_0 = 156543.03392;
 const MAX_SCALE_WIDTH_PX = 80;

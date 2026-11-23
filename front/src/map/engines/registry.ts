@@ -1,6 +1,6 @@
 import { lazy } from "react";
 import type { ComponentType, LazyExoticComponent } from "react";
-import type { EngineId, MapEngineProps } from "../core/types";
+import type { EngineId, MapEngineProps } from "@/map/core/types";
 
 export type MapEngineComponent = ComponentType<MapEngineProps>;
 

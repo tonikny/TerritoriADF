@@ -3,13 +3,13 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "./AuthContext";
-import { adfLabel } from "../utils/adfLabel";
-import { getQueryParam, setAdfUrlParam, setNodeUrlParam } from "../utils/urlParams";
-import { APP_NAME } from "../utils/appInfo";
+import { adfLabel } from "@/utils/adfLabel";
+import { getQueryParam, setAdfUrlParam, setNodeUrlParam } from "@/utils/urlParams";
+import { APP_NAME } from "@/utils/appInfo";
 import type { Adf } from "@territoriadf/contracts/adfs";
-import { getAdfs, getAdfBoundary } from "../shared/api/adfs";
-import { apiErrorMessage } from "../shared/api/client";
-import { queryKeys } from "../shared/query/keys";
+import { getAdfs, getAdfBoundary } from "@/shared/api/adfs";
+import { apiErrorMessage } from "@/shared/api/client";
+import { queryKeys } from "@/shared/query/keys";
 
 export type { Adf };
 

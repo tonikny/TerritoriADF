@@ -1,18 +1,18 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { useAdf } from "../contexts/AdfContext";
-import { useAuth } from "../contexts/AuthContext";
-import { apiErrorMessage } from "../shared/api/client";
+import { useAdf } from "@/contexts/AdfContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiErrorMessage } from "@/shared/api/client";
 import {
   addIncidenciaEvent,
   createIncidencia as createIncidenciaRequest,
   getIncidencia as getIncidenciaRequest,
   getIncidencies,
   type CreateIncidenciaInput,
-} from "../shared/api/incidencies";
-import { queryKeys, viewerKey } from "../shared/query/keys";
-import { markDataSynced } from "../utils/offlineData";
+} from "@/shared/api/incidencies";
+import { queryKeys, viewerKey } from "@/shared/query/keys";
+import { markDataSynced } from "@/utils/offlineData";
 
 /**
  * Incidències de l'ADF activa i les seves mutacions.

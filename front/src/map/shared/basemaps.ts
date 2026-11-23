@@ -1,4 +1,4 @@
-import type { MapRasterSpec } from "../core/types";
+import type { MapRasterSpec } from "@/map/core/types";
 
 export type Basemap = {
   /** L'id és el nom històric desat a localStorage: no canviar-lo. */

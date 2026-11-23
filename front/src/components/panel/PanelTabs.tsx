@@ -1,9 +1,9 @@
-import type { PanelTab } from "../layout/Panel";
+import type { PanelTab } from "@/components/layout/Panel";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaFeature } from "../../types";
-import type { Position } from "../../hooks/usePositionPolling";
-import type { EngineId } from "../../map/core/types";
-import type { EnginePreference } from "../../map/core/engineSelection";
+import type { IncidenciaFeature } from "@/types";
+import type { Position } from "@/hooks/usePositionPolling";
+import type { EngineId } from "@/map/core/types";
+import type { EnginePreference } from "@/map/core/engineSelection";
 import { MapaTab } from "./tabs/MapaTab";
 import { SeguimentTab } from "./tabs/SeguimentTab";
 import { InformesTab } from "./tabs/InformesTab";

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { LeafletMouseEvent, Map as LeafletMap } from "leaflet";
-import type { LatLon } from "../../core/types";
-import { attachLongPress, isRecentLongPress } from "../../shared/longPress";
+import type { LatLon } from "@/map/core/types";
+import { attachLongPress, isRecentLongPress } from "@/map/shared/longPress";
 
 type Handlers = {
   onClick?: (position: LatLon) => void;

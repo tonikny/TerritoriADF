@@ -1,5 +1,5 @@
 import React from "react";
-import type { IncidenciaEvent } from "../../types";
+import type { IncidenciaEvent } from "@/types";
 
 interface TimelineProps {
   events: IncidenciaEvent[];

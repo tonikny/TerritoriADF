@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import { useAdf } from "../../contexts/AdfContext";
-import { sendToTelegram } from "../../utils/sendToTelegram";
-import { logError } from "../../utils/log";
-import { apiErrorMessage } from "../../shared/api/client";
-import { discardOsmChanges, getOsmDiff, pullHydrantFromOsm, pushToOsm } from "../../shared/api/osm";
-import { invalidateOsmPending } from "../../shared/query/invalidate";
+import { useAdf } from "@/contexts/AdfContext";
+import { sendToTelegram } from "@/utils/sendToTelegram";
+import { logError } from "@/utils/log";
+import { apiErrorMessage } from "@/shared/api/client";
+import { discardOsmChanges, getOsmDiff, pullHydrantFromOsm, pushToOsm } from "@/shared/api/osm";
+import { invalidateOsmPending } from "@/shared/query/invalidate";
 
 type SyncStatus = HidrantFeature["properties"]["sync_status"];
 type SyncError = HidrantFeature["properties"]["sync_error"];

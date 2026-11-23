@@ -2,16 +2,16 @@ import { can } from "@territoriadf/contracts/permissions";
 import type { TelegramStatus, TelegramStatusResponse } from "@territoriadf/contracts/telegram";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { adfLabel } from "../../utils/adfLabel";
-import { useAdf } from "../../contexts/AdfContext";
-import { useAuth } from "../../contexts/AuthContext";
+import { adfLabel } from "@/utils/adfLabel";
+import { useAdf } from "@/contexts/AdfContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   dangerButtonClass,
   inputClass,
   primaryButtonClass,
   secondaryButtonClass,
-} from "../../styles/uiStyles";
-import { CollapsibleSection } from "../panel/shared/CollapsibleSection";
+} from "@/styles/uiStyles";
+import { CollapsibleSection } from "@/components/panel/shared/CollapsibleSection";
 import { PasswordInput } from "./PasswordInput";
 import {
   createTelegramLink,
@@ -19,7 +19,7 @@ import {
   getTelegramStatus,
   registerTelegramBot,
   sendTelegramTest,
-} from "../../shared/api/telegram";
+} from "@/shared/api/telegram";
 
 const POLL_MS = 10000;
 

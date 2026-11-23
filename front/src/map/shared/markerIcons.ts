@@ -1,8 +1,8 @@
-import type { MarkerIcon } from "../core/types";
+import type { MarkerIcon } from "@/map/core/types";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaFeature } from "../../types";
-import { getHidrantIconUrl, getHidrantStatus, hidrant_shadow } from "../../utils/icons";
-import { emojiTipusIncidencia } from "../../utils/incidenciaConstants";
+import type { IncidenciaFeature } from "@/types";
+import { getHidrantIconUrl, getHidrantStatus, hidrant_shadow } from "@/utils/icons";
+import { emojiTipusIncidencia } from "@/utils/incidenciaConstants";
 
 export const USER_ICON: MarkerIcon = {
   kind: "image",

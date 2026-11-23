@@ -2,9 +2,9 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import type { OsmPendingResponse, OsmSyncStats, PendingHidrant } from "@territoriadf/contracts/osm";
-import { useAdf } from "../../contexts/AdfContext";
-import { useAuth } from "../../contexts/AuthContext";
-import { apiErrorMessage } from "../../shared/api/client";
+import { useAdf } from "@/contexts/AdfContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiErrorMessage } from "@/shared/api/client";
 import {
   discardOsmChanges,
   getOsmPending,
@@ -12,8 +12,8 @@ import {
   purgeMissingFromOsm,
   pushToOsm,
   syncAdfFromOsm,
-} from "../../shared/api/osm";
-import { queryKeys, viewerKey } from "../../shared/query/keys";
+} from "@/shared/api/osm";
+import { queryKeys, viewerKey } from "@/shared/query/keys";
 
 type SectionKey = PendingHidrant["sync_status"];
 

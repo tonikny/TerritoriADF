@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useIncidencies } from '../../hooks/useIncidencies';
-import type { Incidencia, IncidenciaEvent, IncidenciaFeature } from '../../types';
-import { IncidenciaInfoView } from './IncidenciaInfoView';
-import { IncidenciaEditForm } from './IncidenciaEditForm';
-import { logError } from '../../utils/log';
-import { usePreventLeave } from '../../hooks/usePreventLeave';
+import { useEffect, useState } from "react";
+import { useIncidencies } from "@/hooks/useIncidencies";
+import type { Incidencia, IncidenciaEvent, IncidenciaFeature } from "@/types";
+import { IncidenciaInfoView } from "./IncidenciaInfoView";
+import { IncidenciaEditForm } from "./IncidenciaEditForm";
+import { logError } from "@/utils/log";
+import { usePreventLeave } from "@/hooks/usePreventLeave";
 
 export const IncidenciaInfo = ({
   incidencia,
@@ -15,7 +15,7 @@ export const IncidenciaInfo = ({
   canEdit,
   editing,
   setEditing,
-  className = '',
+  className = "",
 }: {
   incidencia: IncidenciaFeature;
   showRoute?: boolean;
@@ -28,7 +28,7 @@ export const IncidenciaInfo = ({
   className?: string;
 }) => {
   const { getIncidencia } = useIncidencies();
-  const [detail, setDetail] = useState<Incidencia & { events: IncidenciaEvent[] } | null>(null);
+  const [detail, setDetail] = useState<(Incidencia & { events: IncidenciaEvent[] }) | null>(null);
   const [loading, setLoading] = useState(true);
   const base: Incidencia = incidencia.properties;
 
@@ -40,7 +40,7 @@ export const IncidenciaInfo = ({
       const data = await getIncidencia(base.id);
       setDetail(data);
     } catch (err) {
-      logError('Error carregant incidència', err);
+      logError("Error carregant incidència", err);
     } finally {
       setLoading(false);
     }

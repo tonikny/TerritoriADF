@@ -1,8 +1,8 @@
-import type { LatLon } from "../../map/core/types";
-import type { CreateType } from "../../types";
-import { CreationSelector } from "../shared/CreationSelector";
-import { NewNodeForm } from "../hidrants/NewNodeForm";
-import { NovaIncidenciaForm } from "../incidencies/NovaIncidenciaForm";
+import type { LatLon } from "@/map/core/types";
+import type { CreateType } from "@/types";
+import { CreationSelector } from "@/components/shared/CreationSelector";
+import { NewNodeForm } from "@/components/hidrants/NewNodeForm";
+import { NovaIncidenciaForm } from "@/components/incidencies/NovaIncidenciaForm";
 
 export function CreateNodePanel({
   form,

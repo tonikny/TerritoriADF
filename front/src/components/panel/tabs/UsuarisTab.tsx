@@ -1,27 +1,21 @@
 import type { ManagedUser } from "@territoriadf/contracts/users";
 import React, { useState, useEffect, useMemo } from "react";
-import { changePassword } from "../../../shared/api/auth";
-import {
-  createAccessLink,
-  createUser,
-  deleteUser,
-  getUsers,
-  updateUser,
-} from "../../../shared/api/users";
-import { useAuth } from "../../../contexts/AuthContext";
-import { useAdf } from "../../../contexts/AdfContext";
-import { Login } from "../../shared/Login";
-import { PasswordInput } from "../../shared/PasswordInput";
+import { changePassword } from "@/shared/api/auth";
+import { createAccessLink, createUser, deleteUser, getUsers, updateUser } from "@/shared/api/users";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdf } from "@/contexts/AdfContext";
+import { Login } from "@/components/shared/Login";
+import { PasswordInput } from "@/components/shared/PasswordInput";
 import { toast } from "react-toastify";
-import { logError } from "../../../utils/log";
+import { logError } from "@/utils/log";
 import {
   inputClass,
   selectClass,
   primaryButtonClass,
   secondaryButtonClass,
-} from "../../../styles/uiStyles";
-import { adfLabel } from "../../../utils/adfLabel";
-import { useAppConfig } from "../../../hooks/useAppConfig";
+} from "@/styles/uiStyles";
+import { adfLabel } from "@/utils/adfLabel";
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 const ROLES_ADMIN = ["admin", "coordinador", "voluntari"];
 const ROLES_COORD = ["coordinador", "voluntari"];

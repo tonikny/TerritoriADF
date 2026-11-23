@@ -1,27 +1,22 @@
 import { can } from "@territoriadf/contracts/permissions";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  createAdf,
-  deleteAdf,
-  recalculateAdfBoundaries,
-  updateAdf,
-} from "../../../shared/api/adfs";
-import { queryKeys } from "../../../shared/query/keys";
+import { createAdf, deleteAdf, recalculateAdfBoundaries, updateAdf } from "@/shared/api/adfs";
+import { queryKeys } from "@/shared/query/keys";
 import { toast } from "react-toastify";
 import turfArea from "@turf/area";
-import { useAuth } from "../../../contexts/AuthContext";
-import { useAdf, type Adf } from "../../../contexts/AdfContext";
-import { OsmSyncPanel } from "../../osm/OsmSyncPanel";
-import { OfflineMapSection } from "../shared/OfflineMapSection";
-import { adfLabel } from "../../../utils/adfLabel";
-import { logError } from "../../../utils/log";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdf, type Adf } from "@/contexts/AdfContext";
+import { OsmSyncPanel } from "@/components/osm/OsmSyncPanel";
+import { OfflineMapSection } from "@/components/panel/shared/OfflineMapSection";
+import { adfLabel } from "@/utils/adfLabel";
+import { logError } from "@/utils/log";
 import {
   inputClass,
   selectClass,
   primaryButtonClass,
   secondaryButtonClass,
-} from "../../../styles/uiStyles";
+} from "@/styles/uiStyles";
 
 type Draft = {
   numero: string;

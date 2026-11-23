@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { BASEMAPS } from "../shared/basemaps";
-import type { TechnicalLayer } from "../shared/overlays";
-import { floatingButtonClass } from "../../styles/uiStyles";
+import { BASEMAPS } from "@/map/shared/basemaps";
+import type { TechnicalLayer } from "@/map/shared/overlays";
+import { floatingButtonClass } from "@/styles/uiStyles";
 
 type Props = {
   baseLayerId: string;

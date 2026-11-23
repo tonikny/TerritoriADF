@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { createHidrant } from "../../shared/api/hidrants";
-import { invalidateOsmPending } from "../../shared/query/invalidate";
-import { sendToTelegram } from "../../utils/sendToTelegram";
-import type { LatLon } from "../../map/core/types";
+import { createHidrant } from "@/shared/api/hidrants";
+import { invalidateOsmPending } from "@/shared/query/invalidate";
+import { sendToTelegram } from "@/utils/sendToTelegram";
+import type { LatLon } from "@/map/core/types";
 import { toast } from "react-toastify";
-import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../styles/uiStyles";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/styles/uiStyles";
 import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
 import { HidrantFormFields } from "./HidrantFormFields";
-import { logError } from "../../utils/log";
-import { useAdf } from "../../contexts/AdfContext";
-import { CoordinatesLabel } from "../shared/CoordinatesLabel";
+import { logError } from "@/utils/log";
+import { useAdf } from "@/contexts/AdfContext";
+import { CoordinatesLabel } from "@/components/shared/CoordinatesLabel";
 
 interface NewNodeFormProps {
   lat: number;

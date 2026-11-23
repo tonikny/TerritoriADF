@@ -1,14 +1,14 @@
 import { useState } from "react";
-import type { Incidencia } from "../../types";
-import { useIncidencies } from "../../hooks/useIncidencies";
-import { useAuth } from "../../contexts/AuthContext";
+import type { Incidencia } from "@/types";
+import { useIncidencies } from "@/hooks/useIncidencies";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-toastify";
 import {
   inputClass,
   primaryButtonClass,
   secondaryButtonClass,
   selectClass,
-} from "../../styles/uiStyles";
+} from "@/styles/uiStyles";
 import {
   displayCategoria,
   ESTATS_INCIDENCIA,
@@ -16,7 +16,7 @@ import {
   PRIORITATS_INCIDENCIA,
   TIPUS_INCIDENCIA,
   VISIBILITATS_INCIDENCIA,
-} from "../../utils/incidenciaConstants";
+} from "@/utils/incidenciaConstants";
 
 export function IncidenciaEditForm({
   incidencia,

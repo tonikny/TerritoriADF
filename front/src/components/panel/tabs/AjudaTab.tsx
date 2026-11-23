@@ -4,7 +4,7 @@ import {
   hidrant_nop_rev,
   hidrant_nop_nrev,
   hidrant_no_info,
-} from "../../../utils/icons";
+} from "@/utils/icons";
 
 export function AjudaTab() {
   const currentYear = new Date().getFullYear();

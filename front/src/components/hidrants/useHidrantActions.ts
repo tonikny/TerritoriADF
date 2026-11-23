@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { deleteHidrant, updateHidrant } from "../../shared/api/hidrants";
-import { invalidateOsmPending } from "../../shared/query/invalidate";
+import { deleteHidrant, updateHidrant } from "@/shared/api/hidrants";
+import { invalidateOsmPending } from "@/shared/query/invalidate";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
-import type { Adf } from "../../contexts/AdfContext";
-import { sendToTelegram } from "../../utils/sendToTelegram";
-import { logError } from "../../utils/log";
+import type { Adf } from "@/contexts/AdfContext";
+import { sendToTelegram } from "@/utils/sendToTelegram";
+import { logError } from "@/utils/log";
 
 type FieldPatch = Partial<HidrantUiFields & { observacions: string; coordinates: string }>;
 

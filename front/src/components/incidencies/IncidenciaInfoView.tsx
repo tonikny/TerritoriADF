@@ -1,7 +1,7 @@
-import type { Incidencia, IncidenciaEvent } from "../../types";
+import type { Incidencia, IncidenciaEvent } from "@/types";
 import { Timeline } from "./Timeline";
-import { NodeActions } from "../shared/NodeActions";
-import { getIncidenciaShareUrl } from "../../utils/urlParams";
+import { NodeActions } from "@/components/shared/NodeActions";
+import { getIncidenciaShareUrl } from "@/utils/urlParams";
 import {
   ESTATS_INCIDENCIA,
   PRECISIONS_INCIDENCIA,
@@ -9,7 +9,7 @@ import {
   TIPUS_INCIDENCIA,
   VISIBILITATS_INCIDENCIA,
   displayCategoria,
-} from "../../utils/incidenciaConstants";
+} from "@/utils/incidenciaConstants";
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString("ca-ES", {

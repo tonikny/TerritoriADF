@@ -1,17 +1,17 @@
 import { can } from "@territoriadf/contracts/permissions";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../../contexts/AuthContext";
-import { apiErrorMessage } from "../../../shared/api/client";
-import { setAdfTrackingSharing } from "../../../shared/api/adfs";
-import { enableTracking, getTrackingConfig, getTrackingStatus } from "../../../shared/api/tracking";
-import { queryKeys, viewerKey } from "../../../shared/query/keys";
-import { useAdf } from "../../../contexts/AdfContext";
-import type { Position } from "../../../hooks/usePositionPolling";
-import { timeAgo } from "../../../utils/time";
-import { CollapsibleSection } from "../shared/CollapsibleSection";
-import { adfLabel } from "../../../utils/adfLabel";
-import { primaryButtonClass, secondaryButtonClass } from "../../../styles/uiStyles";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiErrorMessage } from "@/shared/api/client";
+import { setAdfTrackingSharing } from "@/shared/api/adfs";
+import { enableTracking, getTrackingConfig, getTrackingStatus } from "@/shared/api/tracking";
+import { queryKeys, viewerKey } from "@/shared/query/keys";
+import { useAdf } from "@/contexts/AdfContext";
+import type { Position } from "@/hooks/usePositionPolling";
+import { timeAgo } from "@/utils/time";
+import { CollapsibleSection } from "@/components/panel/shared/CollapsibleSection";
+import { adfLabel } from "@/utils/adfLabel";
+import { primaryButtonClass, secondaryButtonClass } from "@/styles/uiStyles";
 import { toast } from "react-toastify";
 
 const CONNECTED_MS = 15 * 60 * 1000;

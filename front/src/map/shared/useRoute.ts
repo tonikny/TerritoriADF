@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { logError } from "../../utils/log";
-import type { GeoBounds, LatLon } from "../core/types";
-import { boundsFromCoordinates, distanceMeters } from "../core/geometry";
+import { logError } from "@/utils/log";
+import type { GeoBounds, LatLon } from "@/map/core/types";
+import { boundsFromCoordinates, distanceMeters } from "@/map/core/geometry";
 
 export type RouteData = {
   coordinates: [number, number][];

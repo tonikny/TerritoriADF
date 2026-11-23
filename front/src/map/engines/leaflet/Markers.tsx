@@ -1,6 +1,6 @@
 import type L from "leaflet";
 import { Circle, Marker, Popup } from "react-leaflet";
-import type { MapMarkerSpec } from "../../core/types";
+import type { MapMarkerSpec } from "@/map/core/types";
 import { ringIcon, toLeafletIcon } from "./icons";
 
 export function LeafletMarker({ spec }: { spec: MapMarkerSpec }) {

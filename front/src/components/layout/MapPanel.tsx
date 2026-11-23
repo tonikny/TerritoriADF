@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { can } from "@territoriadf/contracts/permissions";
 import { toast } from "react-toastify";
-import { MapSurface } from "../../map/MapSurface";
-import { ENGINE_CAPABILITIES } from "../../map/core/capabilities";
+import { MapSurface } from "@/map/MapSurface";
+import { ENGINE_CAPABILITIES } from "@/map/core/capabilities";
 import {
   clearEngineFailure,
   markEngineFailure,
@@ -10,14 +10,14 @@ import {
   resolveEngine,
   storeEnginePreference,
   type EnginePreference,
-} from "../../map/core/engineSelection";
+} from "@/map/core/engineSelection";
 import {
   DEFAULT_VIEW,
   bboxToBounds,
   clampToMaxDistance,
   fromLngLat,
   viewForAdf,
-} from "../../map/core/geometry";
+} from "@/map/core/geometry";
 import type {
   EngineId,
   GeoBounds,
@@ -27,9 +27,9 @@ import type {
   MapPolygonSpec,
   MapPolylineSpec,
   ViewState,
-} from "../../map/core/types";
-import { DEFAULT_BASEMAP_ID, getBasemap } from "../../map/shared/basemaps";
-import { TERRAIN_ATTRIBUTION, uniqueAttributions } from "../../map/shared/attribution";
+} from "@/map/core/types";
+import { DEFAULT_BASEMAP_ID, getBasemap } from "@/map/shared/basemaps";
+import { TERRAIN_ATTRIBUTION, uniqueAttributions } from "@/map/shared/attribution";
 import {
   CREATE_ICON,
   USER_ICON,
@@ -37,41 +37,41 @@ import {
   hidrantIcon,
   incidenciaIcon,
   trackingPin,
-} from "../../map/shared/markerIcons";
-import { technicalLayers } from "../../map/shared/overlays";
-import { useMaskedArea } from "../../map/shared/useMaskedArea";
-import { clearSavedView, useMapViewPersistence } from "../../map/shared/useMapViewPersistence";
-import { useRoute } from "../../map/shared/useRoute";
-import { getBottomSheetInset } from "../../map/shared/uiInset";
-import { isRecentLongPress } from "../../map/shared/longPress";
-import { LayersPanel } from "../../map/ui/LayersPanel";
-import { useAdf, type Adf } from "../../contexts/AdfContext";
-import { useAuth } from "../../contexts/AuthContext";
+} from "@/map/shared/markerIcons";
+import { technicalLayers } from "@/map/shared/overlays";
+import { useMaskedArea } from "@/map/shared/useMaskedArea";
+import { clearSavedView, useMapViewPersistence } from "@/map/shared/useMapViewPersistence";
+import { useRoute } from "@/map/shared/useRoute";
+import { getBottomSheetInset } from "@/map/shared/uiInset";
+import { isRecentLongPress } from "@/map/shared/longPress";
+import { LayersPanel } from "@/map/ui/LayersPanel";
+import { useAdf, type Adf } from "@/contexts/AdfContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Panel, type BottomSheetHandle } from "./Panel";
-import { buildTabs } from "../panel/PanelTabs";
-import { useHidrantData } from "../../hooks/useHidrantData";
+import { buildTabs } from "@/components/panel/PanelTabs";
+import { useHidrantData } from "@/hooks/useHidrantData";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import { useIncidencies } from "../../hooks/useIncidencies";
-import { useAppConfig } from "../../hooks/useAppConfig";
-import { useGeolocationTracking } from "../../hooks/useGeolocationTracking";
+import { useIncidencies } from "@/hooks/useIncidencies";
+import { useAppConfig } from "@/hooks/useAppConfig";
+import { useGeolocationTracking } from "@/hooks/useGeolocationTracking";
 import {
   POSITIONS_POLL_ACTIVE_MS,
   POSITIONS_POLL_IDLE_MS,
   TRACKING_STORAGE_KEY,
-} from "../../hooks/usePositionPolling";
-import { usePositions } from "../../hooks/usePositions";
-import { useLocalStorage } from "../../utils/useLocalStorage";
-import { storageKey } from "../../utils/storageKeys";
-import { NodeInfo } from "../hidrants/NodeInfo";
-import { CreateNodePanel } from "../panel/CreateNodePanel";
-import { createTitle } from "../panel/createTitle";
-import { IncidenciaInfo } from "../incidencies/IncidenciaInfo";
-import { isPointInBoundary } from "../../utils/geo";
-import { emojiPrioritatIncidencia } from "../../utils/incidenciaConstants";
-import { getQueryParam, setIncidenciaUrlParam, setNodeUrlParam } from "../../utils/urlParams";
-import { timeAgo } from "../../utils/time";
-import { MapUIOverlays } from "../controls/MapUIOverlays";
-import type { CreateType, IncidenciaFeature } from "../../types";
+} from "@/hooks/usePositionPolling";
+import { usePositions } from "@/hooks/usePositions";
+import { useLocalStorage } from "@/utils/useLocalStorage";
+import { storageKey } from "@/utils/storageKeys";
+import { NodeInfo } from "@/components/hidrants/NodeInfo";
+import { CreateNodePanel } from "@/components/panel/CreateNodePanel";
+import { createTitle } from "@/components/panel/createTitle";
+import { IncidenciaInfo } from "@/components/incidencies/IncidenciaInfo";
+import { isPointInBoundary } from "@/utils/geo";
+import { emojiPrioritatIncidencia } from "@/utils/incidenciaConstants";
+import { getQueryParam, setIncidenciaUrlParam, setNodeUrlParam } from "@/utils/urlParams";
+import { timeAgo } from "@/utils/time";
+import { MapUIOverlays } from "@/components/controls/MapUIOverlays";
+import type { CreateType, IncidenciaFeature } from "@/types";
 
 type FocusCommand =
   | {

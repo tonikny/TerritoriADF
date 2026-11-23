@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { logError } from "../../utils/log";
+import { logError } from "@/utils/log";
 
 /** Botó compacte que exporta a PDF el contingut filtrat d'una llista. */
 export function PdfExportButton({

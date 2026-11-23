@@ -1,6 +1,6 @@
 import { Layer, Popup, Source } from "@vis.gl/react-maplibre";
 import type { LineLayerSpecification } from "maplibre-gl";
-import type { MapPolygonSpec, MapPolylineSpec } from "../../core/types";
+import type { MapPolygonSpec, MapPolylineSpec } from "@/map/core/types";
 
 function parseDashArray(value: string): number[] {
   return value

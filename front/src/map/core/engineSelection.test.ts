@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveEngine } from "./engineSelection";
-import { storageKey } from "../../utils/storageKeys";
+import { storageKey } from "@/utils/storageKeys";
 
 afterEach(() => {
   vi.unstubAllGlobals();

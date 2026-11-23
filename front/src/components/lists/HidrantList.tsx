@@ -1,10 +1,10 @@
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { HidrantEstatFilter, HidrantFilters } from "../../hooks/useListFilters";
-import { HIDRANT_ESTAT_OPTIONS } from "../../hooks/useListFilters";
-import { useAdf } from "../../contexts/AdfContext";
-import { exportHidrantListPdf } from "../../utils/listPdf";
-import { getHidrantStatus, getHidrantIconUrl } from "../../utils/icons";
-import { inputClass, selectClass } from "../../styles/uiStyles";
+import type { HidrantEstatFilter, HidrantFilters } from "@/hooks/useListFilters";
+import { HIDRANT_ESTAT_OPTIONS } from "@/hooks/useListFilters";
+import { useAdf } from "@/contexts/AdfContext";
+import { exportHidrantListPdf } from "@/utils/listPdf";
+import { getHidrantStatus, getHidrantIconUrl } from "@/utils/icons";
+import { inputClass, selectClass } from "@/styles/uiStyles";
 import { PdfExportButton } from "./PdfExportButton";
 
 export function HidrantList({

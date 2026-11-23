@@ -1,5 +1,5 @@
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import { getHidrantDisplayData, getHidrantImages } from "../../utils/hidrantDisplay";
+import { getHidrantDisplayData, getHidrantImages } from "@/utils/hidrantDisplay";
 import { HidrantImages } from "./HidrantImages";
 import { QuickStatusButtons } from "./QuickStatusButtons";
 import { HidrantActions } from "./HidrantActions";

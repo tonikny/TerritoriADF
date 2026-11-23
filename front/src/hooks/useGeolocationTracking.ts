@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { useLocalStorage } from "../utils/useLocalStorage";
-import { storageKey } from "../utils/storageKeys";
-import type { LatLon } from "../map/core/types";
+import { useLocalStorage } from "@/utils/useLocalStorage";
+import { storageKey } from "@/utils/storageKeys";
+import type { LatLon } from "@/map/core/types";
 
 const geoAvailable =
   typeof navigator !== "undefined" && typeof navigator.geolocation?.watchPosition === "function";

@@ -1,6 +1,6 @@
 import { toast } from "react-toastify";
-import { useAuth } from "../../contexts/AuthContext";
-import { openInNativeMaps } from "../../utils/geoMaps";
+import { useAuth } from "@/contexts/AuthContext";
+import { openInNativeMaps } from "@/utils/geoMaps";
 import { ShareIcon } from "./Icons";
 
 interface NodeActionsProps {

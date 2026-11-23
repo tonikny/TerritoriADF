@@ -1,6 +1,6 @@
 import type { PanelTab } from "./types";
 import { ICONS_H } from "./metrics";
-import { useAdfHintVisible } from "../../hooks/useAdfHintVisible";
+import { useAdfHintVisible } from "@/hooks/useAdfHintVisible";
 
 export function TabBar({
   tabs,

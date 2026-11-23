@@ -2,11 +2,11 @@ import type { SessionResponse } from "@territoriadf/contracts/users";
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 
-import { useAuth } from "../../contexts/AuthContext";
-import { ApiError, request } from "../../shared/api/client";
-import { inputClass, primaryButtonClass } from "../../styles/uiStyles";
+import { useAuth } from "@/contexts/AuthContext";
+import { ApiError, request } from "@/shared/api/client";
+import { inputClass, primaryButtonClass } from "@/styles/uiStyles";
 import { PasswordInput } from "./PasswordInput";
-import { APP_NAME } from "../../utils/appInfo";
+import { APP_NAME } from "@/utils/appInfo";
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState("");

@@ -1,7 +1,7 @@
 import type { AppConfig } from "@territoriadf/contracts/config";
 import { useEffect, useState } from "react";
 
-import { request } from "../shared/api/client";
+import { request } from "@/shared/api/client";
 
 // Es demana una sola vegada per sessió i només es cacheja si la resposta és vàlida
 // (si falla, el següent muntatge ho tornarà a intentar).

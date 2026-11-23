@@ -1,22 +1,22 @@
 import React, { useState } from "react";
-import { useIncidencies } from "../../hooks/useIncidencies";
-import { useAuth } from "../../contexts/AuthContext";
-import { useAdf } from "../../contexts/AdfContext";
+import { useIncidencies } from "@/hooks/useIncidencies";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdf } from "@/contexts/AdfContext";
 import { toast } from "react-toastify";
 import {
   inputClass,
   primaryButtonClass,
   secondaryButtonClass,
   selectClass,
-} from "../../styles/uiStyles";
-import { CoordinatesLabel } from "../shared/CoordinatesLabel";
-import { logError } from "../../utils/log";
+} from "@/styles/uiStyles";
+import { CoordinatesLabel } from "@/components/shared/CoordinatesLabel";
+import { logError } from "@/utils/log";
 import {
   PRIORITATS_INCIDENCIA,
   PRECISIONS_INCIDENCIA,
   TIPUS_INCIDENCIA,
   VISIBILITATS_INCIDENCIA,
-} from "../../utils/incidenciaConstants";
+} from "@/utils/incidenciaConstants";
 
 interface NovaIncidenciaFormProps {
   lat: number;

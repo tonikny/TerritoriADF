@@ -5,10 +5,10 @@ import type { Permission, Role } from "@territoriadf/contracts/permissions";
 import type { SessionResponse, SessionUser } from "@territoriadf/contracts/users";
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-import { ApiError, request } from "../shared/api/client";
-import { clearOfflineData } from "../utils/offlineData";
-import { storageKey } from "../utils/storageKeys";
-import { queryClient } from "../shared/query/queryClient";
+import { ApiError, request } from "@/shared/api/client";
+import { clearOfflineData } from "@/utils/offlineData";
+import { storageKey } from "@/utils/storageKeys";
+import { queryClient } from "@/shared/query/queryClient";
 
 /** Usuari de la sessió (contracte compartit amb el backend). */
 export type User = SessionUser;

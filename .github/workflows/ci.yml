@@ -32,6 +32,6 @@ jobs:
 
       - run: npm run test:coverage -w back
 
-      - run: npm test -w front
+      - run: npm run test:coverage -w front
 
       - run: npm run build

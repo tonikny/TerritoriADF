@@ -7,9 +7,9 @@ import {
   ensureTileCacheReady,
   getOfflineMapInfo,
   saveOfflineMapInfo,
-} from "../../../utils/offlineMap";
-import { timeAgo } from "../../../utils/time";
-import { primaryButtonClass, secondaryButtonClass } from "../../../styles/uiStyles";
+} from "@/map/shared/offlineMap";
+import { timeAgo } from "@/utils/time";
+import { primaryButtonClass, secondaryButtonClass } from "@/styles/uiStyles";
 
 const MB_FORMAT = new Intl.NumberFormat("ca-ES", { maximumFractionDigits: 1 });
 

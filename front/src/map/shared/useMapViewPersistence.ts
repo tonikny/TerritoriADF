@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { storageKey } from "../../utils/storageKeys";
-import type { ViewState } from "../core/types";
+import { storageKey } from "@/utils/storageKeys";
+import type { ViewState } from "@/map/core/types";
 
 const MAP_POS_KEY = storageKey("map_pos");
 

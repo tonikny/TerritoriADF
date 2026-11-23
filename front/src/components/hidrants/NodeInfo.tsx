@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { can } from "@territoriadf/contracts/permissions";
-import type { LatLon } from "../../map/core/types";
+import type { LatLon } from "@/map/core/types";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import { useAuth } from "../../contexts/AuthContext";
-import { useAdf } from "../../contexts/AdfContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdf } from "@/contexts/AdfContext";
 import { useHidrantActions } from "./useHidrantActions";
 import { HidrantInfoView } from "./HidrantInfoView";
 import { HidrantEditForm } from "./HidrantEditForm";
-import { usePreventLeave } from "../../hooks/usePreventLeave";
+import { usePreventLeave } from "@/hooks/usePreventLeave";
 
 export const NodeInfo = ({
   feature,
