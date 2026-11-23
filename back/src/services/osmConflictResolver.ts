@@ -4,6 +4,7 @@ import { buildOscXml } from "./osmXml.js";
 import { parseOsmTags } from "./osmPushSync.js";
 import { computeDiffStrings } from "./osmDiff.js";
 import { APP_NAME } from "../utils/appInfo.js";
+import type { HidrantSyncConflict } from "@territoriadf/contracts/hidrants";
 
 export type ConflictDetail = {
   hidrant: HidrantData;
@@ -186,7 +187,7 @@ function parseConflictError(syncError: string | null | undefined): {
   osmTags: Record<string, string>;
 } {
   try {
-    const data = JSON.parse(syncError || "{}");
+    const data = JSON.parse(syncError || "{}") as HidrantSyncConflict;
     return {
       osmVersion: data.osmVersion || 0,
       osmLat: data.osmLat || 0,

@@ -34,7 +34,7 @@ async function cleanEmptyOsmTags() {
     let emptyTagsFound = 0;
 
     for (const hidrant of allHidrants) {
-      const osmTags = JSON.parse(hidrant.osm_tags || '{}');
+      const osmTags = JSON.parse(hidrant.osm_tags || '{}') as Record<string, unknown>;
       const originalKeys = Object.keys(osmTags);
 
       // Filtrar tags amb valor buit

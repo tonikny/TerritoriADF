@@ -17,7 +17,7 @@ async function run() {
        log.error({ adfId }, '❌ ADF no trobada');
        process.exit(1);
      }
-     log.info({ adf_nom: allAdfs[0].nom }, '🚀 Iniciant importació d\'hidrants des d\'OSM per a aquesta ADF');
+     log.info({ adf_nom: allAdfs[0]?.nom }, '🚀 Iniciant importació d\'hidrants des d\'OSM per a aquesta ADF');
     } else {
       allAdfs = db.select().from(adfs).all();
       log.info({ adf_count: allAdfs.length }, '🚀 Iniciant importació d\'hidrants des d\'OSM');

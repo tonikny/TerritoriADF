@@ -43,7 +43,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
  */
 export function registerNotFound(app: FastifyInstance): void {
   app.setNotFoundHandler((request, reply) => {
-    const url = request.url.split("?")[0];
+    const url = request.url.split("?")[0] ?? request.url;
 
     // `findRoute` sí que resol els paràmetres (`/api/hidrants/:id`) i retorna
     // `null` quan el path no existeix amb aquell mètode.

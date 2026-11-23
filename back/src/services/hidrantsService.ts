@@ -180,7 +180,7 @@ export const HidrantsService = {
     // Comprovar canvis en osm_tags
     let osm_tags = undefined;
     if (ui_fields) {
-      const currentOsmTags = JSON.parse(current.osm_tags || "{}");
+      const currentOsmTags = JSON.parse(current.osm_tags || "{}") as Record<string, string>;
 
       if (ui_fields.estat) {
         delete currentOsmTags["emergency"];

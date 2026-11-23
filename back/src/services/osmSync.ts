@@ -30,17 +30,17 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
     throw new Error(`ADF ${adfId} not found in database.`);
   }
 
+  const relations = JSON.parse(adf.osm_relations) as string[];
+
   log.info(
     {
       adfId,
       nom: adf.nom,
-      osmRelations: JSON.parse(adf.osm_relations).length,
-      relations: JSON.parse(adf.osm_relations),
+      osmRelations: relations.length,
+      relations,
     },
     "Relacions OSM per ADF",
   );
-
-  const relations: string[] = JSON.parse(adf.osm_relations);
   let allElements: OsmElement[] = [];
   let successCount = 0;
 

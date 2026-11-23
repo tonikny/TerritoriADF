@@ -27,7 +27,7 @@ function escapeXml(str: unknown) {
     .replace(/'/g, '&apos;');
 }
 
-function parsePrivateDescription(desc: string | { value?: string }) {
+function parsePrivateDescription(desc?: string | { value?: string }) {
   if (!desc) {return {};}
 
   const raw = typeof desc === 'string' ? desc : desc.value || '';
@@ -44,9 +44,11 @@ function parsePrivateDescription(desc: string | { value?: string }) {
     const cMatch = l.match(/(\d+)\s*ràcords?/);
     if (cMatch) {couplings = cMatch[1];}
     const dMatch = line.match(/(\d+(?:\s*\/\s*\d+)+)/);
-    if (dMatch) {diameters = dMatch[1].replace(/\s*\/\s*/g, ';');}
+    const diametersValue = dMatch?.[1];
+    if (diametersValue) {diameters = diametersValue.replace(/\s*\/\s*/g, ';');}
     const pMatch = line.match(/(\d+(?:[.,]\d+)?)/);
-    if (pMatch && l.includes('kg')) {pressure = pMatch[1].replace(',', '.');}
+    const pressureValue = pMatch?.[1];
+    if (pressureValue && l.includes('kg')) {pressure = pressureValue.replace(',', '.');}
   }
 
   return { type, couplings, diameters, pressure };
@@ -77,7 +79,7 @@ async function run() {
       await logToFile(`❌ ADF amb ID ${adfId} no trobada.`, logStream);
       process.exit(1);
     }
-    await logToFile(`Pas 1: Sincronitzant dades des d'OSM NOMÉS per a l'ADF ${allAdfs[0].nom}...`, logStream);
+          await logToFile(`Pas 1: Sincronitzant dades des d'OSM NOMÉS per a l'ADF ${allAdfs[0]?.nom}...`, logStream);
   } else {
     allAdfs = db.select().from(adfs).all();
     await logToFile(`Pas 1: Sincronitzant dades des d'OSM per a ${allAdfs.length} ADFs...`, logStream);
@@ -127,8 +129,10 @@ async function run() {
     // Per a PENDING_CREATE no cal action si l'id és negatiu, JOSM ja ho interpreta com a nou.
 
     // Combinar tags
-    const osmTags = JSON.parse(h.osm_tags || '{}');
-    const privateTags = JSON.parse(h.private_tags || '{}');
+    const osmTags = JSON.parse(h.osm_tags || '{}') as Record<string, string>;
+    const privateTags = JSON.parse(h.private_tags || '{}') as {
+      description?: string | { value?: string };
+    };
     const parsed = parsePrivateDescription(privateTags.description);
 
     const finalTags: Record<string, string> = {

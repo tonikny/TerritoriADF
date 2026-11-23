@@ -43,7 +43,7 @@ describe("syncAdfFromOSM: importació", () => {
 
     expect(result).toEqual({ total: 2, skipped: 0, conflicts: 0 });
 
-    const query = vi.mocked(queryOverpass).mock.calls[0][0];
+    const query = vi.mocked(queryOverpass).mock.calls[0]![0];
     expect(query).toContain("area(3600000278)");
     expect(query).toContain('["emergency"="fire_hydrant"]');
     expect(query).toContain('["disused:emergency"="fire_hydrant"]');
@@ -52,7 +52,9 @@ describe("syncAdfFromOSM: importació", () => {
     expect(rows).toHaveLength(2);
     const first = rows.find((row) => row.osm_id === 1001);
     expect(first).toMatchObject({ osm_version: 3, sync_status: "SYNCED", lat: 41.6001 });
-    expect(JSON.parse(first?.osm_tags ?? "{}")["addr:street"]).toBe("Carrer OSM U");
+    expect((JSON.parse(first?.osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
+      "Carrer OSM U",
+    );
     expect(first?.synced_at).toBeTruthy();
   });
 
@@ -69,10 +71,12 @@ describe("syncAdfFromOSM: importació", () => {
 
     await syncAdfFromOSM(ADF_278);
 
-    const row = HidrantsRepository.findByIds(["existing"])[0];
+    const row = HidrantsRepository.findByIds(["existing"])[0]!;
     expect(row.osm_version).toBe(3);
     expect(row.lat).toBe(41.6001);
-    expect(JSON.parse(row.osm_tags ?? "{}")["addr:street"]).toBe("Carrer OSM U");
+    expect((JSON.parse(row.osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
+      "Carrer OSM U",
+    );
     expect(db.select().from(hidrants).where(eq(hidrants.adf_id, ADF_278)).all()).toHaveLength(2);
   });
 
@@ -84,7 +88,7 @@ describe("syncAdfFromOSM: importació", () => {
     expect(result.total).toBe(4); // 2 elements × 2 relacions
     expect(db.select().from(hidrants).where(eq(hidrants.adf_id, ADF_278)).all()).toHaveLength(2);
     expect(queryOverpass).toHaveBeenCalledTimes(2);
-    const secondQuery = vi.mocked(queryOverpass).mock.calls[1][0];
+    const secondQuery = vi.mocked(queryOverpass).mock.calls[1]![0];
     expect(secondQuery).toContain("area(3600000279)");
   });
 });
@@ -103,11 +107,15 @@ describe("syncAdfFromOSM: estats locals", () => {
     const result = await syncAdfFromOSM(ADF_278);
 
     expect(result).toEqual({ total: 2, skipped: 1, conflicts: 0 });
-    const row = HidrantsRepository.findByIds(["local-new"])[0];
+    const row = HidrantsRepository.findByIds(["local-new"])[0]!;
     expect(row.sync_status).toBe("PENDING_CREATE");
     expect(row.lat).toBe(41.6);
-    expect(JSON.parse(row.osm_tags ?? "{}")["addr:street"]).toBe("Carrer Local");
-    expect(JSON.parse(row.remote_osm_tags ?? "{}")["addr:street"]).toBe("Carrer OSM U");
+    expect((JSON.parse(row.osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
+      "Carrer Local",
+    );
+    expect((JSON.parse(row.remote_osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
+      "Carrer OSM U",
+    );
   });
 
   it("marca CONFLICT si OSM és més nou que un PENDING_UPDATE", async () => {
@@ -122,9 +130,9 @@ describe("syncAdfFromOSM: estats locals", () => {
     const result = await syncAdfFromOSM(ADF_278);
 
     expect(result.conflicts).toBe(1);
-    const row = HidrantsRepository.findByIds(["local-edit"])[0];
+    const row = HidrantsRepository.findByIds(["local-edit"])[0]!;
     expect(row.sync_status).toBe("CONFLICT");
-    expect(JSON.parse(row.sync_error ?? "{}").osmVersion).toBe(3);
+    expect((JSON.parse(row.sync_error ?? "{}") as { osmVersion: number }).osmVersion).toBe(3);
   });
 
   it("manté un PENDING_UPDATE si la versió local és més nova", async () => {
@@ -138,7 +146,7 @@ describe("syncAdfFromOSM: estats locals", () => {
     const result = await syncAdfFromOSM(ADF_278);
 
     expect(result.skipped).toBe(1);
-    expect(HidrantsRepository.findByIds(["local-newer"])[0].sync_status).toBe("PENDING_UPDATE");
+    expect(HidrantsRepository.findByIds(["local-newer"])[0]!.sync_status).toBe("PENDING_UPDATE");
   });
 
   it("no toca REVIEW ni CONFLICT", async () => {
@@ -148,8 +156,8 @@ describe("syncAdfFromOSM: estats locals", () => {
     const result = await syncAdfFromOSM(ADF_278);
 
     expect(result.skipped).toBe(2);
-    expect(HidrantsRepository.findByIds(["review"])[0].sync_status).toBe("REVIEW");
-    expect(HidrantsRepository.findByIds(["conflict"])[0].sync_status).toBe("CONFLICT");
+    expect(HidrantsRepository.findByIds(["review"])[0]!.sync_status).toBe("REVIEW");
+    expect(HidrantsRepository.findByIds(["conflict"])[0]!.sync_status).toBe("CONFLICT");
   });
 
   it("restaura a SYNCED un MISSING_IN_OSM que torna a OSM", async () => {
@@ -157,7 +165,7 @@ describe("syncAdfFromOSM: estats locals", () => {
 
     await syncAdfFromOSM(ADF_278);
 
-    expect(HidrantsRepository.findByIds(["returns"])[0].sync_status).toBe("SYNCED");
+    expect(HidrantsRepository.findByIds(["returns"])[0]!.sync_status).toBe("SYNCED");
   });
 });
 
@@ -173,10 +181,10 @@ describe("syncAdfFromOSM: hidrants absents", () => {
 
     await syncAdfFromOSM(ADF_278);
 
-    const gone = HidrantsRepository.findByIds(["gone"])[0];
+    const gone = HidrantsRepository.findByIds(["gone"])[0]!;
     expect(gone.sync_status).toBe("MISSING_IN_OSM");
     expect(JSON.parse(gone.private_tags ?? "{}")).toEqual({ nota: "no es pot perdre" });
-    expect(HidrantsRepository.findByIds(["other-adf"])[0].sync_status).toBe("SYNCED");
+    expect(HidrantsRepository.findByIds(["other-adf"])[0]!.sync_status).toBe("SYNCED");
   });
 
   it("una resposta buida marca tots els SYNCED com a MISSING_IN_OSM", async () => {
@@ -186,7 +194,7 @@ describe("syncAdfFromOSM: hidrants absents", () => {
     const result = await syncAdfFromOSM(ADF_278);
 
     expect(result.total).toBe(0);
-    expect(HidrantsRepository.findByIds(["gone"])[0].sync_status).toBe("MISSING_IN_OSM");
+    expect(HidrantsRepository.findByIds(["gone"])[0]!.sync_status).toBe("MISSING_IN_OSM");
   });
 
   it("no marca res si alguna relació ha fallat", async () => {
@@ -200,7 +208,7 @@ describe("syncAdfFromOSM: hidrants absents", () => {
     const result = await syncAdfFromOSM(ADF_278);
 
     expect(result.total).toBe(2);
-    expect(HidrantsRepository.findByIds(["gone"])[0].sync_status).toBe("SYNCED");
+    expect(HidrantsRepository.findByIds(["gone"])[0]!.sync_status).toBe("SYNCED");
   });
 });
 

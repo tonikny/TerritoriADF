@@ -48,7 +48,7 @@ describe("pushSyncToOSM: creació", () => {
     expect(osmApi.createNode).toHaveBeenCalledTimes(1);
     expect(osmApi.closeChangeset).toHaveBeenCalledWith(4242);
 
-    const row = HidrantsRepository.findByIds(["new-hydrant"])[0];
+    const row = HidrantsRepository.findByIds(["new-hydrant"])[0]!;
     expect(row.sync_status).toBe("SYNCED");
     expect(row.osm_id).toBe(900001);
     expect(row.osm_version).toBe(1);
@@ -80,7 +80,7 @@ describe("pushSyncToOSM: creació", () => {
 
     expect(result.errors).toBe(1);
     expect(osmApi.createNode).not.toHaveBeenCalled();
-    const row = HidrantsRepository.findByIds(["bad-hydrant"])[0];
+    const row = HidrantsRepository.findByIds(["bad-hydrant"])[0]!;
     expect(row.sync_status).toBe("ERROR");
     expect(row.sync_error).toContain("Dades invàlides");
   });
@@ -96,7 +96,7 @@ describe("pushSyncToOSM: creació", () => {
     const result = await pushSyncToOSM({ adfId: 278 });
 
     expect(result.errors).toBe(1);
-    const row = HidrantsRepository.findByIds(["network-error"])[0];
+    const row = HidrantsRepository.findByIds(["network-error"])[0]!;
     expect(row.sync_status).toBe("ERROR");
     expect(row.sync_error).toContain("OSM timeout");
   });
@@ -112,7 +112,7 @@ describe("pushSyncToOSM: creació", () => {
 
     expect(result.reviewed).toBe(1);
     expect(osmApi.createNode).not.toHaveBeenCalled();
-    const row = HidrantsRepository.findByIds(["review-hydrant"])[0];
+    const row = HidrantsRepository.findByIds(["review-hydrant"])[0]!;
     expect(row.sync_status).toBe("REVIEW");
   });
 });
@@ -138,9 +138,12 @@ describe("pushSyncToOSM: actualització", () => {
     const result = await pushSyncToOSM({ adfId: 278 });
 
     expect(result.conflicts).toBe(1);
-    const row = HidrantsRepository.findByIds(["conflict-hydrant"])[0];
+    const row = HidrantsRepository.findByIds(["conflict-hydrant"])[0]!;
     expect(row.sync_status).toBe("CONFLICT");
-    const error = JSON.parse(row.sync_error ?? "{}");
+    const error = JSON.parse(row.sync_error ?? "{}") as {
+      osmVersion: number;
+      diffFields: string[];
+    };
     expect(error.osmVersion).toBe(4);
     expect(error.diffFields.join(" ")).toContain("addr:street");
   });
@@ -162,7 +165,7 @@ describe("pushSyncToOSM: actualització", () => {
     const result = await pushSyncToOSM({ adfId: 278 });
 
     expect(result.errors).toBe(1);
-    expect(HidrantsRepository.findByIds(["update-400"])[0].sync_status).toBe("ERROR");
+    expect(HidrantsRepository.findByIds(["update-400"])[0]!.sync_status).toBe("ERROR");
   });
 
   it("una actualització amb warnings queda en REVIEW", async () => {
@@ -178,7 +181,7 @@ describe("pushSyncToOSM: actualització", () => {
 
     expect(result.reviewed).toBe(1);
     expect(osmApi.updateNode).not.toHaveBeenCalled();
-    expect(HidrantsRepository.findByIds(["update-review"])[0].sync_status).toBe("REVIEW");
+    expect(HidrantsRepository.findByIds(["update-review"])[0]!.sync_status).toBe("REVIEW");
   });
 
   it("una actualització correcta → SYNCED amb la versió nova", async () => {
@@ -194,7 +197,7 @@ describe("pushSyncToOSM: actualització", () => {
     const result = await pushSyncToOSM({ adfId: 278 });
 
     expect(result.synced).toBe(1);
-    const row = HidrantsRepository.findByIds(["update-hydrant"])[0];
+    const row = HidrantsRepository.findByIds(["update-hydrant"])[0]!;
     expect(row.sync_status).toBe("SYNCED");
     expect(row.osm_version).toBe(3);
   });
@@ -245,7 +248,7 @@ describe("pushSyncToOSM: esborrat", () => {
     const result = await pushSyncToOSM({ adfId: 278 });
 
     expect(result.conflicts).toBe(1);
-    expect(HidrantsRepository.findByIds(["delete-conflict"])[0].sync_status).toBe("CONFLICT");
+    expect(HidrantsRepository.findByIds(["delete-conflict"])[0]!.sync_status).toBe("CONFLICT");
   });
 });
 

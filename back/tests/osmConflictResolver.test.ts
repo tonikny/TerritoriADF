@@ -59,7 +59,7 @@ describe("tryAutoResolve", () => {
   it("retorna false si l'hidrant no té osm_id", async () => {
     createHydrant({ id: "no-osm-id" });
 
-    expect(await tryAutoResolve(HidrantsRepository.findByIds(["no-osm-id"])[0])).toBe(false);
+    expect(await tryAutoResolve(HidrantsRepository.findByIds(["no-osm-id"])[0]!)).toBe(false);
     expect(osmApi.getNode).not.toHaveBeenCalled();
   });
 
@@ -67,7 +67,7 @@ describe("tryAutoResolve", () => {
     seedConflict();
     vi.mocked(osmApi.getNode).mockResolvedValue(null);
 
-    expect(await tryAutoResolve(HidrantsRepository.findByIds(["conflict-1"])[0])).toBe(false);
+    expect(await tryAutoResolve(HidrantsRepository.findByIds(["conflict-1"])[0]!)).toBe(false);
   });
 
   it("retorna false si la posició ha canviat a OSM", async () => {
@@ -79,8 +79,8 @@ describe("tryAutoResolve", () => {
       tags: REMOTE_TAGS,
     });
 
-    expect(await tryAutoResolve(HidrantsRepository.findByIds(["conflict-1"])[0])).toBe(false);
-    expect(HidrantsRepository.findByIds(["conflict-1"])[0].sync_status).toBe("CONFLICT");
+    expect(await tryAutoResolve(HidrantsRepository.findByIds(["conflict-1"])[0]!)).toBe(false);
+    expect(HidrantsRepository.findByIds(["conflict-1"])[0]!.sync_status).toBe("CONFLICT");
   });
 
   it("marca SYNCED si només difereixen els tags i no cal publicar res", async () => {
@@ -98,8 +98,8 @@ describe("tryAutoResolve", () => {
       tags: REMOTE_TAGS,
     });
 
-    expect(await tryAutoResolve(HidrantsRepository.findByIds(["no-changes"])[0])).toBe(true);
-    const row = HidrantsRepository.findByIds(["no-changes"])[0];
+    expect(await tryAutoResolve(HidrantsRepository.findByIds(["no-changes"])[0]!)).toBe(true);
+    const row = HidrantsRepository.findByIds(["no-changes"])[0]!;
     expect(row.sync_status).toBe("SYNCED");
     expect(row.osm_version).toBe(4);
     expect(osmApi.updateNode).not.toHaveBeenCalled();
@@ -115,7 +115,7 @@ describe("tryAutoResolve", () => {
     });
     vi.mocked(osmApi.updateNode).mockResolvedValue({ ok: true, status: 200, data: "5" });
 
-    expect(await tryAutoResolve(HidrantsRepository.findByIds(["conflict-1"])[0])).toBe(true);
+    expect(await tryAutoResolve(HidrantsRepository.findByIds(["conflict-1"])[0]!)).toBe(true);
 
     expect(osmApi.updateNode).toHaveBeenCalledWith(
       7001,
@@ -125,10 +125,12 @@ describe("tryAutoResolve", () => {
       expect.objectContaining({ "addr:street": "Carrer Local" }),
       4242,
     );
-    const row = HidrantsRepository.findByIds(["conflict-1"])[0];
+    const row = HidrantsRepository.findByIds(["conflict-1"])[0]!;
     expect(row.sync_status).toBe("SYNCED");
     expect(row.osm_version).toBe(5);
-    expect(JSON.parse(row.osm_tags ?? "{}")["addr:street"]).toBe("Carrer Local");
+    expect((JSON.parse(row.osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
+      "Carrer Local",
+    );
   });
 
   it("retorna false i no toca l'estat si OSM rebutja el merge", async () => {
@@ -148,8 +150,8 @@ describe("tryAutoResolve", () => {
       osmTags: REMOTE_TAGS,
     });
 
-    expect(await tryAutoResolve(HidrantsRepository.findByIds(["conflict-1"])[0])).toBe(false);
-    expect(HidrantsRepository.findByIds(["conflict-1"])[0].sync_status).toBe("CONFLICT");
+    expect(await tryAutoResolve(HidrantsRepository.findByIds(["conflict-1"])[0]!)).toBe(false);
+    expect(HidrantsRepository.findByIds(["conflict-1"])[0]!.sync_status).toBe("CONFLICT");
   });
 });
 
@@ -164,7 +166,7 @@ describe("getConflicts i generateOscFile", () => {
 
     const conflicts = getConflicts();
     expect(conflicts).toHaveLength(1);
-    expect(conflicts[0].diffFields.join(" ")).toContain("addr:street");
+    expect(conflicts[0]!.diffFields.join(" ")).toContain("addr:street");
 
     const osc = generateOscFile();
     expect(osc).toContain("<osmChange");
@@ -196,9 +198,11 @@ describe("resolveAfterJOSM", () => {
 
     expect(await resolveAfterJOSM("conflict-1")).toBe(true);
 
-    const row = HidrantsRepository.findByIds(["conflict-1"])[0];
+    const row = HidrantsRepository.findByIds(["conflict-1"])[0]!;
     expect(row.sync_status).toBe("SYNCED");
     expect(row.osm_version).toBe(8);
-    expect(JSON.parse(row.osm_tags ?? "{}")["addr:street"]).toBe("Carrer OSM");
+    expect((JSON.parse(row.osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
+      "Carrer OSM",
+    );
   });
 });

@@ -18,7 +18,7 @@ async function run() {
       process.exit(1);
     }
     log.info(
-      { adf_nom: allAdfs[0].nom },
+      { adf_nom: allAdfs[0]?.nom },
       '🌍 Iniciant actualització de boundaries per a aquesta ADF',
     );
   } else {

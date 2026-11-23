@@ -20,6 +20,7 @@ import {
   resolveAfterJOSM,
 } from "../services/osmConflictResolver.js";
 import { pushSyncToOSM } from "../services/osmPushSync.js";
+import type { HidrantSyncConflict, HidrantSyncIssue } from "@territoriadf/contracts/hidrants";
 
 /** Cos d'ADF opcional: `adf_id` pot arribar com a número o com a text. */
 const adfIdValue = z.union([z.number(), z.string()]).optional();
@@ -272,7 +273,7 @@ export function registerOsmRoutes(app: FastifyInstance): void {
         osm_id: h.osm_id,
         lat: h.lat,
         lon: h.lon,
-        sync_error: h.sync_error ? JSON.parse(h.sync_error) : [],
+        sync_error: h.sync_error ? (JSON.parse(h.sync_error) as HidrantSyncIssue[]) : [],
       }));
       return reply.send({ reviews: formatted, count: formatted.length });
     },
@@ -335,12 +336,11 @@ export function registerOsmRoutes(app: FastifyInstance): void {
       // Descarregar node des d'OSM
       const { queryOverpass } = await import("../services/overpass.js");
       const result = await queryOverpass(`[out:json];node(${hydrant.osm_id});out body;`);
-      if (!result.ok || !result.data.elements || result.data.elements.length === 0) {
+      const osmNode = result.ok ? result.data.elements?.[0] : undefined;
+      if (!osmNode) {
         log.error({ osm_id: hydrant.osm_id }, "Error baixant node d'OSM");
         throw new BadRequestError(`No s'ha pogut obtenir el node ${hydrant.osm_id} d'OSM`);
       }
-
-      const osmNode = result.data.elements[0];
       log.info(
         { osmVersion: osmNode.version, localVersion: hydrant.osm_version },
         "Hidrant descarregat d'OSM",
@@ -381,7 +381,7 @@ export function registerOsmRoutes(app: FastifyInstance): void {
       // Si CONFLICT amb sync_error pre-computat, reutilitzar
       if (hydrant.sync_status === "CONFLICT" && hydrant.sync_error) {
         try {
-          const errData = JSON.parse(hydrant.sync_error);
+          const errData = JSON.parse(hydrant.sync_error) as HidrantSyncConflict;
           if (errData.osmTags && errData.localTags) {
             return reply.send({
               diff: {
@@ -401,8 +401,11 @@ export function registerOsmRoutes(app: FastifyInstance): void {
 
       // Si tenim dades remotes guardades (PENDING_UPDATE, ERROR, REVIEW, etc.)
       if (hydrant.remote_osm_tags) {
-        const osmTags = hydrant.osm_tags ? JSON.parse(hydrant.osm_tags) : {};
-        const remoteOsmTags = JSON.parse(hydrant.remote_osm_tags);
+        const osmTags = (hydrant.osm_tags ? JSON.parse(hydrant.osm_tags) : {}) as Record<
+          string,
+          string
+        >;
+        const remoteOsmTags = JSON.parse(hydrant.remote_osm_tags) as Record<string, string>;
         return reply.send({
           diff: {
             osmTags,

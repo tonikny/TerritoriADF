@@ -7,6 +7,7 @@ import { adfs } from "../db/schema.js";
 import { requireAuth, requirePermission } from "../plugins/authorize.js";
 import { updateAdfBoundaries } from "../services/adfBoundaries.js";
 import { adfIdParamsSchema } from "../utils/identifiers.js";
+import type { AdfBbox, AdfCenter } from "../utils/geo.js";
 
 /**
  * POST /api/adfs/:id/boundaries
@@ -36,8 +37,8 @@ export function registerAdfBoundaryRoutes(app: FastifyInstance): void {
       return reply.send({
         success: true,
         adf_id: adfId,
-        bbox: row?.bbox ? JSON.parse(row.bbox) : null,
-        center: row?.center ? JSON.parse(row.center) : null,
+        bbox: row?.bbox ? (JSON.parse(row.bbox) as AdfBbox) : null,
+        center: row?.center ? (JSON.parse(row.center) as AdfCenter) : null,
       });
     },
   );

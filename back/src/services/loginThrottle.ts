@@ -63,7 +63,7 @@ export function loginBlock(username: string, ip?: string): LoginBlock | null {
       continue;
     }
     // Es desbloqueja quan l'intent que fa que se superi el límit surt de la finestra.
-    const oldestRelevant = recent[recent.length - limit];
+    const oldestRelevant = recent[recent.length - limit] ?? now;
     retryAfterSeconds = Math.max(
       retryAfterSeconds,
       Math.ceil((oldestRelevant + WINDOW_MS - now) / 1000),

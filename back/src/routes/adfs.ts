@@ -8,6 +8,7 @@ import { adfs, hidrants, incidencies, telegramBots, users } from "../db/schema.j
 import { BadRequestError } from "../errors.js";
 import { requireAuth, requirePermission } from "../plugins/authorize.js";
 import { adfIdParamsSchema, adfIdSchema } from "../utils/identifiers.js";
+import type { AdfBbox, AdfBoundaryFeature, AdfCenter } from "../utils/geo.js";
 
 type AdfRow = typeof adfs.$inferSelect;
 
@@ -21,10 +22,14 @@ export function serializeAdf(adf: AdfRow, options: { includeBoundary?: boolean }
   return {
     ...rest,
     osm_relations: JSON.parse(adf.osm_relations) as string[],
-    bbox: adf.bbox ? JSON.parse(adf.bbox) : null,
-    center: adf.center ? JSON.parse(adf.center) : null,
+    bbox: adf.bbox ? (JSON.parse(adf.bbox) as AdfBbox) : null,
+    center: adf.center ? (JSON.parse(adf.center) as AdfCenter) : null,
     ...(options.includeBoundary
-      ? { boundary_geojson: boundary_geojson ? JSON.parse(boundary_geojson) : null }
+      ? {
+          boundary_geojson: boundary_geojson
+            ? (JSON.parse(boundary_geojson) as AdfBoundaryFeature)
+            : null,
+        }
       : {}),
   };
 }

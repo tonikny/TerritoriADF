@@ -18,6 +18,9 @@ export function encrypt(plaintext: string): string {
 export function decrypt(encrypted: string): string | null {
   try {
     const [ivHex, authTagHex, enc] = encrypted.split(":");
+    if (ivHex === undefined || authTagHex === undefined || enc === undefined) {
+      return null;
+    }
     const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, "hex"));
     decipher.setAuthTag(Buffer.from(authTagHex, "hex"));
     return decipher.update(enc, "hex", "utf8") + decipher.final("utf8");

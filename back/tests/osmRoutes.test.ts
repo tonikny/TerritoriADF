@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { HidrantsRepository } from "../src/db/repositories/hidrantsRepository.js";
 import * as osmApi from "../src/services/osmApi.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
+import type { HidrantFeatures } from "./helpers/types.js";
 import {
   ADF_278,
   ADF_279,
@@ -63,7 +64,11 @@ describe("GET /api/osm/status", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = response.json();
+    const body = response.json<{
+      configured: boolean;
+      conflictCount: number;
+      stats: Record<string, number>;
+    }>();
     expect(body.configured).toBe(true);
     expect(body.conflictCount).toBe(1);
     expect(body.stats).toHaveProperty("SYNCED");
@@ -110,14 +115,17 @@ describe("GET /api/osm/pending", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = response.json();
+    const body = response.json<{
+      pending: Array<{ id: string; street?: string; num?: string }>;
+      stats: Record<string, number>;
+    }>();
     expect(body.pending).toHaveLength(7);
-    expect(body.pending.map((row: { id: string }) => row.id)).not.toContain("p-279");
-    expect(body.pending.map((row: { id: string }) => row.id)).not.toContain("p-synced");
+    expect(body.pending.map((row) => row.id)).not.toContain("p-279");
+    expect(body.pending.map((row) => row.id)).not.toContain("p-synced");
 
-    const created = body.pending.find((row: { id: string }) => row.id === "p-create");
-    expect(created.street).toBe("Carrer A");
-    expect(created.num).toBe("1");
+    const created = body.pending.find((row) => row.id === "p-create");
+    expect(created?.street).toBe("Carrer A");
+    expect(created?.num).toBe("1");
 
     expect(body.stats).toMatchObject({
       PENDING_CREATE: 1,
@@ -172,21 +180,24 @@ describe("POST /api/osm/discard-selected", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ discarded: 1, deleted: 1 });
+    expect(response.json<{ discarded: number; deleted: number }>()).toEqual({
+      discarded: 1,
+      deleted: 1,
+    });
 
     const updated = await app.inject({
       method: "GET",
       url: `/api/hidrants?adf=${ADF_278}`,
       headers: { cookie: adminCookie },
     });
-    const ids = updated.json().features.map((feature: { id: string }) => feature.id);
+    const ids = updated.json<HidrantFeatures>().features.map((feature) => feature.id);
     expect(ids).not.toContain("d-new");
 
     const row = updated
-      .json()
-      .features.find((feature: { id: string }) => feature.id === "d-update");
-    expect(row.properties.sync_status).toBe("SYNCED");
-    expect(row.properties.osm_tags["addr:street"]).toBe("Carrer OSM");
+      .json<HidrantFeatures>()
+      .features.find((feature) => feature.id === "d-update");
+    expect(row?.properties.sync_status).toBe("SYNCED");
+    expect(row?.properties.osm_tags?.["addr:street"]).toBe("Carrer OSM");
   });
 
   it("retorna 400 sense IDs", async () => {
@@ -227,18 +238,18 @@ describe("POST /api/osm/missing/purge", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ deleted: 2 });
+    expect(response.json<{ deleted: number }>()).toEqual({ deleted: 2 });
 
     const remaining = await app.inject({
       method: "GET",
       url: `/api/hidrants?adf=${ADF_278}`,
       headers: { cookie: adminCookie },
     });
-    const ids = remaining.json().features.map((feature: { id: string }) => feature.id);
+    const ids = remaining.json<HidrantFeatures>().features.map((feature) => feature.id);
     expect(ids).toEqual(["keep"]);
 
     // `GET /api/hidrants` amaga els MISSING_IN_OSM a propòsit: comprovem la fila.
-    expect(HidrantsRepository.findByIds(["m2"])[0].sync_status).toBe("MISSING_IN_OSM");
+    expect(HidrantsRepository.findByIds(["m2"])[0]!.sync_status).toBe("MISSING_IN_OSM");
   });
 
   it("accepta una llista d'IDs", async () => {
@@ -252,7 +263,7 @@ describe("POST /api/osm/missing/purge", () => {
       payload: { ids: ["m1"] },
     });
 
-    expect(response.json()).toEqual({ deleted: 1 });
+    expect(response.json<{ deleted: number }>()).toEqual({ deleted: 1 });
   });
 
   it("retorna 400 si no s'indica ADF ni IDs", async () => {
@@ -297,7 +308,7 @@ describe("POST /api/osm/push-selected", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().synced).toBe(1);
+    expect(response.json<{ synced: number }>().synced).toBe(1);
     expect(osmApi.createNode).toHaveBeenCalledTimes(1);
     expect(osmApi.createNode).toHaveBeenCalledWith(
       41.61,
@@ -312,14 +323,14 @@ describe("POST /api/osm/push-selected", () => {
       headers: { cookie: adminCookie },
     });
     const selectedFeature = selected
-      .json()
-      .features.find((feature: { id: string }) => feature.id === "selected");
-    expect(selectedFeature.properties.sync_status).toBe("SYNCED");
+      .json<HidrantFeatures>()
+      .features.find((feature) => feature.id === "selected");
+    expect(selectedFeature?.properties.sync_status).toBe("SYNCED");
 
     const notSelected = selected
-      .json()
-      .features.find((feature: { id: string }) => feature.id === "not-selected");
-    expect(notSelected.properties.sync_status).toBe("PENDING_CREATE");
+      .json<HidrantFeatures>()
+      .features.find((feature) => feature.id === "not-selected");
+    expect(notSelected?.properties.sync_status).toBe("PENDING_CREATE");
   });
 
   it("reintenta un ERROR amb osm_id com a actualització", async () => {
@@ -339,7 +350,7 @@ describe("POST /api/osm/push-selected", () => {
       payload: { ids: ["retry"] },
     });
 
-    expect(response.json().synced).toBe(1);
+    expect(response.json<{ synced: number }>().synced).toBe(1);
     expect(osmApi.updateNode).toHaveBeenCalledTimes(1);
   });
 

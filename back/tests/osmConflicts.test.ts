@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import * as osmApi from "../src/services/osmApi.js";
 import { queryOverpass } from "../src/services/overpass.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
+import type { HidrantFeatures } from "./helpers/types.js";
 import { createHydrant, FULL_OSM_TAGS, resetDatabase, seedStandardWorld } from "./helpers/db.js";
 
 vi.mock("../src/services/osmApi.js", () => ({
@@ -81,9 +82,10 @@ describe("GET /api/osm/conflicts", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toHaveLength(1);
-    expect(response.json()[0].hidrant.id).toBe("conflict-1");
-    expect(response.json()[0].diffFields.join(" ")).toContain("addr:street");
+    const conflicts = response.json<Array<{ hidrant: { id: string }; diffFields: string[] }>>();
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]!.hidrant.id).toBe("conflict-1");
+    expect(conflicts[0]!.diffFields.join(" ")).toContain("addr:street");
   });
 
   it("retorna 401 sense sessió i 403 per a un coordinador", async () => {
@@ -124,7 +126,9 @@ describe("GET /api/osm/conflicts/osc", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ message: "No hi ha conflictes per exportar" });
+    expect(response.json<{ message: string }>()).toEqual({
+      message: "No hi ha conflictes per exportar",
+    });
   });
 });
 
@@ -146,16 +150,16 @@ describe("POST /api/osm/conflicts/resolve", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ resolved: true });
+    expect(response.json<{ resolved: boolean }>()).toEqual({ resolved: true });
 
     const detail = await app.inject({
       method: "GET",
       url: "/api/hidrants?adf=278",
       headers: { cookie: adminCookie },
     });
-    const properties = detail.json().features[0].properties;
+    const properties = detail.json<HidrantFeatures>().features[0]!.properties;
     expect(properties.sync_status).toBe("SYNCED");
-    expect(properties.osm_tags["addr:street"]).toBe("Carrer OSM");
+    expect(properties.osm_tags?.["addr:street"]).toBe("Carrer OSM");
   });
 
   it("retorna resolved:false si OSM no retorna el node", async () => {
@@ -169,7 +173,7 @@ describe("POST /api/osm/conflicts/resolve", () => {
       payload: { id: "conflict-1" },
     });
 
-    expect(response.json()).toEqual({ resolved: false });
+    expect(response.json<{ resolved: boolean }>()).toEqual({ resolved: false });
   });
 
   it("retorna 400 sense id i 403 per a un coordinador", async () => {
@@ -208,8 +212,12 @@ describe("GET /api/osm/reviews", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().count).toBe(1);
-    expect(response.json().reviews[0].sync_error[0].tag).toBe("addr:street");
+    const body = response.json<{
+      count: number;
+      reviews: Array<{ sync_error: Array<{ tag: string }> }>;
+    }>();
+    expect(body.count).toBe(1);
+    expect(body.reviews[0]!.sync_error[0]!.tag).toBe("addr:street");
   });
 });
 
@@ -224,8 +232,11 @@ describe("GET /api/osm/diff/:id", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().diff.osmTags["addr:street"]).toBe("Carrer Local");
-    expect(response.json().diff.remoteOsmTags["addr:street"]).toBe("Carrer OSM");
+    const diff = response.json<{
+      diff: { osmTags: Record<string, string>; remoteOsmTags: Record<string, string> };
+    }>().diff;
+    expect(diff.osmTags["addr:street"]).toBe("Carrer Local");
+    expect(diff.remoteOsmTags["addr:street"]).toBe("Carrer OSM");
   });
 
   it("retorna el diff des de remote_osm_tags si no és un conflicte", async () => {
@@ -243,7 +254,11 @@ describe("GET /api/osm/diff/:id", () => {
       headers: { cookie: adminCookie },
     });
 
-    expect(response.json().diff.remoteOsmTags["addr:street"]).toBe("Carrer OSM");
+    expect(
+      response.json<{ diff: { remoteOsmTags: Record<string, string> } }>().diff.remoteOsmTags[
+        "addr:street"
+      ],
+    ).toBe("Carrer OSM");
   });
 
   it("retorna diff null si l'hidrant no té osm_id", async () => {
@@ -255,7 +270,7 @@ describe("GET /api/osm/diff/:id", () => {
       headers: { cookie: adminCookie },
     });
 
-    expect(response.json()).toEqual({ diff: null });
+    expect(response.json<{ diff: null }>()).toEqual({ diff: null });
   });
 
   it("retorna 400 si l'hidrant no existeix", async () => {
@@ -297,16 +312,16 @@ describe("POST /api/osm/pull-hydrant", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ success: true });
+    expect(response.json<{ success: boolean }>()).toEqual({ success: true });
 
     const detail = await app.inject({
       method: "GET",
       url: "/api/hidrants?adf=278",
       headers: { cookie: adminCookie },
     });
-    const properties = detail.json().features[0].properties;
+    const properties = detail.json<HidrantFeatures>().features[0]!.properties;
     expect(properties.sync_status).toBe("SYNCED");
-    expect(properties.osm_tags["addr:street"]).toBe("Carrer OSM");
+    expect(properties.osm_tags?.["addr:street"]).toBe("Carrer OSM");
   });
 
   it("retorna 400 si Overpass no troba el node", async () => {

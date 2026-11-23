@@ -2,7 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestApp, loginCookie } from "./helpers/app.js";
+import type { ErrorBody } from "./helpers/types.js";
 import { ADF_278, resetDatabase, seedStandardWorld } from "./helpers/db.js";
+
+/** Camps d'una ADF que mira aquesta suite a `GET /api/adfs` i al detall. */
+type AdfSummary = { id: number; osm_relations: string[] };
 
 let app: FastifyInstance;
 let adminCookie: string;
@@ -30,10 +34,10 @@ describe("CRUD d'ADFs", () => {
     const response = await app.inject({ method: "GET", url: "/api/adfs" });
 
     expect(response.statusCode).toBe(200);
-    const rows = response.json();
+    const rows = response.json<AdfSummary[]>();
     expect(rows).toHaveLength(2);
-    expect(rows[0].osm_relations).toEqual([`R${rows[0].id}`]);
-    expect(Array.isArray(rows[0].osm_relations)).toBe(true);
+    expect(rows[0]!.osm_relations).toEqual([`R${rows[0]!.id}`]);
+    expect(Array.isArray(rows[0]!.osm_relations)).toBe(true);
   });
 
   it("el detall retorna 404 si l'ADF no existeix", async () => {
@@ -61,7 +65,7 @@ describe("CRUD d'ADFs", () => {
       payload: { id: 300, nom: "ADF Nova", osm_relations: ["R999"] },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().osm_relations).toEqual(["R999"]);
+    expect(created.json<AdfSummary>().osm_relations).toEqual(["R999"]);
 
     const duplicate = await app.inject({
       method: "POST",
@@ -91,7 +95,7 @@ describe("CRUD d'ADFs", () => {
     });
 
     expect(response.statusCode).toBe(409);
-    expect(response.json().error).toContain("usuaris");
+    expect(response.json<ErrorBody>().error).toContain("usuaris");
   });
 
   it("esborra una ADF sense dades associades", async () => {
@@ -117,7 +121,11 @@ describe("endpoints de plataforma", () => {
     const response = await app.inject({ method: "GET", url: "/api/config" });
 
     expect(response.statusCode).toBe(200);
-    const body = response.json();
+    const body = response.json<{
+      max_hydrant_move_meters: number;
+      min_password_length: number;
+      role_permissions: Record<string, string[]>;
+    }>();
     expect(body.max_hydrant_move_meters).toBe(50);
     expect(body.min_password_length).toBe(8);
     expect(body.role_permissions.admin).toContain("manage_adfs");
@@ -128,23 +136,27 @@ describe("endpoints de plataforma", () => {
     const response = await app.inject({ method: "GET", url: "/healthz" });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().status).toBe("ok");
+    expect(response.json<{ status: string }>().status).toBe("ok");
   });
 
   it("GET /readyz confirma BD oberta i migracions aplicades", async () => {
     const response = await app.inject({ method: "GET", url: "/readyz" });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().status).toBe("ok");
-    expect(response.json().checks.database.status).toBe("ok");
-    expect(response.json().checks.migrations.status).toBe("ok");
+    const body = response.json<{
+      status: string;
+      checks: { database: { status: string }; migrations: { status: string } };
+    }>();
+    expect(body.status).toBe("ok");
+    expect(body.checks.database.status).toBe("ok");
+    expect(body.checks.migrations.status).toBe("ok");
   });
 
   it("GET /api/openapi.json inclou les rutes principals", async () => {
     const response = await app.inject({ method: "GET", url: "/api/openapi.json" });
 
     expect(response.statusCode).toBe(200);
-    const paths = response.json().paths;
+    const paths = response.json<{ paths: Record<string, unknown> }>().paths;
     expect(paths["/api/hidrants"]).toBeDefined();
     expect(paths["/api/users"]).toBeDefined();
   });

@@ -6,6 +6,7 @@ import { db } from "../src/db/index.js";
 import { incidencies } from "../src/db/schema.js";
 import type { IncidenciaEstat, IncidenciaVisibilitat } from "../src/types.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
+import type { ErrorBody, HidrantFeatures } from "./helpers/types.js";
 import { ADF_278, ADF_279, resetDatabase, seedStandardWorld } from "./helpers/db.js";
 
 let app: FastifyInstance;
@@ -71,7 +72,7 @@ describe("visibilitat de la llista d'incidències", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(featureIds(response.json())).toEqual(["inc-public-278"]);
+    expect(featureIds(response.json<HidrantFeatures>())).toEqual(["inc-public-278"]);
   });
 
   it("sense sessió pot incloure les tancades si ho demana", async () => {
@@ -80,7 +81,10 @@ describe("visibilitat de la llista d'incidències", () => {
       url: `/api/incidencies?adf=${ADF_278}&incloure_tancades=true`,
     });
 
-    expect(featureIds(response.json())).toEqual(["inc-public-278", "inc-public-closed-278"]);
+    expect(featureIds(response.json<HidrantFeatures>())).toEqual([
+      "inc-public-278",
+      "inc-public-closed-278",
+    ]);
   });
 
   it("un voluntari veu les públiques, les compartides i les privades de la seva ADF", async () => {
@@ -90,7 +94,7 @@ describe("visibilitat de la llista d'incidències", () => {
       headers: { cookie: voluntariCookie },
     });
 
-    expect(featureIds(response.json())).toEqual([
+    expect(featureIds(response.json<HidrantFeatures>())).toEqual([
       "inc-private-278",
       "inc-public-278",
       "inc-shared-278",
@@ -104,7 +108,10 @@ describe("visibilitat de la llista d'incidències", () => {
       headers: { cookie: coord279Cookie },
     });
 
-    expect(featureIds(response.json())).toEqual(["inc-public-278", "inc-shared-278"]);
+    expect(featureIds(response.json<HidrantFeatures>())).toEqual([
+      "inc-public-278",
+      "inc-shared-278",
+    ]);
   });
 
   it("l'admin ho veu tot", async () => {
@@ -114,7 +121,7 @@ describe("visibilitat de la llista d'incidències", () => {
       headers: { cookie: adminCookie },
     });
 
-    expect(featureIds(response.json())).toEqual([
+    expect(featureIds(response.json<HidrantFeatures>())).toEqual([
       "inc-private-278",
       "inc-public-278",
       "inc-shared-278",
@@ -140,8 +147,9 @@ describe("GET /api/incidencies/:id", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().id).toBe("inc-private-278");
-    expect(Array.isArray(response.json().events)).toBe(true);
+    const body = response.json<{ id: string; events: unknown[] }>();
+    expect(body.id).toBe("inc-private-278");
+    expect(Array.isArray(body.events)).toBe(true);
   });
 });
 
@@ -171,7 +179,7 @@ describe("POST /api/incidencies", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(response.json().visibilitat).toBe("ADF_PRIVADA");
+    expect(response.json<{ visibilitat: string }>().visibilitat).toBe("ADF_PRIVADA");
   });
 
   it("un coordinador pot triar la visibilitat inicial", async () => {
@@ -189,7 +197,7 @@ describe("POST /api/incidencies", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(response.json().visibilitat).toBe("PUBLICA");
+    expect(response.json<{ visibilitat: string }>().visibilitat).toBe("PUBLICA");
   });
 });
 
@@ -206,8 +214,9 @@ describe("POST /api/incidencies/:id/events", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(response.json().tipus_event).toBe("OBSERVACIO");
-    expect(JSON.parse(response.json().dades)).toEqual({
+    const body = response.json<{ tipus_event: string; dades: string }>();
+    expect(body.tipus_event).toBe("OBSERVACIO");
+    expect(JSON.parse(body.dades)).toEqual({
       observador: "278/002",
       comentari: "Hi ha una mànega",
     });
@@ -233,7 +242,7 @@ describe("POST /api/incidencies/:id/events", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json().error).toContain("membres de l'ADF");
+    expect(response.json<ErrorBody>().error).toContain("membres de l'ADF");
   });
 
   it("un voluntari no pot canviar la visibilitat", async () => {
@@ -245,7 +254,7 @@ describe("POST /api/incidencies/:id/events", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json().error).toContain("coordinador");
+    expect(response.json<ErrorBody>().error).toContain("coordinador");
   });
 
   it("el coordinador de l'ADF sí que pot canviar la visibilitat", async () => {

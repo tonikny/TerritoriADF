@@ -46,7 +46,7 @@ async function fetchPlace(osmRelation: string): Promise<NominatimPlace> {
     throw new Error(`No data for ${osmRelation}`);
   }
   const place = data[0];
-  if (!place.geojson || !place.boundingbox) {
+  if (!place?.geojson || !place.boundingbox) {
     throw new Error(`Resposta incompleta per ${osmRelation}`);
   }
   return place;

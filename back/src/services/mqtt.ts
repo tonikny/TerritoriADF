@@ -262,11 +262,9 @@ class MqttService {
           // Algunes versions/vehicles d'OwnTracks (Android) publiquen totes les posicions
           // amb retain=true per refrescar la darrera posició. Aquestes SÍ són posicions
           // vives; la guarda d'edat (15 min) descarta els replays antics del broker.
-          const raw = JSON.parse(payload.toString());
-          if (raw._type !== "location") {
-            return;
-          }
-          const parsed = owntracksSchema.safeParse(raw);
+          // Payload de tercers: `JSON.parse` no garanteix res, i l'esquema ja
+          // exigeix `_type: "location"`; si no encaixa, s'ignora el missatge.
+          const parsed = owntracksSchema.safeParse(JSON.parse(payload.toString()) as unknown);
           if (!parsed.success) {
             return;
           }

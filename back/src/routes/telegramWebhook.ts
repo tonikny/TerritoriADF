@@ -18,7 +18,7 @@ export function extractCode(text: string): string {
   // Telegram pot enviar "/start <codi>" (com a @BotFather ho fa) o directament el codi
   if (trimmed.startsWith("/start")) {
     const m = trimmed.match(/\s+(\S+)/);
-    return m ? m[1] : "";
+    return m?.[1] ?? "";
   }
   return trimmed;
 }

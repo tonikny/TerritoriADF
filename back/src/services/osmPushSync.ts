@@ -26,7 +26,7 @@ export type PushSyncResult = {
 
 export function parseOsmTags(osmTags: string | null | undefined): Record<string, string> {
   try {
-    return JSON.parse(osmTags || "{}");
+    return JSON.parse(osmTags || "{}") as Record<string, string>;
   } catch {
     return {};
   }

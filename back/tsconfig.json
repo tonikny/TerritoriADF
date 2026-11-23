@@ -7,6 +7,9 @@
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
+    // N-17: indexar un array pot retornar `undefined`; obliga a comprovar-ho
+    // abans de fer servir el resultat (files de BD, regex, coordenades...).
+    "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "skipLibCheck": true
   },

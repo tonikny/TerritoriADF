@@ -123,7 +123,7 @@ export const IncidenciesService = {
     // Parsear JSON de dades per a cada event
     const parsedEvents = events.map((e) => ({
       ...e,
-      dades: JSON.parse(e.dades || "{}"),
+      dades: JSON.parse(e.dades || "{}") as Record<string, unknown>,
     }));
 
     return {

@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "../src/db/index.js";
 import { users } from "../src/db/schema.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
+import type { ErrorBody } from "./helpers/types.js";
 import {
   ADMIN_ID,
   COORD_278_ID,
@@ -63,7 +64,7 @@ describe("GET /api/users: abast per rol", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const usernames = response.json().map((row: { username: string }) => row.username);
+    const usernames = response.json<Array<{ username: string }>>().map((row) => row.username);
     expect(usernames).toEqual(["278/001", "278/002"]);
   });
 
@@ -75,7 +76,7 @@ describe("GET /api/users: abast per rol", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const usernames = response.json().map((row: { username: string }) => row.username);
+    const usernames = response.json<Array<{ username: string }>>().map((row) => row.username);
     expect(usernames).toEqual(["279/001"]);
   });
 
@@ -87,7 +88,7 @@ describe("GET /api/users: abast per rol", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const usernames = response.json().map((row: { username: string }) => row.username);
+    const usernames = response.json<Array<{ username: string }>>().map((row) => row.username);
     expect(usernames).toEqual(["278/001", "278/002", "279/001", "admin"]);
   });
 });
@@ -102,7 +103,12 @@ describe("POST /api/users: alta i abast", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    const body = response.json();
+    const body = response.json<{
+      username: string;
+      adf_id: number;
+      role: string;
+      access_url: string;
+    }>();
     expect(body.username).toBe("278/010");
     expect(body.adf_id).toBe(278);
     expect(body.role).toBe("voluntari");
@@ -118,7 +124,7 @@ describe("POST /api/users: alta i abast", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json().error).toContain("gestionar aquest usuari");
+    expect(response.json<ErrorBody>().error).toContain("gestionar aquest usuari");
   });
 
   it("un coordinador no pot crear administradors", async () => {
@@ -141,7 +147,7 @@ describe("POST /api/users: alta i abast", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(response.json().role).toBe("admin");
+    expect(response.json<{ role: string }>().role).toBe("admin");
   });
 
   it("rebutja un username duplicat amb 400", async () => {
@@ -153,7 +159,7 @@ describe("POST /api/users: alta i abast", () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json().error).toContain("ja existeix");
+    expect(response.json<ErrorBody>().error).toContain("ja existeix");
   });
 
   it("rebutja una ADF inexistent amb 400", async () => {
@@ -165,7 +171,7 @@ describe("POST /api/users: alta i abast", () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json().error).toContain("no existeix");
+    expect(response.json<ErrorBody>().error).toContain("no existeix");
   });
 
   it("rebutja un format d'username invàlid amb 400", async () => {
@@ -190,7 +196,7 @@ describe("PUT /api/users/:id: abast i rols", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().role).toBe("coordinador");
+    expect(response.json<{ role: string }>().role).toBe("coordinador");
   });
 
   it("un coordinador no es pot modificar a si mateix", async () => {
@@ -202,7 +208,7 @@ describe("PUT /api/users/:id: abast i rols", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json().error).toContain("tu mateix");
+    expect(response.json<ErrorBody>().error).toContain("tu mateix");
   });
 
   it("un coordinador no pot modificar un administrador", async () => {
@@ -214,7 +220,7 @@ describe("PUT /api/users/:id: abast i rols", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json().error).toContain("administradors");
+    expect(response.json<ErrorBody>().error).toContain("administradors");
   });
 
   it("un coordinador no pot modificar usuaris d'una altra ADF", async () => {

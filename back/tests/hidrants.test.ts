@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "../src/db/index.js";
 import { adfs, hidrants } from "../src/db/schema.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
+import type { ErrorBody, HidrantFeatures } from "./helpers/types.js";
 import {
   ADF_278,
   createSyncedHydrant,
@@ -13,6 +14,9 @@ import {
   resetDatabase,
   seedStandardWorld,
 } from "./helpers/db.js";
+
+/** Resposta d'alta/edició: només l'estat que mira la màquina d'estats. */
+type SyncStatusBody = { sync_status: string };
 
 let app: FastifyInstance;
 let adminCookie: string;
@@ -65,7 +69,7 @@ describe("POST /api/hidrants", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    const body = response.json();
+    const body = response.json<{ id: string; sync_status: string }>();
     expect(body.sync_status).toBe("PENDING_CREATE");
 
     const row = db.select().from(hidrants).where(eq(hidrants.id, body.id)).get();
@@ -82,7 +86,7 @@ describe("POST /api/hidrants", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json().error).toContain("aquesta ADF");
+    expect(response.json<ErrorBody>().error).toContain("aquesta ADF");
   });
 
   it("retorna 400 si no s'indica l'ADF", async () => {
@@ -137,7 +141,7 @@ describe("POST /api/hidrants", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json().error).toContain("fora del límit");
+    expect(response.json<ErrorBody>().error).toContain("fora del límit");
   });
 });
 
@@ -153,7 +157,7 @@ describe("GET /api/hidrants", () => {
       url: `/api/hidrants?adf=${ADF_278}`,
     });
     expect(anonymous.statusCode).toBe(200);
-    const anonymousFeature = anonymous.json().features[0];
+    const anonymousFeature = anonymous.json<HidrantFeatures>().features[0]!;
     expect(anonymousFeature.properties.private_tags).toBeUndefined();
     expect(anonymousFeature.properties.notes).toBeUndefined();
 
@@ -162,7 +166,9 @@ describe("GET /api/hidrants", () => {
       url: `/api/hidrants?adf=${ADF_278}`,
       headers: { cookie: voluntariCookie },
     });
-    expect(logged.json().features[0].properties.private_tags).toEqual({ nota: "intern" });
+    expect(logged.json<HidrantFeatures>().features[0]!.properties.private_tags).toEqual({
+      nota: "intern",
+    });
   });
 
   it("no pinta els hidrants PENDING_DELETE ni MISSING_IN_OSM", async () => {
@@ -172,7 +178,7 @@ describe("GET /api/hidrants", () => {
 
     const response = await app.inject({ method: "GET", url: `/api/hidrants?adf=${ADF_278}` });
 
-    const ids = response.json().features.map((feature: { id: string }) => feature.id);
+    const ids = response.json<HidrantFeatures>().features.map((feature) => feature.id);
     expect(ids).toEqual(["h-visible"]);
   });
 
@@ -194,7 +200,7 @@ describe("PUT /api/hidrants/:id: màquina d'estats", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().sync_status).toBe("SYNCED");
+    expect(response.json<SyncStatusBody>().sync_status).toBe("SYNCED");
   });
 
   it("SYNCED + edició real → PENDING_UPDATE; tornar a l'original → SYNCED", async () => {
@@ -208,7 +214,7 @@ describe("PUT /api/hidrants/:id: màquina d'estats", () => {
     });
 
     expect(changed.statusCode).toBe(200);
-    expect(changed.json().sync_status).toBe("PENDING_UPDATE");
+    expect(changed.json<SyncStatusBody>().sync_status).toBe("PENDING_UPDATE");
 
     const reverted = await app.inject({
       method: "PUT",
@@ -218,7 +224,7 @@ describe("PUT /api/hidrants/:id: màquina d'estats", () => {
     });
 
     expect(reverted.statusCode).toBe(200);
-    expect(reverted.json().sync_status).toBe("SYNCED");
+    expect(reverted.json<SyncStatusBody>().sync_status).toBe("SYNCED");
   });
 
   it("un canvi només d'observacions privades no genera PENDING_UPDATE", async () => {
@@ -232,7 +238,7 @@ describe("PUT /api/hidrants/:id: màquina d'estats", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().sync_status).toBe("SYNCED");
+    expect(response.json<SyncStatusBody>().sync_status).toBe("SYNCED");
 
     const row = db.select().from(hidrants).where(eq(hidrants.id, "hydrant-synced")).get();
     expect(JSON.parse(row?.private_tags ?? "{}")).toEqual({ nota: "actualitzada" });
