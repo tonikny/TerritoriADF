@@ -1,6 +1,4 @@
-import { db } from "../db/index.js";
-import { adfs } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { logger } from "../utils/logger.js";
 import { AppError } from "../errors.js";
 import { APP_NAME } from "../utils/appInfo.js";
@@ -58,7 +56,7 @@ async function fetchPlace(osmRelation: string): Promise<NominatimPlace> {
  * un límit parcial faria que el mapa masking retallés zones vàlides.
  */
 async function computeAndSave(adfId: number): Promise<void> {
-  const adf = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
+  const adf = AdfsRepository.findById(adfId);
   if (!adf) {
     throw new BoundaryUpdateError("ADF no trobada", 404);
   }
@@ -117,14 +115,11 @@ async function computeAndSave(adfId: number): Promise<void> {
   const bbox = [minLat, minLon, maxLat, maxLon];
   const center = [(minLat + maxLat) / 2, (minLon + maxLon) / 2];
 
-  db.update(adfs)
-    .set({
-      bbox: JSON.stringify(bbox),
-      center: JSON.stringify(center),
-      boundary_geojson: JSON.stringify(combinedGeoJson),
-    })
-    .where(eq(adfs.id, adf.id))
-    .run();
+  AdfsRepository.saveBoundaries(adf.id, {
+    bbox: JSON.stringify(bbox),
+    center: JSON.stringify(center),
+    boundary_geojson: JSON.stringify(combinedGeoJson),
+  });
 }
 
 // Evita que dos clics simultanis facin la mateixa ronda de peticions a Nominatim.

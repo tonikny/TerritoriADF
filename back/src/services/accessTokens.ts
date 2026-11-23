@@ -2,9 +2,7 @@
 // enllaç i l'usuari hi tria la seva. A la BD només es desa el SHA-256 del token.
 import { createHash, randomBytes } from "node:crypto";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { accessTokens } from "../db/schema.js";
+import { AccessTokensRepository } from "../db/repositories/accessTokensRepository.js";
 
 /** Un usuari nou té 7 dies per obrir l'enllaç; un restabliment, 24 h. */
 export const ACCESS_TTL_NEW_USER_MS = 7 * 24 * 60 * 60 * 1000;
@@ -24,19 +22,18 @@ export function issueAccessToken(userId: string, ttlMs: number): IssuedAccessTok
   const token = randomBytes(32).toString("base64url");
   const expires_at = new Date(Date.now() + ttlMs).toISOString();
 
-  db.delete(accessTokens).where(eq(accessTokens.user_id, userId)).run();
-  db.insert(accessTokens)
-    .values({ id: randomUUID(), user_id: userId, code_hash: sha256hex(token), expires_at })
-    .run();
+  AccessTokensRepository.deleteByUser(userId);
+  AccessTokensRepository.create({
+    id: randomUUID(),
+    user_id: userId,
+    code_hash: sha256hex(token),
+    expires_at,
+  });
 
   return { token, expires_at };
 }
 
 /** Fila del token corresponent, o undefined si el token no existeix. */
 export function findAccessToken(token: string) {
-  return db
-    .select()
-    .from(accessTokens)
-    .where(eq(accessTokens.code_hash, sha256hex(token)))
-    .get();
+  return AccessTokensRepository.findByCodeHash(sha256hex(token));
 }

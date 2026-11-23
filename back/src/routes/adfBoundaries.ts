@@ -1,9 +1,7 @@
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 
-import { db } from "../db/index.js";
-import { adfs } from "../db/schema.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { requireAuth, requirePermission } from "../plugins/authorize.js";
 import { updateAdfBoundaries } from "../services/adfBoundaries.js";
 import { adfIdParamsSchema } from "../utils/identifiers.js";
@@ -33,7 +31,7 @@ export function registerAdfBoundaryRoutes(app: FastifyInstance): void {
 
       await updateAdfBoundaries(adfId);
 
-      const row = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
+      const row = AdfsRepository.findById(adfId);
       return reply.send({
         success: true,
         adf_id: adfId,

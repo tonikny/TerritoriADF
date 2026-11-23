@@ -1,12 +1,13 @@
 // Webhook públic de Telegram: processa actualitzacions del bot per ADF.
 // El secret de l'URL identifica el bot. No es confia en cap altra dada del client.
-import { and, eq, ne } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-import { db } from "../db/index.js";
-import { telegramBots, telegramLinks } from "../db/schema.js";
+import {
+  TelegramBotsRepository,
+  TelegramLinksRepository,
+} from "../db/repositories/telegramRepository.js";
 import { sendMessage, sha256hex } from "../services/telegramService.js";
 import { decrypt } from "../utils/crypto.js";
 
@@ -78,11 +79,7 @@ export function registerTelegramWebhookRoutes(app: FastifyInstance): void {
     },
     async (request, reply) => {
       const secret = request.params.secret;
-      const bot = db
-        .select()
-        .from(telegramBots)
-        .where(eq(telegramBots.webhook_secret, secret))
-        .get();
+      const bot = TelegramBotsRepository.findByWebhookSecret(secret);
       if (!bot) {
         return reply.send({ ok: false });
       }
@@ -117,11 +114,7 @@ export function registerTelegramWebhookRoutes(app: FastifyInstance): void {
             return reply.send({ ok: true });
           }
 
-          const link = db
-            .select()
-            .from(telegramLinks)
-            .where(eq(telegramLinks.code_hash, sha256hex(code)))
-            .get();
+          const link = TelegramLinksRepository.findByCodeHash(sha256hex(code));
 
           // No és el nostre codi, o el codi és d'un altre bot
           if (!link || link.telegram_bot_id !== bot.id || chatId === undefined) {
@@ -149,11 +142,7 @@ export function registerTelegramWebhookRoutes(app: FastifyInstance): void {
           }
 
           // Un grup no pot estar vinculat a dues ADFs
-          const conflict = db
-            .select()
-            .from(telegramBots)
-            .where(and(eq(telegramBots.chat_id, chatId), ne(telegramBots.id, bot.id)))
-            .get();
+          const conflict = TelegramBotsRepository.findByChatIdExceptId(chatId, bot.id);
           if (conflict) {
             if (token) {
               await notifyGroupError(
@@ -166,19 +155,13 @@ export function registerTelegramWebhookRoutes(app: FastifyInstance): void {
           }
 
           // Vinculació correcta: guardem chat_id i marquem la sol·licitud com a usada
-          db.update(telegramBots)
-            .set({
-              chat_id: chatId,
-              group_name: chatTitle ?? null,
-              estat: "CONFIGURAT",
-              updated_at: new Date().toISOString(),
-            })
-            .where(eq(telegramBots.id, bot.id))
-            .run();
-          db.update(telegramLinks)
-            .set({ used_at: new Date().toISOString() })
-            .where(eq(telegramLinks.id, link.id))
-            .run();
+          TelegramBotsRepository.update(bot.id, {
+            chat_id: chatId,
+            group_name: chatTitle ?? null,
+            estat: "CONFIGURAT",
+            updated_at: new Date().toISOString(),
+          });
+          TelegramLinksRepository.markUsed(link.id, new Date().toISOString());
 
           if (token) {
             await notifyGroupError(
@@ -196,10 +179,10 @@ export function registerTelegramWebhookRoutes(app: FastifyInstance): void {
       if (newStatus === "left" || newStatus === "kicked") {
         // Només si el bot era vinculat a un grup: tornem a estat pendent
         if (bot.chat_id !== null) {
-          db.update(telegramBots)
-            .set({ estat: "GRUP_PENDENT", updated_at: new Date().toISOString() })
-            .where(eq(telegramBots.id, bot.id))
-            .run();
+          TelegramBotsRepository.update(bot.id, {
+            estat: "GRUP_PENDENT",
+            updated_at: new Date().toISOString(),
+          });
         }
       }
 

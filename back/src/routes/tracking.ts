@@ -1,12 +1,12 @@
 // Rutes de tracking OwnTracks: activar/descarregar config, estat, posicions i stream SSE.
 import type { OtrcConfig, Position, TrackingStatus } from "@territoriadf/contracts/tracking";
 import { randomBytes } from "node:crypto";
-import { and, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 
-import { db } from "../db/index.js";
-import { adfs, mqttUsers, users } from "../db/schema.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
+import { MqttUsersRepository } from "../db/repositories/mqttUsersRepository.js";
+import { UsersRepository } from "../db/repositories/usersRepository.js";
 import { permissionsFor } from "../permissions.js";
 import type { SessionUser } from "../plugins/auth.js";
 import { requireAuth } from "../plugins/authorize.js";
@@ -24,11 +24,7 @@ import { decrypt, encrypt } from "../utils/crypto.js";
 
 /** Retorna si el servei MQTT està disponible i si l'usuari té OwnTracks activat. */
 function isEnabledFor(userId: string): boolean {
-  return !!db
-    .select()
-    .from(mqttUsers)
-    .where(and(eq(mqttUsers.user_id, userId), eq(mqttUsers.enabled, true)))
-    .get();
+  return !!MqttUsersRepository.findEnabledByUserId(userId);
 }
 
 /** Filtre de visibilitat compartit per `/positions` i `/stream`.
@@ -43,13 +39,8 @@ function visiblePositions(user: SessionUser): Record<string, LocationData> {
   if (!viewAll && user.adf_id !== null) {
     adfIds.add(user.adf_id);
     if (perms.includes("view_shared_positions")) {
-      const shared = db
-        .select({ id: adfs.id })
-        .from(adfs)
-        .where(eq(adfs.tracking_shared, true))
-        .all();
-      for (const a of shared) {
-        adfIds.add(a.id);
+      for (const id of AdfsRepository.findTrackingSharedIds()) {
+        adfIds.add(id);
       }
     }
   }
@@ -59,7 +50,7 @@ function visiblePositions(user: SessionUser): Record<string, LocationData> {
     return obj;
   }
 
-  const allUsers = db.select({ username: users.username, adf_id: users.adf_id }).from(users).all();
+  const allUsers = UsersRepository.findMemberships();
   for (const u of allUsers) {
     if (!viewAll && (u.adf_id === null || !adfIds.has(u.adf_id))) {
       continue;
@@ -235,7 +226,7 @@ export function registerTrackingRoutes(app: FastifyInstance): void {
       const userId = request.authUser!.id;
       const username = request.authUser!.username;
       const mqUsername = mqttNameFor(username);
-      const existing = db.select().from(mqttUsers).where(eq(mqttUsers.user_id, userId)).get();
+      const existing = MqttUsersRepository.findByUserId(userId);
       const password = randomBytes(16).toString("hex");
 
       try {
@@ -256,20 +247,19 @@ export function registerTrackingRoutes(app: FastifyInstance): void {
             /* client antic pot no existir */
           }
         }
-        db.update(mqttUsers)
-          .set({ mqtt_password_enc: encrypt(password), mqtt_username: mqUsername, enabled: true })
-          .where(eq(mqttUsers.id, existing.id))
-          .run();
+        MqttUsersRepository.update(existing.id, {
+          mqtt_password_enc: encrypt(password),
+          mqtt_username: mqUsername,
+          enabled: true,
+        });
       } else {
-        db.insert(mqttUsers)
-          .values({
-            id: randomBytes(16).toString("hex"),
-            user_id: userId,
-            mqtt_username: mqUsername,
-            mqtt_password_enc: encrypt(password),
-            enabled: true,
-          })
-          .run();
+        MqttUsersRepository.insert({
+          id: randomBytes(16).toString("hex"),
+          user_id: userId,
+          mqtt_username: mqUsername,
+          mqtt_password_enc: encrypt(password),
+          enabled: true,
+        });
       }
       return reply.send(buildOtrc(mqUsername, password));
     },
@@ -287,11 +277,7 @@ export function registerTrackingRoutes(app: FastifyInstance): void {
       reply.header("Cache-Control", "no-store");
       const userId = request.authUser!.id;
       const mqUsername = mqttNameFor(request.authUser!.username);
-      const row = db
-        .select()
-        .from(mqttUsers)
-        .where(and(eq(mqttUsers.user_id, userId), eq(mqttUsers.enabled, true)))
-        .get();
+      const row = MqttUsersRepository.findEnabledByUserId(userId);
 
       if (!row || !row.mqtt_password_enc) {
         return reply.code(400).send({ error: "OwnTracks no activat" });
@@ -310,10 +296,7 @@ export function registerTrackingRoutes(app: FastifyInstance): void {
         } catch {
           /* best-effort: la configuració es retorna igualment */
         }
-        db.update(mqttUsers)
-          .set({ mqtt_username: mqUsername })
-          .where(eq(mqttUsers.id, row.id))
-          .run();
+        MqttUsersRepository.update(row.id, { mqtt_username: mqUsername });
       }
       return reply.send(buildOtrc(mqUsername, password));
     },

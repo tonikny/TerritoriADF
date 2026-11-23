@@ -65,6 +65,8 @@ territoriadf/
 └── package.json                    # workspaces packages/contracts + front + back
 ```
 
+L'accés a dades dels serveis i les rutes passa sempre pels repositoris de `back/src/db/repositories/` (un per entitat: ADFs, hidrants, incidències, usuaris, identitats MQTT, tokens d'accés i Telegram); cap ruta ni servei no importa `db` ni l'esquema. Els scripts de `back/src/scripts/` en són l'excepció deliberada.
+
 Els tests de la capa de mapa viuen al costat del codi que proven, dins de `front/src/map/core/*.test.ts`. No hi ha una carpeta `tests/` separada.
 
 ## 3. Motors de mapa

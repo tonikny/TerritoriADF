@@ -1,16 +1,12 @@
-import { count, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-import { db } from "../db/index.js";
-import { adfs, hidrants, incidencies, telegramBots, users } from "../db/schema.js";
+import { AdfsRepository, type AdfInsert, type AdfRow } from "../db/repositories/adfsRepository.js";
 import { BadRequestError } from "../errors.js";
 import { requireAuth, requirePermission } from "../plugins/authorize.js";
 import { adfIdParamsSchema, adfIdSchema } from "../utils/identifiers.js";
 import type { Adf, AdfBbox, AdfBoundaryFeature, AdfCenter } from "@territoriadf/contracts/adfs";
-
-type AdfRow = typeof adfs.$inferSelect;
 
 /**
  * Camps JSON d'una ADF ja parsejats. `boundary_geojson` és pesat i només surt
@@ -94,7 +90,7 @@ export function registerAdfRoutes(app: FastifyInstance): void {
     "/api/adfs",
     { schema: { tags: ["adfs"], summary: "Llista d'ADFs amb els camps JSON parsejats" } },
     async (_request, reply) => {
-      const rows = db.select().from(adfs).all();
+      const rows = AdfsRepository.findAll();
       return reply.send(rows.map((row) => serializeAdf(row)));
     },
   );
@@ -106,7 +102,7 @@ export function registerAdfRoutes(app: FastifyInstance): void {
       schema: { tags: ["adfs"], summary: "Detall d'una ADF", params: adfIdParamsSchema },
     },
     async (request, reply) => {
-      const adf = db.select().from(adfs).where(eq(adfs.id, request.params.id)).get();
+      const adf = AdfsRepository.findById(request.params.id);
       if (!adf) {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
@@ -128,19 +124,17 @@ export function registerAdfRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const { id: adfId, nom, osm_relations } = request.body;
 
-      if (db.select({ id: adfs.id }).from(adfs).where(eq(adfs.id, adfId)).get()) {
+      if (AdfsRepository.exists(adfId)) {
         throw new BadRequestError(`Ja existeix una ADF amb el número ${adfId}`);
       }
 
-      db.insert(adfs)
-        .values({
-          id: adfId,
-          nom,
-          osm_relations: JSON.stringify(parseRelations(osm_relations)),
-        })
-        .run();
+      AdfsRepository.create({
+        id: adfId,
+        nom,
+        osm_relations: JSON.stringify(parseRelations(osm_relations)),
+      });
 
-      const row = db.select().from(adfs).where(eq(adfs.id, adfId)).get()!;
+      const row = AdfsRepository.findById(adfId)!;
       return reply.code(201).send(serializeAdf(row));
     },
   );
@@ -159,12 +153,12 @@ export function registerAdfRoutes(app: FastifyInstance): void {
     },
     async (request, reply) => {
       const adfId = request.params.id;
-      const target = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
+      const target = AdfsRepository.findById(adfId);
       if (!target) {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
       const { nom, osm_relations } = request.body;
-      const updates: Partial<typeof adfs.$inferInsert> = {};
+      const updates: Partial<Omit<AdfInsert, "id">> = {};
 
       if (nom !== undefined) {
         updates.nom = nom;
@@ -182,11 +176,9 @@ export function registerAdfRoutes(app: FastifyInstance): void {
         }
       }
 
-      if (Object.keys(updates).length > 0) {
-        db.update(adfs).set(updates).where(eq(adfs.id, adfId)).run();
-      }
+      AdfsRepository.update(adfId, updates);
 
-      const row = db.select().from(adfs).where(eq(adfs.id, adfId)).get()!;
+      const row = AdfsRepository.findById(adfId)!;
       return reply.send(serializeAdf(row));
     },
   );
@@ -204,20 +196,16 @@ export function registerAdfRoutes(app: FastifyInstance): void {
     },
     async (request, reply) => {
       const adfId = request.params.id;
-      const target = db.select({ id: adfs.id }).from(adfs).where(eq(adfs.id, adfId)).get();
-      if (!target) {
+      if (!AdfsRepository.exists(adfId)) {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
 
-      const countFor = (
-        table: typeof users | typeof hidrants | typeof incidencies | typeof telegramBots,
-      ) => db.select({ n: count() }).from(table).where(eq(table.adf_id, adfId)).get()?.n ?? 0;
-
+      const related = AdfsRepository.countRelated(adfId);
       const blockers = [
-        { label: "usuaris", n: countFor(users) },
-        { label: "hidrants", n: countFor(hidrants) },
-        { label: "incidències", n: countFor(incidencies) },
-        { label: "bots de Telegram", n: countFor(telegramBots) },
+        { label: "usuaris", n: related.usuaris },
+        { label: "hidrants", n: related.hidrants },
+        { label: "incidències", n: related.incidencies },
+        { label: "bots de Telegram", n: related.telegramBots },
       ].filter((b) => b.n > 0);
 
       if (blockers.length > 0) {
@@ -227,7 +215,7 @@ export function registerAdfRoutes(app: FastifyInstance): void {
         });
       }
 
-      db.delete(adfs).where(eq(adfs.id, adfId)).run();
+      AdfsRepository.delete(adfId);
       return reply.send({ success: true });
     },
   );

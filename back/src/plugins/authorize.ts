@@ -1,8 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { eq } from "drizzle-orm";
 
-import { db } from "../db/index.js";
-import { users as usersTable } from "../db/schema.js";
+import { UsersRepository } from "../db/repositories/usersRepository.js";
 import { hasPermission, permissionsFor, type Permission } from "../permissions.js";
 import { adfIdFromUsername } from "../utils/identifiers.js";
 
@@ -88,11 +86,7 @@ export function requireTargetUserScope(
       return undefined;
     }
 
-    const target = db
-      .select({ id: usersTable.id, adf_id: usersTable.adf_id, role: usersTable.role })
-      .from(usersTable)
-      .where(eq(usersTable.id, targetId))
-      .get();
+    const target = UsersRepository.findScopeById(targetId);
     if (!target) {
       return undefined;
     }

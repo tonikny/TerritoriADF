@@ -1,8 +1,9 @@
 // Servei Telegram per ADF: registra bots, gestiona webhooks i envia notificacions.
 import { createHash } from "node:crypto";
-import { and, eq } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { telegramBots } from "../db/schema.js";
+import {
+  TelegramBotsRepository,
+  type TelegramBotRow,
+} from "../db/repositories/telegramRepository.js";
 import { decrypt } from "../utils/crypto.js";
 import { logger } from "../utils/logger.js";
 
@@ -19,7 +20,7 @@ export const TELEGRAM_ESTATS = [
 ] as const;
 export type TelegramEstat = (typeof TELEGRAM_ESTATS)[number];
 
-export type TelegramBotRow = typeof telegramBots.$inferSelect;
+export type { TelegramBotRow };
 
 export function sha256hex(input: string): string {
   return createHash("sha256").update(input).digest("hex");
@@ -97,11 +98,7 @@ export async function sendMessage(
 
 /** Envia una notificació a l'ADF si té un bot configurat i vinculat a un grup. */
 export async function sendToAdf(adfId: number, text: string) {
-  const row = db
-    .select()
-    .from(telegramBots)
-    .where(and(eq(telegramBots.adf_id, adfId), eq(telegramBots.estat, "CONFIGURAT")))
-    .get();
+  const row = TelegramBotsRepository.findConfiguredByAdf(adfId);
   if (!row || row.chat_id === null) {
     return;
   }

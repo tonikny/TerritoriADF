@@ -124,7 +124,8 @@ un bloqueig absolut, però tots encareixen escriure i mantenir tests.
 ### 1. La BD és un singleton creat a l'import
 
 `src/db/index.ts` obre SQLite i calcula el camí en carregar-se el mòdul. Tots els
-repositoris, serveis i rutes importen aquell `db` directament. Conseqüències:
+repositoris importen aquell `db` directament (les rutes i els serveis hi arriben
+a través dels repositoris). Conseqüències:
 
 - No es pot injectar una BD per test ni fer rollback per test.
 - Tots els fitxers comparteixen una BD i cal **un sol worker** (`fileParallelism: false`).
@@ -208,14 +209,16 @@ reformulació els trenca.
 **Millora:** `code` estable (`HYDRANT_NOT_FOUND`, `ADF_FORBIDDEN`,
 `OSM_CONFLICT`) i missatge per a la UI; el test asserta el codi.
 
-### 9. Rutes que fan SQL directe
+### 9. Accés a dades centralitzat als repositoris
 
-`routes/adfs.ts`, `routes/osm.ts` i `routes/users.ts` consulten les taules
-directament. No hi ha un repositori per a totes les entitats, així que part de la
-lògica només és provable via HTTP.
+Totes les taules passen per `src/db/repositories/` (`adfs`, `hidrants`,
+`incidencies`, `users`, `mqttUsers`, `accessTokens` i `telegram`): rutes, serveis
+i plugins no importen `db` ni l'esquema. Els scripts de `src/scripts/` en són
+l'excepció deliberada: són eines d'operació que treballen sobre la BD crua.
 
-**Millora:** repositoris per a ADFs, incidències, usuaris i configuració; els
-serveis es poden provar amb una BD temporal sense muntar Fastify.
+**Millora pendent:** injectar la connexió (`createDatabase(path)` i repositoris
+construïts amb aquella instància) per poder provar cada repositori amb una BD
+temporal; avui tots importen el singleton.
 
 ### 10. `buildApp()` no accepta dependències
 

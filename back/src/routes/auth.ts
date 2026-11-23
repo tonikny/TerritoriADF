@@ -1,12 +1,12 @@
 import bcrypt from "bcryptjs";
-import { and, eq } from "drizzle-orm";
 import type { SessionResponse, SessionUser } from "@territoriadf/contracts/users";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-import { db } from "../db/index.js";
-import { adfs, mqttUsers, users } from "../db/schema.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
+import { MqttUsersRepository } from "../db/repositories/mqttUsersRepository.js";
+import { UsersRepository } from "../db/repositories/usersRepository.js";
 import { permissionsFor } from "../permissions.js";
 import { clearSessionCookie, setSessionCookie } from "../plugins/auth.js";
 import { requireAuth } from "../plugins/authorize.js";
@@ -27,11 +27,7 @@ export function toPublicUser(user: {
   // signar un token amb un rol diferent del de la resposta.
   const role = user.role ?? "voluntari";
 
-  const mqttRow = db
-    .select()
-    .from(mqttUsers)
-    .where(and(eq(mqttUsers.user_id, user.id), eq(mqttUsers.enabled, true)))
-    .get();
+  const mqttRow = MqttUsersRepository.findEnabledByUserId(user.id);
 
   return {
     id: user.id,
@@ -93,7 +89,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       }
 
       try {
-        const user = db.select().from(users).where(eq(users.username, username)).get();
+        const user = UsersRepository.findByUsername(username);
 
         // Sempre es compara amb bcrypt (hash real o sintètic) perquè un usuari
         // inexistent no respongui mesurablement més ràpid (enumeració per timing).
@@ -168,15 +164,12 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       if (!currentPassword || !newPassword) {
         return reply.code(400).send({ error: "Cal indicar la contrasenya actual i la nova" });
       }
-      const user = db.select().from(users).where(eq(users.id, userId)).get();
+      const user = UsersRepository.findById(userId);
       if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {
         return reply.code(401).send({ error: "La contrasenya actual no és correcta" });
       }
 
-      const adfNom = user.adf_id
-        ? (db.select({ nom: adfs.nom }).from(adfs).where(eq(adfs.id, user.adf_id)).get()?.nom ??
-          null)
-        : null;
+      const adfNom = user.adf_id ? AdfsRepository.findName(user.adf_id) : null;
 
       const problem = passwordProblem(newPassword, "La contrasenya nova", {
         username: user.username,
@@ -190,10 +183,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       // actual se resigna amb la nova versió perquè l'usuari no perdi l'accés.
       const newVersion = (user.token_version ?? 0) + 1;
       const hash = bcrypt.hashSync(newPassword, 10);
-      db.update(users)
-        .set({ password_hash: hash, token_version: newVersion })
-        .where(eq(users.id, userId))
-        .run();
+      UsersRepository.updatePassword(userId, hash, newVersion);
 
       setSessionCookie(app, request, reply, {
         id: user.id,

@@ -1,8 +1,7 @@
-import { db } from "../db/index.js";
-import { adfs, hidrants } from "../db/schema.js";
-import { eq, notInArray, and } from "drizzle-orm";
 import { queryOverpass, type OsmElement } from "./overpass.js";
 import { randomUUID } from "node:crypto";
+import { inTransaction } from "../db/index.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { HidrantsRepository } from "../db/repositories/hidrantsRepository.js";
 import { logger } from "../utils/logger.js";
 
@@ -23,7 +22,7 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
   const startTime = Date.now();
   log.info({ adfId, force }, "Iniciant pull sync per ADF");
 
-  const adf = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
+  const adf = AdfsRepository.findById(adfId);
 
   if (!adf) {
     log.error({ adfId }, "ADF no trobat");
@@ -85,7 +84,7 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
   let skippedCount = 0;
   let conflictCount = 0;
 
-  db.transaction((tx) => {
+  inTransaction(() => {
     for (const node of uniqueElements) {
       // 1. Busquem si ja existeix per osm_id
       const existing = HidrantsRepository.findByOsmId(node.id);
@@ -167,33 +166,16 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
       // abans de pujar-los (vegeu el panell OSM → «Canvis pendents»).
       const id = existing ? existing.id : randomUUID();
 
-      tx.insert(hidrants)
-        .values({
-          id,
-          osm_id: node.id,
-          osm_version: node.version,
-          adf_id: adfId,
-          lat: node.lat,
-          lon: node.lon,
-          osm_tags: JSON.stringify(node.tags || {}),
-          sync_status: "SYNCED",
-          synced_at: syncTimestamp,
-          updated_at: syncTimestamp,
-        })
-        .onConflictDoUpdate({
-          target: hidrants.id,
-          set: {
-            osm_id: node.id,
-            lat: node.lat,
-            lon: node.lon,
-            osm_version: node.version,
-            osm_tags: JSON.stringify(node.tags || {}),
-            sync_status: "SYNCED",
-            synced_at: syncTimestamp,
-            updated_at: syncTimestamp,
-          },
-        })
-        .run();
+      HidrantsRepository.upsertFromOsm({
+        id,
+        osm_id: node.id,
+        osm_version: node.version,
+        adf_id: adfId,
+        lat: node.lat,
+        lon: node.lon,
+        osm_tags: JSON.stringify(node.tags || {}),
+        synced_at: syncTimestamp,
+      });
     }
 
     // Hidrants que ja no són a OSM: NO s'esborren. Es marquen com a MISSING_IN_OSM i
@@ -203,21 +185,7 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
     // NOMÉS es marca si hem pogut consultar TOTES les relacions de l'ADF amb èxit.
     if (successCount === relations.length) {
       const currentOsmIds = uniqueElements.map((n) => n.id);
-
-      const missingCondition =
-        currentOsmIds.length > 0
-          ? and(
-              eq(hidrants.adf_id, adfId),
-              eq(hidrants.sync_status, "SYNCED"),
-              notInArray(hidrants.osm_id, currentOsmIds as number[]),
-            )
-          : and(eq(hidrants.adf_id, adfId), eq(hidrants.sync_status, "SYNCED"));
-
-      const marked = tx
-        .update(hidrants)
-        .set({ sync_status: "MISSING_IN_OSM", updated_at: syncTimestamp })
-        .where(missingCondition)
-        .run().changes;
+      const marked = HidrantsRepository.markMissingInOsm(adfId, currentOsmIds, syncTimestamp);
 
       log.warn(
         {

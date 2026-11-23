@@ -3,13 +3,13 @@
 //   POST /api/auth/access/:token → { password }: desa la contrasenya triada per l'usuari
 //                                   i li deixa la sessió oberta.
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-import { db } from "../db/index.js";
-import { accessTokens, adfs, users } from "../db/schema.js";
+import { AccessTokensRepository } from "../db/repositories/accessTokensRepository.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
+import { UsersRepository } from "../db/repositories/usersRepository.js";
 import { setSessionCookie } from "../plugins/auth.js";
 import { findAccessToken } from "../services/accessTokens.js";
 import { passwordProblem } from "../utils/password.js";
@@ -43,7 +43,7 @@ function resolveToken(rawToken: string | undefined): AccessTarget {
     };
   }
 
-  const user = db.select().from(users).where(eq(users.id, row.user_id)).get();
+  const user = UsersRepository.findById(row.user_id);
   if (!user) {
     return { error: "Aquest enllaç ja no és vàlid.", status: 404 };
   }
@@ -71,7 +71,7 @@ export function registerAccessRoutes(app: FastifyInstance): void {
         return reply.code(target.status).send({ error: target.error });
       }
 
-      const user = db.select().from(users).where(eq(users.id, target.userId)).get();
+      const user = UsersRepository.findById(target.userId);
       if (!user) {
         return reply.code(404).send({ error: "Aquest enllaç ja no és vàlid." });
       }
@@ -97,15 +97,12 @@ export function registerAccessRoutes(app: FastifyInstance): void {
 
       const { password } = request.body;
 
-      const user = db.select().from(users).where(eq(users.id, target.userId)).get();
+      const user = UsersRepository.findById(target.userId);
       if (!user) {
         return reply.code(404).send({ error: "Aquest enllaç ja no és vàlid." });
       }
 
-      const adfNom = user.adf_id
-        ? (db.select({ nom: adfs.nom }).from(adfs).where(eq(adfs.id, user.adf_id)).get()?.nom ??
-          null)
-        : null;
+      const adfNom = user.adf_id ? AdfsRepository.findName(user.adf_id) : null;
 
       const problem = passwordProblem(password, "La contrasenya", {
         username: user.username,
@@ -120,15 +117,12 @@ export function registerAccessRoutes(app: FastifyInstance): void {
       // La nova contrasenya invalida qualsevol sessió anterior d'aquest usuari.
       const newVersion = (user.token_version ?? 0) + 1;
 
-      db.transaction((tx) => {
-        tx.update(users)
-          .set({ password_hash: hash, token_version: newVersion })
-          .where(eq(users.id, user.id))
-          .run();
-        tx.update(accessTokens)
-          .set({ used_at: usedAt })
-          .where(eq(accessTokens.id, target.tokenId))
-          .run();
+      AccessTokensRepository.redeem({
+        tokenId: target.tokenId,
+        userId: user.id,
+        passwordHash: hash,
+        tokenVersion: newVersion,
+        usedAt,
       });
 
       const publicUser = toPublicUser(user);

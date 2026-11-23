@@ -77,5 +77,14 @@ applyPragmas(sqlite);
 // Exportem la instància de Drizzle
 export const db = drizzle(sqlite, { schema });
 
+/**
+ * Executa diverses operacions de repositori com una sola transacció. Els
+ * serveis que han de fer un conjunt d'escriptures atòmic (p. ex. el pull
+ * d'OSM) la fan servir sense importar `db` ni l'esquema.
+ */
+export function inTransaction<T>(fn: () => T): T {
+  return db.transaction(() => fn());
+}
+
 // Exportem la instància de sqlite (per si cal accés directe mentre migrem)
 export default sqlite;

@@ -1,12 +1,10 @@
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
 import type { TrackingSharingResult } from "@territoriadf/contracts/adfs";
 
-import { db } from "../db/index.js";
-import { adfs } from "../db/schema.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { requireAdfScope, requireAuth, requirePermission } from "../plugins/authorize.js";
 import { adfIdParamsSchema } from "../utils/identifiers.js";
 
@@ -39,12 +37,12 @@ export function registerTrackingSharingRoutes(app: FastifyInstance): void {
       const adfId = request.params.id;
       const shared = request.body.shared === true;
 
-      const adf = db.select().from(adfs).where(eq(adfs.id, adfId)).get();
+      const adf = AdfsRepository.findById(adfId);
       if (!adf) {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
 
-      db.update(adfs).set({ tracking_shared: shared }).where(eq(adfs.id, adfId)).run();
+      AdfsRepository.setTrackingShared(adfId, shared);
       const result: TrackingSharingResult = { adf_id: adfId, tracking_shared: shared };
       return reply.send(result);
     },

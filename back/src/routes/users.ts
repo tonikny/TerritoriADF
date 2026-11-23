@@ -1,13 +1,13 @@
 import type { AccessLink, CreatedUser, ManagedUser } from "@territoriadf/contracts/users";
 import bcrypt from "bcryptjs";
 import { randomBytes, randomUUID } from "node:crypto";
-import { and, eq, ne } from "drizzle-orm";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-import { db } from "../db/index.js";
-import { adfs, mqttUsers, users } from "../db/schema.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
+import { MqttUsersRepository } from "../db/repositories/mqttUsersRepository.js";
+import { UsersRepository, type UserUpdate } from "../db/repositories/usersRepository.js";
 import { BadRequestError } from "../errors.js";
 import { hasPermission, ROLES } from "../permissions.js";
 import {
@@ -30,16 +30,8 @@ import { adfIdFromUsername, USERNAME_MESSAGE, USERNAME_RE } from "../utils/ident
 const MISSING_FIELDS = "Falten camps: username, role";
 
 function adfExists(adfId: number): boolean {
-  return !!db.select({ id: adfs.id }).from(adfs).where(eq(adfs.id, adfId)).get();
+  return AdfsRepository.exists(adfId);
 }
-
-const PUBLIC_FIELDS = {
-  id: users.id,
-  username: users.username,
-  adf_id: users.adf_id,
-  role: users.role,
-  created_at: users.created_at,
-};
 
 /**
  * Enllaç d'accés d'un sol ús. El token en clar només surt en aquesta resposta: a la BD
@@ -57,7 +49,7 @@ function accessPayload(
 /** Manté la identitat MQTT (client DynSec + mqtt_users) alineada amb el nom d'usuari
  *  quan es re-num amb el username d'un usuari amb OwnTracks activat. */
 async function propagateMqttRename(userId: string, newUsername: string): Promise<void> {
-  const row = db.select().from(mqttUsers).where(eq(mqttUsers.user_id, userId)).get();
+  const row = MqttUsersRepository.findByUserId(userId);
   const newMqName = mqttNameFor(newUsername);
   if (!row || row.mqtt_username === newMqName) {
     return;
@@ -78,7 +70,7 @@ async function propagateMqttRename(userId: string, newUsername: string): Promise
       }
     }
   }
-  db.update(mqttUsers).set({ mqtt_username: newMqName }).where(eq(mqttUsers.id, row.id)).run();
+  MqttUsersRepository.update(row.id, { mqtt_username: newMqName });
 }
 
 const roleSchema = z
@@ -132,11 +124,7 @@ export function registerUserRoutes(app: FastifyInstance): void {
       const user = request.authUser!;
 
       if (hasPermission(user.role, "manage_all_users")) {
-        const rows: ManagedUser[] = db
-          .select(PUBLIC_FIELDS)
-          .from(users)
-          .orderBy(users.username)
-          .all();
+        const rows: ManagedUser[] = UsersRepository.findAllPublic();
         return reply.send(rows);
       }
 
@@ -145,12 +133,7 @@ export function registerUserRoutes(app: FastifyInstance): void {
         return reply.send([]);
       }
 
-      const rows: ManagedUser[] = db
-        .select(PUBLIC_FIELDS)
-        .from(users)
-        .where(eq(users.adf_id, user.adf_id))
-        .orderBy(users.username)
-        .all();
+      const rows: ManagedUser[] = UsersRepository.findPublicByAdf(user.adf_id);
       return reply.send(rows);
     },
   );
@@ -177,7 +160,7 @@ export function registerUserRoutes(app: FastifyInstance): void {
       if (!adfExists(adfId)) {
         throw new BadRequestError(`L'ADF ${adfId} no existeix`);
       }
-      if (db.select({ id: users.id }).from(users).where(eq(users.username, username)).get()) {
+      if (UsersRepository.usernameExists(username)) {
         throw new BadRequestError(`El nom d'usuari ${username} ja existeix`);
       }
 
@@ -185,9 +168,9 @@ export function registerUserRoutes(app: FastifyInstance): void {
       // Contrasenya aleatòria que ningú no coneix: l'usuari entra per l'enllaç d'accés i hi
       // tria la seva, així el coordinador no arriba a saber mai la contrasenya de ningú.
       const hash = bcrypt.hashSync(randomBytes(32).toString("hex"), 10);
-      db.insert(users).values({ id, username, password_hash: hash, adf_id: adfId, role }).run();
+      UsersRepository.create({ id, username, password_hash: hash, adf_id: adfId, role });
 
-      const row = db.select(PUBLIC_FIELDS).from(users).where(eq(users.id, id)).get();
+      const row = UsersRepository.findPublicById(id);
       if (!row) {
         throw new Error(`Usuari ${id} no trobat després de crear-lo`);
       }
@@ -220,24 +203,19 @@ export function registerUserRoutes(app: FastifyInstance): void {
       const targetId = request.params.id;
       const { username, role } = request.body;
 
-      const target = db.select().from(users).where(eq(users.id, targetId)).get();
+      const target = UsersRepository.findById(targetId);
       if (!target) {
         throw new BadRequestError("Usuari no trobat");
       }
 
-      const updates: Record<string, unknown> = {};
+      const updates: UserUpdate = {};
 
       if (username !== undefined) {
         const adfId = adfIdFromUsername(username);
         if (!adfExists(adfId)) {
           throw new BadRequestError(`L'ADF ${adfId} no existeix`);
         }
-        const dup = db
-          .select({ id: users.id })
-          .from(users)
-          .where(and(eq(users.username, username), ne(users.id, targetId)))
-          .get();
-        if (dup) {
+        if (UsersRepository.usernameTakenByOther(username, targetId)) {
           throw new BadRequestError(`El nom d'usuari ${username} ja existeix`);
         }
         updates.username = username;
@@ -248,13 +226,11 @@ export function registerUserRoutes(app: FastifyInstance): void {
         updates.role = role;
       }
 
-      if (Object.keys(updates).length > 0) {
-        db.update(users).set(updates).where(eq(users.id, targetId)).run();
-      }
+      UsersRepository.update(targetId, updates);
       if (username !== undefined && username !== target.username) {
         await propagateMqttRename(targetId, username);
       }
-      const row = db.select(PUBLIC_FIELDS).from(users).where(eq(users.id, targetId)).get();
+      const row = UsersRepository.findPublicById(targetId);
       return reply.send(row);
     },
   );
@@ -273,7 +249,7 @@ export function registerUserRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const targetId = request.params.id;
 
-      const target = db.select().from(users).where(eq(users.id, targetId)).get();
+      const target = UsersRepository.findById(targetId);
       if (!target) {
         throw new BadRequestError("Usuari no trobat");
       }
@@ -282,15 +258,7 @@ export function registerUserRoutes(app: FastifyInstance): void {
       // l'esquema: `mqtt_users` i `access_tokens` cauen en cascada i
       // `incidencia_events.usuari_id` queda a NULL. Només cal llegir la identitat
       // MQTT abans d'esborrar per netejar-la també a DynSec.
-      const mqttUsername = db.transaction((tx) => {
-        const row = tx
-          .select({ mqtt_username: mqttUsers.mqtt_username })
-          .from(mqttUsers)
-          .where(eq(mqttUsers.user_id, targetId))
-          .get();
-        tx.delete(users).where(eq(users.id, targetId)).run();
-        return row?.mqtt_username;
-      });
+      const mqttUsername = UsersRepository.deleteReturningMqttUsername(targetId);
       if (mqttUsername) {
         try {
           await deleteMqttUser(mqttUsername);
@@ -316,7 +284,7 @@ export function registerUserRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const targetId = request.params.id;
 
-      const target = db.select().from(users).where(eq(users.id, targetId)).get();
+      const target = UsersRepository.findById(targetId);
       if (!target) {
         throw new BadRequestError("Usuari no trobat");
       }

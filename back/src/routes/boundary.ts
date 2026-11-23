@@ -1,10 +1,8 @@
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-import { db } from "../db/index.js";
-import { adfs } from "../db/schema.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { adfIdSchema } from "../utils/identifiers.js";
 
 const adfQuerySchema = z.object({
@@ -25,17 +23,12 @@ export function registerBoundaryRoutes(app: FastifyInstance): void {
       },
     },
     async (request, reply) => {
-      const adf = db
-        .select({ boundary_geojson: adfs.boundary_geojson })
-        .from(adfs)
-        .where(eq(adfs.id, request.query.adf))
-        .get();
-
-      if (!adf || !adf.boundary_geojson) {
+      const boundary = AdfsRepository.findBoundary(request.query.adf);
+      if (!boundary) {
         return reply.code(404).send({ error: "Boundary not found" });
       }
 
-      return reply.send(JSON.parse(adf.boundary_geojson));
+      return reply.send(JSON.parse(boundary));
     },
   );
 }

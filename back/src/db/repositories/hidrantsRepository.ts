@@ -349,6 +349,76 @@ export const HidrantsRepository = {
   },
 
   /**
+   * Descartar els canvis locals: recupera les etiquetes remotes d'OSM del
+   * darrer pull i el marca com a sincronitzat.
+   */
+  restoreRemoteTags(id: string, osmTags: string, syncedAt: string): void {
+    db.update(hidrants)
+      .set({
+        osm_tags: osmTags,
+        sync_status: "SYNCED",
+        synced_at: syncedAt,
+        updated_at: syncedAt,
+      })
+      .where(eq(hidrants.id, id))
+      .run();
+  },
+
+  /** Inserció/actualització massiva del pull d'OSM (per `osm_id`). */
+  upsertFromOsm(data: {
+    id: string;
+    osm_id: number;
+    osm_version: number;
+    adf_id: number;
+    lat: number;
+    lon: number;
+    osm_tags: string;
+    synced_at: string;
+  }): void {
+    db.insert(hidrants)
+      .values({
+        ...data,
+        sync_status: "SYNCED",
+        updated_at: data.synced_at,
+      })
+      .onConflictDoUpdate({
+        target: hidrants.id,
+        set: {
+          osm_id: data.osm_id,
+          lat: data.lat,
+          lon: data.lon,
+          osm_version: data.osm_version,
+          osm_tags: data.osm_tags,
+          sync_status: "SYNCED",
+          synced_at: data.synced_at,
+          updated_at: data.synced_at,
+        },
+      })
+      .run();
+  },
+
+  /**
+   * Marca com a MISSING_IN_OSM els hidrants SYNCED de l'ADF que ja no surten
+   * al pull. Retorna el nombre de files marcades.
+   */
+  markMissingInOsm(adfId: number, currentOsmIds: number[], timestamp: string): number {
+    const missingCondition =
+      currentOsmIds.length > 0
+        ? and(
+            eq(hidrants.adf_id, adfId),
+            eq(hidrants.sync_status, "SYNCED"),
+            notInArray(hidrants.osm_id, currentOsmIds),
+          )
+        : and(eq(hidrants.adf_id, adfId), eq(hidrants.sync_status, "SYNCED"));
+
+    return db
+      .update(hidrants)
+      .set({ sync_status: "MISSING_IN_OSM", updated_at: timestamp })
+      .where(missingCondition)
+      .run().changes;
+  },
+
+  /**
    * Marcar múltiples hidrants com a SYNCED (descartar canvis).
    */
   markManySynced(ids: string[]) {

@@ -1,10 +1,7 @@
 import fastifyCookie, { type CookieSerializeOptions } from "@fastify/cookie";
 import fastifyJwt from "@fastify/jwt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { eq } from "drizzle-orm";
-
-import { db } from "../db/index.js";
-import { users as usersTable } from "../db/schema.js";
+import { UsersRepository } from "../db/repositories/usersRepository.js";
 import { config } from "../utils/config.js";
 
 /** Usuari de sessió: el rol i l'ADF es rellegeixen de la BD a cada petició. */
@@ -89,7 +86,7 @@ function sessionUser(payload: unknown): SessionUser | null {
     return null;
   }
 
-  const row = db.select().from(usersTable).where(eq(usersTable.id, id)).get();
+  const row = UsersRepository.findById(id);
   if (!row) {
     return null;
   }

@@ -1,6 +1,4 @@
-import { eq } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { adfs } from "../db/schema.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { ForbiddenError } from "../errors.js";
 import { isPointInBoundary } from "../utils/geo.js";
 
@@ -9,13 +7,7 @@ import { isPointInBoundary } from "../utils/geo.js";
  * Sense `boundary_geojson` (límits encara no calculats) no es bloqueja res.
  */
 export function isPointInAdf(adfId: number, lat: number, lon: number): boolean {
-  const adf = db
-    .select({ boundary_geojson: adfs.boundary_geojson })
-    .from(adfs)
-    .where(eq(adfs.id, adfId))
-    .get();
-
-  return isPointInBoundary(lat, lon, adf?.boundary_geojson ?? null);
+  return isPointInBoundary(lat, lon, AdfsRepository.findBoundary(adfId));
 }
 
 /**

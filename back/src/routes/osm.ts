@@ -1,10 +1,7 @@
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-import { db } from "../db/index.js";
-import { hidrants } from "../db/schema.js";
 import { HidrantsRepository } from "../db/repositories/hidrantsRepository.js";
 import { BadRequestError } from "../errors.js";
 import {
@@ -188,15 +185,7 @@ export function registerOsmRoutes(app: FastifyInstance): void {
         for (const hydrantId of toSync) {
           const hydrant = hydrantsToDiscard.find((h) => h.id === hydrantId);
           if (hydrant && hydrant.remote_osm_tags && hydrant.adf_id !== null) {
-            db.update(hidrants)
-              .set({
-                osm_tags: hydrant.remote_osm_tags,
-                sync_status: "SYNCED",
-                synced_at: now,
-                updated_at: now,
-              })
-              .where(eq(hidrants.id, hydrantId))
-              .run();
+            HidrantsRepository.restoreRemoteTags(hydrantId, hydrant.remote_osm_tags, now);
             restoredCount++;
           }
         }

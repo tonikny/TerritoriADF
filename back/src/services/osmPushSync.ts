@@ -7,9 +7,7 @@ import { tryAutoResolve, type ConflictDetail } from "./osmConflictResolver.js";
 import { validateHydrantTags } from "./osmDataValidator.js";
 import { computeDiffStrings } from "./osmDiff.js";
 import { logger } from "../utils/logger.js";
-import { db } from "../db/index.js";
-import { adfs } from "../db/schema.js";
-import { inArray } from "drizzle-orm";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 
 const log = logger.child({ module: "osm", operation: "push" });
 
@@ -35,12 +33,7 @@ function affectedAdfNames(pending: HidrantData[]): string[] {
   if (ids.length === 0) {
     return [];
   }
-  return db
-    .select({ nom: adfs.nom })
-    .from(adfs)
-    .where(inArray(adfs.id, ids))
-    .all()
-    .map((row) => row.nom);
+  return AdfsRepository.findNamesByIds(ids);
 }
 
 /**

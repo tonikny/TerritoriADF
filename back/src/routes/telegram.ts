@@ -4,13 +4,15 @@ import type {
   TelegramStatusResponse,
 } from "@territoriadf/contracts/telegram";
 import { randomBytes } from "node:crypto";
-import { and, eq, ne } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 
-import { db } from "../db/index.js";
-import { adfs, telegramBots, telegramLinks } from "../db/schema.js";
+import { AdfsRepository } from "../db/repositories/adfsRepository.js";
+import {
+  TelegramBotsRepository,
+  TelegramLinksRepository,
+} from "../db/repositories/telegramRepository.js";
 import { requireAdfScope, requireAuth, requirePermission } from "../plugins/authorize.js";
 import {
   deleteWebhook,
@@ -33,7 +35,7 @@ function newId() {
 }
 
 function adfExists(adfId: number): boolean {
-  return !!db.select({ id: adfs.id }).from(adfs).where(eq(adfs.id, adfId)).get();
+  return AdfsRepository.exists(adfId);
 }
 
 /** El token arriba com a text; es valida al handler per conservar els missatges. */
@@ -68,7 +70,7 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
     },
     async (request, reply) => {
       const adfId = request.params.id;
-      const bot = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
+      const bot = TelegramBotsRepository.findByAdf(adfId);
       if (!bot) {
         const body: TelegramStatusResponse = { status: "NO_CONFIGURAT" };
         return reply.send(body);
@@ -138,17 +140,13 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
       }
 
       // Un bot no pot estar assignat a dues ADFs
-      const duplicated = db
-        .select()
-        .from(telegramBots)
-        .where(and(eq(telegramBots.bot_id, botInfo.id), ne(telegramBots.adf_id, adfId)))
-        .get();
+      const duplicated = TelegramBotsRepository.findByBotIdExceptAdf(botInfo.id, adfId);
       if (duplicated) {
         return reply.code(409).send({ error: "Aquest bot ja està vinculat a una altra ADF" });
       }
 
       let botId: string;
-      const existing = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
+      const existing = TelegramBotsRepository.findByAdf(adfId);
       if (existing) {
         try {
           const oldToken = existing.token_enc ? decrypt(existing.token_enc) : null;
@@ -190,37 +188,32 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
           newGroupName = existing.group_name;
           newEstat = existing.estat === "CONFIGURAT" ? "CONFIGURAT" : "GRUP_PENDENT";
         }
-        db.update(telegramBots)
-          .set({
-            bot_id: botInfo.id,
-            bot_username: botInfo.username,
-            bot_name: botInfo.first_name,
-            token_enc: encrypt(token),
-            webhook_secret: webhookSecret,
-            chat_id: newChatId,
-            group_name: newGroupName,
-            estat: newEstat,
-            updated_at: new Date().toISOString(),
-          })
-          .where(eq(telegramBots.id, existing.id))
-          .run();
+        TelegramBotsRepository.update(existing.id, {
+          bot_id: botInfo.id,
+          bot_username: botInfo.username,
+          bot_name: botInfo.first_name,
+          token_enc: encrypt(token),
+          webhook_secret: webhookSecret,
+          chat_id: newChatId,
+          group_name: newGroupName,
+          estat: newEstat,
+          updated_at: new Date().toISOString(),
+        });
       } else {
-        db.insert(telegramBots)
-          .values({
-            id: botId,
-            adf_id: adfId,
-            bot_id: botInfo.id,
-            bot_username: botInfo.username,
-            bot_name: botInfo.first_name,
-            token_enc: encrypt(token),
-            webhook_secret: webhookSecret,
-            estat: "BOT_CONFIGURAT",
-          })
-          .run();
+        TelegramBotsRepository.create({
+          id: botId,
+          adf_id: adfId,
+          bot_id: botInfo.id,
+          bot_username: botInfo.username,
+          bot_name: botInfo.first_name,
+          token_enc: encrypt(token),
+          webhook_secret: webhookSecret,
+          estat: "BOT_CONFIGURAT",
+        });
       }
 
       // Invalida sol·licituds de vinculació pendents del bot
-      db.delete(telegramLinks).where(eq(telegramLinks.telegram_bot_id, botId)).run();
+      TelegramLinksRepository.deleteByBotId(botId);
 
       const body: TelegramStatusResponse = {
         status: newEstat,
@@ -248,7 +241,7 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
       if (!adfExists(adfId)) {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
-      const bot = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
+      const bot = TelegramBotsRepository.findByAdf(adfId);
       if (bot) {
         const token = bot.token_enc ? decrypt(bot.token_enc) : null;
         if (token) {
@@ -258,8 +251,8 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
             /* webhook pot no existir en Telegram */
           }
         }
-        db.delete(telegramLinks).where(eq(telegramLinks.telegram_bot_id, bot.id)).run();
-        db.delete(telegramBots).where(eq(telegramBots.id, bot.id)).run();
+        TelegramLinksRepository.deleteByBotId(bot.id);
+        TelegramBotsRepository.delete(bot.id);
       }
       return reply.send({ ok: true });
     },
@@ -281,7 +274,7 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
       if (!adfExists(adfId)) {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
-      const bot = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
+      const bot = TelegramBotsRepository.findByAdf(adfId);
       if (!bot) {
         return reply.code(400).send({ error: "Primer configura el bot a l'apartat anterior" });
       }
@@ -297,19 +290,17 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
       const expiresAt = new Date(Date.now() + LINK_TTL_MS).toISOString();
 
       // Només una sol·licitud pendent per bot: esborrem les anteriors
-      db.delete(telegramLinks).where(eq(telegramLinks.telegram_bot_id, bot.id)).run();
-      db.insert(telegramLinks)
-        .values({
-          id: newId(),
-          telegram_bot_id: bot.id,
-          code_hash: sha256hex(code),
-          expires_at: expiresAt,
-        })
-        .run();
-      db.update(telegramBots)
-        .set({ estat: "GRUP_PENDENT", updated_at: new Date().toISOString() })
-        .where(eq(telegramBots.id, bot.id))
-        .run();
+      TelegramLinksRepository.deleteByBotId(bot.id);
+      TelegramLinksRepository.create({
+        id: newId(),
+        telegram_bot_id: bot.id,
+        code_hash: sha256hex(code),
+        expires_at: expiresAt,
+      });
+      TelegramBotsRepository.update(bot.id, {
+        estat: "GRUP_PENDENT",
+        updated_at: new Date().toISOString(),
+      });
 
       const body: TelegramLinkResponse = {
         url: `https://t.me/${bot.bot_username}?startgroup=${code}`,
@@ -338,7 +329,7 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
       if (!adfExists(adfId)) {
         return reply.code(404).send({ error: "ADF no trobada" });
       }
-      const bot = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
+      const bot = TelegramBotsRepository.findByAdf(adfId);
       if (!bot) {
         return reply.code(400).send({ error: "Primer configura el bot a l'apartat anterior" });
       }
