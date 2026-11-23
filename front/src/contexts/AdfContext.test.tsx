@@ -52,7 +52,7 @@ function Probe() {
   );
 }
 
-function renderProvider() {
+function renderProvider(): void {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
   });
@@ -63,7 +63,6 @@ function renderProvider() {
       </AdfProvider>
     </QueryClientProvider>,
   );
-  return client;
 }
 
 afterEach(() => {

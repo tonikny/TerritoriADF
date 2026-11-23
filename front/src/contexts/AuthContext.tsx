@@ -2,7 +2,7 @@
 // Permet a un admin "veure com" un altre rol (coordinador/voluntari) sense canviar la sessió.
 import type { SessionResponse, SessionUser } from "@territoriadf/contracts/users";
 import { useQuery } from "@tanstack/react-query";
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { useAppConfig } from "@/contexts/AppConfigContext";
 import { ApiError, request } from "@/shared/api/client";
@@ -40,15 +40,19 @@ function writeSession(session: SessionResponse | null): void {
 }
 
 /**
- * Fora les dades de l'usuari anterior (caché de Query i còpia offline). Conserva
+ * Consultes que no depenen de l'usuari i no s'han de purgar en tancar sessió:
  * `session` (esborrar-la faria que el mateix observador la tornés a demanar i el
- * 401 es repetís en bucle) i `config` (és pública i no depèn de l'usuari).
+ * 401 es repetís en bucle), `config` i `adfs` (públiques; la llista pot estar en
+ * vol en un 401 inicial i treure-la en duplicaria la petició).
  */
-const SHARED_KEYS: ReadonlySet<string> = new Set([queryKeys.session[0], queryKeys.config[0]]);
+const PUBLIC_KEYS: ReadonlySet<string> = new Set([
+  queryKeys.session[0],
+  queryKeys.config[0],
+  queryKeys.adfs[0],
+]);
 
-function clearCachedData(): void {
-  queryClient.removeQueries({ predicate: (query) => !SHARED_KEYS.has(String(query.queryKey[0])) });
-  void clearOfflineData().catch(() => {});
+function clearQueryCache(): void {
+  queryClient.removeQueries({ predicate: (query) => !PUBLIC_KEYS.has(String(query.queryKey[0])) });
 }
 
 interface AuthContextType {
@@ -91,21 +95,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  // En passar d'una sessió amb usuari a buida (logout o 401), fora les dades de
-  // l'usuari anterior. Un 401 inicial no ha de netejar res: no hi ha dades de cap
-  // usuari i esborrar consultes públiques en vol (com la llista d'ADFs) provoca
-  // peticions duplicades.
-  const hadUserRef = useRef(false);
+  // Una sessió buida (401 o logout) no pot deixar dades privades: s'esborren
+  // sempre les còpies persistents del service worker i les consultes de memòria,
+  // tret de les públiques.
   useEffect(() => {
-    if (rawUser) {
-      hadUserRef.current = true;
+    if (sessionQuery.data !== null) {
       return;
     }
-    if (sessionQuery.data === null && hadUserRef.current) {
-      hadUserRef.current = false;
-      clearCachedData();
-    }
-  }, [rawUser, sessionQuery.data]);
+    void clearOfflineData().catch(() => {});
+    clearQueryCache();
+  }, [sessionQuery.data]);
 
   // Persisteix cada canvi de vista "com".
   useEffect(() => {

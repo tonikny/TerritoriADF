@@ -32,6 +32,7 @@ const USER: SessionUser = {
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
+let cacheDelete: ReturnType<typeof vi.fn>;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -71,6 +72,11 @@ function renderAuth() {
 beforeEach(() => {
   queryClient.clear();
   localStorage.clear();
+  cacheDelete = vi.fn(() => Promise.resolve(true));
+  vi.stubGlobal("caches", {
+    keys: () => Promise.resolve(["api-data", "api-incidencies", "tiles-osm"]),
+    delete: cacheDelete,
+  });
   fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/api/config")) {
@@ -101,20 +107,26 @@ describe("AuthProvider", () => {
     expect(screen.getByTestId("user").textContent).toBe("cap");
     expect(queryClient.getQueryData(queryKeys.session)).toBeNull();
     await waitFor(() => expect(queryClient.getQueryData(queryKeys.config)).toEqual(CONFIG));
+    // La caché del service worker pot tenir incidències privades d'una sessió anterior.
+    await waitFor(() => expect(cacheDelete).toHaveBeenCalledWith("api-incidencies"));
+    expect(cacheDelete).toHaveBeenCalledWith("api-data");
+    expect(cacheDelete).not.toHaveBeenCalledWith("tiles-osm");
 
     // El 401 no es reintenta (retry: false) i ningú més demana `/api/config`.
     expect(fetchCalls("/api/auth/me")).toBe(1);
     expect(fetchCalls("/api/config")).toBe(1);
   });
 
-  it("el 401 inicial no esborra dades públiques que ja són a la caché", async () => {
+  it("el 401 inicial conserva les dades públiques i purga les privades", async () => {
     queryClient.setQueryData(queryKeys.adfs, [{ id: 278 }]);
+    queryClient.setQueryData(queryKeys.hidrants(278, "anon"), [{ id: "h1" }]);
     renderAuth();
 
     await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
-    // Sense usuari previ no hi ha res de privat a purgar; esborrar-ho faria
-    // que la llista d'ADFs es tornés a demanar just en carregar.
+    // La llista d'ADFs pot estar en vol: esborrar-la la tornaria a demanar.
     expect(queryClient.getQueryData(queryKeys.adfs)).toEqual([{ id: 278 }]);
+    // Qualsevol resposta de dades pot contenir informació d'una sessió anterior.
+    expect(queryClient.getQueryData(queryKeys.hidrants(278, "anon"))).toBeUndefined();
   });
 
   it("el login escriu la sessió a la caché sense tornar a demanar /auth/me", async () => {
@@ -137,13 +149,17 @@ describe("AuthProvider", () => {
 
     // Dades d'API de l'usuari que no han de sobreviure al tancament de sessió.
     queryClient.setQueryData(queryKeys.adfs, [{ id: 278 }]);
+    queryClient.setQueryData(queryKeys.hidrants(278, "u1:admin"), [{ id: "h1" }]);
+    cacheDelete.mockClear();
     fireEvent.click(screen.getByText("surt"));
 
     await waitFor(() => expect(screen.getByTestId("user").textContent).toBe("cap"));
     expect(queryClient.getQueryData(queryKeys.session)).toBeNull();
-    await waitFor(() => expect(queryClient.getQueryData(queryKeys.adfs)).toBeUndefined());
-    // La configuració és pública: es queda a la caché i no es torna a demanar.
+    expect(queryClient.getQueryData(queryKeys.hidrants(278, "u1:admin"))).toBeUndefined();
+    // Les dades públiques es queden a la caché i no es tornen a demanar.
+    expect(queryClient.getQueryData(queryKeys.adfs)).toEqual([{ id: 278 }]);
     expect(queryClient.getQueryData(queryKeys.config)).toEqual(CONFIG);
+    await waitFor(() => expect(cacheDelete).toHaveBeenCalledWith("api-data"));
     expect(fetchCalls("/api/auth/logout")).toBe(1);
     expect(fetchCalls("/api/config")).toBe(1);
   });
