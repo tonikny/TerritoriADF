@@ -22,6 +22,7 @@ territoriadf/
 │   │   │   ├── core/               # contracte i lògica neutral
 │   │   │   │   ├── types.ts        # MapEngineProps, specs, MapFocus
 │   │   │   │   ├── capabilities.ts # què pot fer cada motor
+│   │   │   │   ├── builders.ts     # specs de marcadors, polígons i línies (pur)
 │   │   │   │   ├── engineSelection.ts
 │   │   │   │   ├── geometry.ts
 │   │   │   │   └── zoom.ts
@@ -38,7 +39,7 @@ territoriadf/
 │   │   │   ├── panel/              # pestanyes ADF, seguiment, informes...
 │   │   │   └── shared/
 │   │   ├── contexts/               # AuthContext, AdfContext
-│   │   ├── hooks/                  # dades, geolocalització, polling...
+│   │   ├── hooks/                  # dades, geolocalització, polling i comportament del mapa (map/)
 │   │   ├── styles/                 # Tailwind i estils compartits
 │   │   └── utils/
 │   ├── index.html
@@ -142,6 +143,7 @@ Els tests viuen al costat del codi que proven i es descobreixen sols: `npm test 
 | `front/src/map/core/zoom.test.ts`            | Conversió del zoom neutral a MapLibre, reversibilitat i casos de diversos nivells.                                                     |
 | `front/src/map/core/geometry.test.ts`        | `bboxToBounds`, distància entre coordenades, retallada a un radi màxim i vista per defecte d'una ADF.                                  |
 | `front/src/map/core/engineSelection.test.ts` | MapLibre per defecte amb WebGL2, fallback sense WebGL2, overrides explícits i prioritat de `?engine=` sobre el fallback de sessió.     |
+| `front/src/map/core/builders.test.ts`        | Marcadors d'hidrant/incidència/tracking, arrossegament retallat al radi, màscara o frontera segons capa tècnica i línies de ruta.      |
 | `front/src/shared/api/client.test.ts`        | Client d'API: query serialitzada, cos JSON amb credencials, `ApiError` amb estat i codi, resposta 204 i propagació de l'`AbortSignal`. |
 | `front/src/hooks/useIncidencies.test.tsx`    | Cursa en canviar d'ADF: la resposta de l'ADF anterior no trepitja la de l'ADF activa.                                                  |
 | `front/src/utils/hidrantDisplay.test.ts`     | Imatges d'hidrant: UUID de Panoramax i llista d'hosts permesos, amb rebuig de path traversal i `javascript:`.                          |
