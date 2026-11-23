@@ -4,7 +4,7 @@ import { MapUIOverlays } from "@/components/controls/MapUIOverlays";
 import type { useMapEngine } from "@/hooks/map/useMapEngine";
 import type { useMapFocus } from "@/hooks/map/useMapFocus";
 import type { useMapLayers } from "@/hooks/map/useMapLayers";
-import type { useMapTracking } from "@/hooks/map/useMapTracking";
+import type { useMapTracking } from "@/features/tracking/useMapTracking";
 import { MapSurface } from "@/map/MapSurface";
 import type { LatLon, MapMarkerSpec, MapPolygonSpec, MapPolylineSpec } from "@/map/core/types";
 import { TERRAIN_ATTRIBUTION, uniqueAttributions } from "@/map/shared/attribution";

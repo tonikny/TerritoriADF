@@ -1,13 +1,13 @@
 import { can } from "@territoriadf/contracts/permissions";
+import type { Position } from "@territoriadf/contracts/tracking";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTrackingMutations } from "@/features/tracking/mutations";
+import { useTrackingMutations } from "./mutations";
 import { apiErrorMessage } from "@/shared/api/client";
-import { getTrackingConfig, getTrackingStatus } from "@/shared/api/tracking";
+import { getTrackingConfig, getTrackingStatus } from "./api";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 import { useAdf } from "@/contexts/AdfContext";
-import type { Position } from "@/hooks/usePositionPolling";
 import { timeAgo } from "@/utils/time";
 import { CollapsibleSection } from "@/components/panel/shared/CollapsibleSection";
 import { adfLabel } from "@/utils/adfLabel";

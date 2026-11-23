@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 
-import { TRACKING_STORAGE_KEY } from "@/hooks/usePositionPolling";
 import { DEFAULT_BASEMAP_ID, getBasemap } from "@/map/shared/basemaps";
 import { technicalLayers } from "@/map/shared/overlays";
 import { storageKey } from "@/utils/storageKeys";
 import { useLocalStorage } from "@/utils/useLocalStorage";
+
+/** Visibilitat del seguiment al mapa; conserva el nom de clau històric. */
+const TRACKING_STORAGE_KEY = storageKey("tracking_visible");
 
 /**
  * Capes i preferències de visualització del mapa (desades a `localStorage`).

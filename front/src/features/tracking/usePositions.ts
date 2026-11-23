@@ -2,7 +2,9 @@
 // disponible, cau al polling de sempre. El hook de polling es manté intacte com a xarxa
 // de seguretat (navegadors antics, proxies que tallen, servidor sense suport d'stream).
 import { useEffect, useState } from "react";
-import { usePositionPolling, type Position } from "./usePositionPolling";
+import type { Position } from "@territoriadf/contracts/tracking";
+
+import { usePositionPolling } from "./usePositionPolling";
 
 type Mode = "sse" | "polling";
 

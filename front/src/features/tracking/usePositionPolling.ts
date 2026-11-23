@@ -6,25 +6,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Position } from "@territoriadf/contracts/tracking";
 
-import { getTrackingPositions } from "@/shared/api/tracking";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
-import { storageKey } from "@/utils/storageKeys";
-
-export type { Position };
+import { getTrackingPositions } from "./api";
 
 export const POSITIONS_POLL_ACTIVE_MS = 15_000;
 export const POSITIONS_POLL_IDLE_MS = 5 * 60 * 1000;
-export const TRACKING_STORAGE_KEY = storageKey("tracking_visible");
 
 /** Hook reutilizable per obtenir posicions OwnTracks amb polling automàtic. */
-export function usePositionPolling(
-  arg: number | { enabled?: boolean; intervalMs?: number } = {},
-): Record<string, Position> {
-  const { enabled, intervalMs } =
-    typeof arg === "number"
-      ? { enabled: true, intervalMs: arg }
-      : { enabled: arg.enabled ?? true, intervalMs: arg.intervalMs ?? POSITIONS_POLL_ACTIVE_MS };
-
+export function usePositionPolling({
+  enabled = true,
+  intervalMs = POSITIONS_POLL_ACTIVE_MS,
+}: {
+  enabled?: boolean;
+  intervalMs?: number;
+} = {}): Record<string, Position> {
   const { user } = useAuth();
 
   const query = useQuery({

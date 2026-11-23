@@ -4,7 +4,7 @@ import type { Position } from "@territoriadf/contracts/tracking";
 
 import { MapCanvas } from "@/components/layout/MapCanvas";
 import { Panel, type BottomSheetHandle } from "@/components/layout/Panel";
-import { TrackingPopup } from "@/components/layout/TrackingPopup";
+import { TrackingPopup } from "@/features/tracking/TrackingPopup";
 import { buildNodeSheet } from "@/components/layout/buildNodeSheet";
 import { buildTabs } from "@/components/panel/PanelTabs";
 import { useAdf } from "@/contexts/AdfContext";
@@ -17,7 +17,7 @@ import { useMapLayers } from "@/hooks/map/useMapLayers";
 import { useMapMarkers } from "@/hooks/map/useMapMarkers";
 import { useMapRoute } from "@/hooks/map/useMapRoute";
 import { useMapSheet } from "@/hooks/map/useMapSheet";
-import { useMapTracking } from "@/hooks/map/useMapTracking";
+import { useMapTracking } from "@/features/tracking/useMapTracking";
 import { useHidrantData } from "@/hooks/useHidrantData";
 import { useIncidencies } from "@/hooks/useIncidencies";
 import { boundaryPolygons, routePolylines } from "@/map/core/builders";

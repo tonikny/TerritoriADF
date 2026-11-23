@@ -2,7 +2,7 @@
 // (`EventSource`) no passa per aquí: no és una petició `fetch`.
 import type { OtrcConfig, Position, TrackingStatus } from "@territoriadf/contracts/tracking";
 
-import { request } from "./client";
+import { request } from "@/shared/api/client";
 
 export function getTrackingStatus(signal?: AbortSignal): Promise<TrackingStatus> {
   return request<TrackingStatus>("/api/tracking/status", { signal });

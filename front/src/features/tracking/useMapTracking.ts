@@ -2,12 +2,12 @@ import { useEffect, useRef } from "react";
 
 import type { Position } from "@territoriadf/contracts/tracking";
 
-import { useGeolocationTracking } from "@/hooks/useGeolocationTracking";
-import { POSITIONS_POLL_ACTIVE_MS, POSITIONS_POLL_IDLE_MS } from "@/hooks/usePositionPolling";
-import { usePositions } from "@/hooks/usePositions";
+import { useGeolocationTracking } from "./useGeolocationTracking";
+import { POSITIONS_POLL_ACTIVE_MS, POSITIONS_POLL_IDLE_MS } from "./usePositionPolling";
+import { usePositions } from "./usePositions";
 import { getBottomSheetInset } from "@/map/shared/uiInset";
 
-import type { FocusCommand } from "./useMapFocus";
+import type { FocusCommand } from "@/hooks/map/useMapFocus";
 
 /**
  * Posició pròpia (GPS) i posicions OwnTracks de la resta d'unitats.

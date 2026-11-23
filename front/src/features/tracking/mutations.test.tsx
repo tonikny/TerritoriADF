@@ -12,7 +12,7 @@ const api = vi.hoisted(() => ({
   setAdfTrackingSharing: vi.fn(),
 }));
 
-vi.mock("@/shared/api/tracking", () => ({ enableTracking: api.enableTracking }));
+vi.mock("./api", () => ({ enableTracking: api.enableTracking }));
 vi.mock("@/shared/api/adfs", () => ({ setAdfTrackingSharing: api.setAdfTrackingSharing }));
 
 const auth = vi.hoisted(() => ({
