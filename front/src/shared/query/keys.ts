@@ -19,13 +19,8 @@ export const queryKeys = {
   trackingPositions: (viewer: string) => ["tracking-positions", viewer] as const,
 };
 
-/** Prefixos per invalidar una família sencera de claus (qualsevol ADF o visor). */
-export const queryKeyPrefix = {
-  hidrants: ["hidrants"] as const,
-  osmPending: ["osm-pending"] as const,
-  adfs: ["adfs"] as const,
-  adfBoundary: ["adf-boundary"] as const,
-};
+/** Prefix per invalidar els pendents d'OSM de qualsevol ADF o visor. */
+export const osmPendingKeyPrefix = ["osm-pending"] as const;
 
 /** Signatura del visor efectiu (rol i identitat reals, no la vista prèvia). */
 export function viewerKey(user: { id: string; role: string } | null): string {

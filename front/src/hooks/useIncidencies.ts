@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAdf } from "../contexts/AdfContext";
 import { useAuth } from "../contexts/AuthContext";
+import { apiErrorMessage } from "../shared/api/client";
 import {
   addIncidenciaEvent,
   createIncidencia as createIncidenciaRequest,
@@ -12,7 +13,6 @@ import {
 } from "../shared/api/incidencies";
 import { queryKeys, viewerKey } from "../shared/query/keys";
 import { markDataSynced } from "../utils/offlineData";
-import type { IncidenciaFeature } from "../types";
 
 /**
  * Incidències de l'ADF activa i les seves mutacions.
@@ -87,13 +87,9 @@ export function useIncidencies() {
   );
 
   return {
-    features: (adfId === null ? [] : (listQuery.data ?? [])) as IncidenciaFeature[],
+    features: adfId === null ? [] : (listQuery.data ?? []),
     loading: adfId !== null && listQuery.isFetching,
-    error: listQuery.error
-      ? listQuery.error instanceof Error
-        ? listQuery.error.message
-        : "Error desconegut"
-      : null,
+    error: listQuery.error ? apiErrorMessage(listQuery.error, "Error desconegut") : null,
     refresh,
     getIncidencia,
     createIncidencia,

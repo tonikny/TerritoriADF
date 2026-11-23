@@ -4,6 +4,7 @@ import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 
 import { useAdf } from "../contexts/AdfContext";
 import { useAuth } from "../contexts/AuthContext";
+import { apiErrorMessage } from "../shared/api/client";
 import { getHidrants } from "../shared/api/hidrants";
 import { queryKeys, viewerKey } from "../shared/query/keys";
 import { markDataSynced } from "../utils/offlineData";
@@ -52,11 +53,7 @@ export function useHidrantData() {
     loading: adfId !== null && query.isFetching,
     // `loaded` vol dir que la primera càrrega d'aquesta ADF ja ha acabat (bé o malament).
     loaded: adfId !== null && !query.isPending,
-    error: query.error
-      ? query.error instanceof Error
-        ? query.error.message
-        : "Error desconegut"
-      : null,
+    error: query.error ? apiErrorMessage(query.error, "Error desconegut") : null,
     mutate,
   };
 }

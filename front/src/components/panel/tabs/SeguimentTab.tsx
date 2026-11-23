@@ -135,8 +135,6 @@ export function SeguimentTab({
       if (otrc) {
         downloadOtrc(otrc);
       }
-    } catch {
-      toast.error("Error de connexió");
     } finally {
       setLoading(false);
     }
@@ -150,8 +148,6 @@ export function SeguimentTab({
       if (cfg) {
         launchUrl(owntracksConfigHref(cfg));
       }
-    } catch {
-      toast.error("Error de connexió");
     } finally {
       setLoading(false);
     }

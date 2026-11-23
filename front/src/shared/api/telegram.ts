@@ -15,7 +15,6 @@ export interface TelegramStatusResponse {
   bot_username?: string;
   bot_name?: string;
   group_name?: string;
-  error?: string;
 }
 
 export interface TelegramLinkResponse {
@@ -23,7 +22,6 @@ export interface TelegramLinkResponse {
   expires_at?: string;
   bot_username?: string;
   bot_name?: string;
-  error?: string;
 }
 
 /** Estat del bot i del grup de l'ADF (el panell el polla mentre és visible). */

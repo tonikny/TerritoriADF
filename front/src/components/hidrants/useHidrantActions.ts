@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteHidrant, updateHidrant } from "../../shared/api/hidrants";
-import { invalidateHidrantData } from "../../shared/query/invalidate";
+import { invalidateOsmPending } from "../../shared/query/invalidate";
 import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import type { HidrantUiFields } from "@territoriadf/contracts/hidrants";
@@ -112,7 +112,7 @@ export function useHidrantActions(
         isEdit: true,
       });
 
-      await invalidateHidrantData(queryClient);
+      await invalidateOsmPending(queryClient);
       toast.success("Hidrant actualitzat");
       await afterChange();
       return true;
@@ -143,7 +143,7 @@ export function useHidrantActions(
         estat: isOperative ? "Operatiu" : "Fora de servei",
       };
       await updateHidrant(feature.id, adf.id, { ui_fields: newData });
-      await invalidateHidrantData(queryClient);
+      await invalidateOsmPending(queryClient);
       toast.success(`Hidrant actualitzat a ${statusText}`);
 
       await sendToTelegram({
@@ -192,7 +192,7 @@ export function useHidrantActions(
         // L'esborrat ja s'ha fet: una fallada de Telegram no ha de fer-lo semblar fallit.
         logError("Error notificant l'esborrat a Telegram", err);
       }
-      await invalidateHidrantData(queryClient);
+      await invalidateOsmPending(queryClient);
       toast.success("Hidrant esborrat");
       await afterChange();
     } catch (err) {

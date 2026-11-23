@@ -45,24 +45,14 @@ function getViewAsHeaders(): Record<string, string> {
   return headers;
 }
 
-function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
-  if (!headers) {
-    return {};
-  }
-  if (headers instanceof Headers) {
-    return Object.fromEntries(headers.entries());
-  }
-  if (Array.isArray(headers)) {
-    return Object.fromEntries(headers);
-  }
-  return headers;
-}
+/** Petició amb capçaleres ja normalitzades (les que construeix `request`). */
+type ApiInit = RequestInit & { headers?: Record<string, string> };
 
 /**
  * Afegeix les capçaleres de "veure com" a una petició de `/api/*`. Les rutes
  * d'identitat (`/api/auth/*`, `/api/config`) no les duen mai.
  */
-function withViewAsHeaders(url: string, init: RequestInit): RequestInit {
+function withViewAsHeaders(url: string, init: ApiInit): ApiInit {
   if (!url.includes("/api/") || PASSTHROUGH.some((p) => url.includes(p))) {
     return init;
   }
@@ -70,10 +60,10 @@ function withViewAsHeaders(url: string, init: RequestInit): RequestInit {
   if (Object.keys(extra).length === 0) {
     return init;
   }
-  return { ...init, headers: { ...headersToObject(init.headers), ...extra } };
+  return { ...init, headers: { ...init.headers, ...extra } };
 }
 
-/** Error d'una resposta HTTP de l'API (o de xarxa, amb `status` 0). */
+/** Error d'una resposta HTTP de l'API. */
 export class ApiError extends Error {
   readonly status: number;
   /** Codi estable si el backend en publica un; `null` si només hi ha missatge. */
@@ -84,11 +74,6 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.status = status;
     this.code = code;
-  }
-
-  /** Cert quan la petició no ha arribat a obtenir cap resposta (xarxa caiguda). */
-  get isNetworkError(): boolean {
-    return this.status === 0;
   }
 }
 
@@ -166,7 +151,7 @@ async function toApiError(response: Response): Promise<ApiError> {
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", query, body, headers, ...rest } = options;
 
-  const init: RequestInit = {
+  const init: ApiInit = {
     credentials: "same-origin",
     ...rest,
     method,

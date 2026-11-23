@@ -7,7 +7,7 @@ import { sendToTelegram } from "../../utils/sendToTelegram";
 import { logError } from "../../utils/log";
 import { apiErrorMessage } from "../../shared/api/client";
 import { discardOsmChanges, getOsmDiff, pullHydrantFromOsm, pushToOsm } from "../../shared/api/osm";
-import { invalidateHidrantData } from "../../shared/query/invalidate";
+import { invalidateOsmPending } from "../../shared/query/invalidate";
 
 type SyncStatus = HidrantFeature["properties"]["sync_status"];
 type SyncError = HidrantFeature["properties"]["sync_error"];
@@ -226,7 +226,7 @@ export function HidrantSyncActions({
       if (sync_status === "PENDING_DELETE" && data.synced > 0) {
         await notifyDeleted();
       }
-      await invalidateHidrantData(queryClient);
+      await invalidateOsmPending(queryClient);
       refresh();
     } catch (err) {
       toast.error(apiErrorMessage(err));
@@ -243,7 +243,7 @@ export function HidrantSyncActions({
     try {
       await pullHydrantFromOsm(id);
       toast.success("Dades d'OSM aplicades");
-      await invalidateHidrantData(queryClient);
+      await invalidateOsmPending(queryClient);
       refresh();
     } catch (err) {
       toast.error(apiErrorMessage(err));
@@ -266,7 +266,7 @@ export function HidrantSyncActions({
       if (sync_status === "PENDING_CREATE") {
         await notifyDeleted();
       }
-      await invalidateHidrantData(queryClient);
+      await invalidateOsmPending(queryClient);
       toast.success("Descartat");
       refresh();
     } catch (err) {

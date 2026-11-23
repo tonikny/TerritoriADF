@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createHidrant } from "../../shared/api/hidrants";
-import { invalidateHidrantData } from "../../shared/query/invalidate";
+import { invalidateOsmPending } from "../../shared/query/invalidate";
 import { sendToTelegram } from "../../utils/sendToTelegram";
 import type { LatLon } from "../../map/core/types";
 import { toast } from "react-toastify";
@@ -102,7 +102,7 @@ export const NewNodeForm = ({
       }
       toast.success("Hidrant afegit");
       setObservacions("");
-      await invalidateHidrantData(queryClient);
+      await invalidateOsmPending(queryClient);
       if (refreshHidrants) {
         await refreshHidrants();
       }

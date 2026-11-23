@@ -7,6 +7,7 @@ import { adfLabel } from "../utils/adfLabel";
 import { getQueryParam, setAdfUrlParam, setNodeUrlParam } from "../utils/urlParams";
 import { APP_NAME } from "../utils/appInfo";
 import { getAdfs, getAdfBoundary, type AdfData } from "../shared/api/adfs";
+import { apiErrorMessage } from "../shared/api/client";
 import { queryKeys } from "../shared/query/keys";
 
 export type { AdfData };
@@ -126,11 +127,7 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setActiveAdf,
       adfs,
       isLoading: adfsQuery.isPending,
-      error: adfsQuery.error
-        ? adfsQuery.error instanceof Error
-          ? adfsQuery.error.message
-          : "Error carregant ADFs"
-        : null,
+      error: adfsQuery.error ? apiErrorMessage(adfsQuery.error, "Error carregant ADFs") : null,
       boundaryGeojson,
       refreshAdfs,
     }),
