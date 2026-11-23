@@ -4,7 +4,9 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "../contexts/AuthContext";
-import { getTrackingPositions, type Position } from "../shared/api/tracking";
+import type { Position } from "@territoriadf/contracts/tracking";
+
+import { getTrackingPositions } from "../shared/api/tracking";
 import { queryKeys, viewerKey } from "../shared/query/keys";
 import { storageKey } from "../utils/storageKeys";
 

@@ -27,6 +27,13 @@ export interface HidrantData {
   updated_at?: string | null;
 }
 
+/** Fila de `GET /api/osm/pending`: la consulta ja filtra els `SYNCED`. */
+export type PendingHidrantData = Omit<HidrantData, "sync_status"> & {
+  sync_status: Exclude<SyncStatus, "SYNCED">;
+  street: string;
+  num: string;
+};
+
 export const HidrantsRepository = {
   countByAdf(adfId: number): number {
     const res = db
@@ -322,7 +329,7 @@ export const HidrantsRepository = {
    * Obtenir tots els hidrants no-SYNCED d'una ADF amb detalls per a la UI.
    * Retorna tags parsejats i camps extrets (street, num).
    */
-  findByAdfWithDetails(adfId: number): Array<HidrantData & { street: string; num: string }> {
+  findByAdfWithDetails(adfId: number): PendingHidrantData[] {
     const rows = db
       .select()
       .from(hidrants)
@@ -333,6 +340,8 @@ export const HidrantsRepository = {
       const tags = parseTags(h.osm_tags);
       return {
         ...h,
+        // El WHERE d'aquesta consulta garanteix que no hi ha cap fila SYNCED.
+        sync_status: h.sync_status as Exclude<SyncStatus, "SYNCED">,
         street: tags["addr:street"] || "",
         num: tags["addr:housenumber"] || "",
       };

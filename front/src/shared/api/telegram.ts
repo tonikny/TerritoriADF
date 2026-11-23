@@ -1,28 +1,10 @@
 // Configuració de Telegram per ADF i notificacions de canvis d'hidrant.
+import type {
+  TelegramLinkResponse,
+  TelegramStatusResponse,
+} from "@territoriadf/contracts/telegram";
+
 import { request } from "./client";
-
-export type TelegramStatus =
-  | "NO_CONFIGURAT"
-  | "BOT_CONFIGURAT"
-  | "GRUP_PENDENT"
-  | "CONFIGURAT"
-  | "DESACTIVAT"
-  /** El token desat no es pot desxifrar: cal tornar-lo a introduir. */
-  | "TOKEN_INVALID";
-
-export interface TelegramStatusResponse {
-  status?: TelegramStatus;
-  bot_username?: string;
-  bot_name?: string;
-  group_name?: string;
-}
-
-export interface TelegramLinkResponse {
-  url?: string;
-  expires_at?: string;
-  bot_username?: string;
-  bot_name?: string;
-}
 
 /** Estat del bot i del grup de l'ADF (el panell el polla mentre és visible). */
 export function getTelegramStatus(

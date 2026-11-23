@@ -1,3 +1,4 @@
+import type { AccessLink, CreatedUser, ManagedUser } from "@territoriadf/contracts/users";
 import bcrypt from "bcryptjs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { and, eq, ne } from "drizzle-orm";
@@ -48,7 +49,7 @@ function accessPayload(
   request: FastifyRequest,
   userId: string,
   ttlMs: number,
-): { access_url: string; access_expires_at: string } {
+): Pick<AccessLink, "access_url" | "access_expires_at"> {
   const { token, expires_at } = issueAccessToken(userId, ttlMs);
   return { access_url: `${appBaseUrl(request)}/acces/${token}`, access_expires_at: expires_at };
 }
@@ -131,7 +132,11 @@ export function registerUserRoutes(app: FastifyInstance): void {
       const user = request.authUser!;
 
       if (hasPermission(user.role, "manage_all_users")) {
-        const rows = db.select(PUBLIC_FIELDS).from(users).orderBy(users.username).all();
+        const rows: ManagedUser[] = db
+          .select(PUBLIC_FIELDS)
+          .from(users)
+          .orderBy(users.username)
+          .all();
         return reply.send(rows);
       }
 
@@ -140,7 +145,7 @@ export function registerUserRoutes(app: FastifyInstance): void {
         return reply.send([]);
       }
 
-      const rows = db
+      const rows: ManagedUser[] = db
         .select(PUBLIC_FIELDS)
         .from(users)
         .where(eq(users.adf_id, user.adf_id))
@@ -183,9 +188,14 @@ export function registerUserRoutes(app: FastifyInstance): void {
       db.insert(users).values({ id, username, password_hash: hash, adf_id: adfId, role }).run();
 
       const row = db.select(PUBLIC_FIELDS).from(users).where(eq(users.id, id)).get();
-      return reply
-        .code(201)
-        .send({ ...row, ...accessPayload(request, id, ACCESS_TTL_NEW_USER_MS) });
+      if (!row) {
+        throw new Error(`Usuari ${id} no trobat després de crear-lo`);
+      }
+      const created: CreatedUser = {
+        ...row,
+        ...accessPayload(request, id, ACCESS_TTL_NEW_USER_MS),
+      };
+      return reply.code(201).send(created);
     },
   );
 
@@ -311,11 +321,12 @@ export function registerUserRoutes(app: FastifyInstance): void {
         throw new BadRequestError("Usuari no trobat");
       }
 
-      return reply.send({
+      const link: AccessLink = {
         id: target.id,
         username: target.username,
         ...accessPayload(request, target.id, ACCESS_TTL_RESET_MS),
-      });
+      };
+      return reply.send(link);
     },
   );
 }

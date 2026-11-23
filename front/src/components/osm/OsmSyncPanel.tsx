@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
+import type { OsmPendingResponse, OsmSyncStats, PendingHidrant } from "@territoriadf/contracts/osm";
 import type { SyncStatus } from "@territoriadf/contracts/sync";
 import { useAdf } from "../../contexts/AdfContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -12,11 +13,23 @@ import {
   purgeMissingFromOsm,
   pushToOsm,
   syncAdfFromOsm,
-  type PendingHidrant,
 } from "../../shared/api/osm";
 import { queryKeys, viewerKey } from "../../shared/query/keys";
 
 type SectionKey = Exclude<SyncStatus, "SYNCED">;
+
+/** Comptadors buits per quan encara no hi ha cap ADF activa. */
+const EMPTY_SYNC_STATS: OsmSyncStats = {
+  SYNCED: 0,
+  MISSING_IN_OSM: 0,
+  PENDING_CREATE: 0,
+  PENDING_UPDATE: 0,
+  PENDING_DELETE: 0,
+  CONFLICT: 0,
+  ERROR: 0,
+  REVIEW: 0,
+  total_pending: 0,
+};
 
 const SECTION_CONFIG: Record<SectionKey, { label: string; color: string; hint: string }> = {
   PENDING_CREATE: {
@@ -105,8 +118,10 @@ export function OsmSyncPanel({
 
   const pendingQuery = useQuery({
     queryKey: queryKeys.osmPending(adfId, viewer),
-    queryFn: ({ signal }) =>
-      adfId === null ? Promise.resolve({ pending: [], stats: null }) : getOsmPending(adfId, signal),
+    queryFn: ({ signal }): Promise<OsmPendingResponse> =>
+      adfId === null
+        ? Promise.resolve({ pending: [], stats: EMPTY_SYNC_STATS })
+        : getOsmPending(adfId, signal),
     enabled: adfId !== null,
   });
 
@@ -133,9 +148,7 @@ export function OsmSyncPanel({
   const grouped = pending.reduce<Record<SectionKey, PendingHidrant[]>>(
     (acc, h) => {
       const key = h.sync_status;
-      if (key in acc) {
-        acc[key].push(h);
-      }
+      acc[key].push(h);
       return acc;
     },
     {
@@ -482,7 +495,7 @@ export function OsmSyncPanel({
                   {isOpen && (
                     <div className="bg-bg">
                       {items.map((h) => {
-                        const errors = parseSyncError(h.sync_error);
+                        const errors = parseSyncError(h.sync_error ?? null);
                         return (
                           <div
                             key={h.id}

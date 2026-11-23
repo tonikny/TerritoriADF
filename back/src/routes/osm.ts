@@ -21,6 +21,12 @@ import {
 } from "../services/osmConflictResolver.js";
 import { pushSyncToOSM } from "../services/osmPushSync.js";
 import type { HidrantSyncConflict, HidrantSyncIssue } from "@territoriadf/contracts/hidrants";
+import type {
+  OsmDiff,
+  OsmDiscardResult,
+  OsmPendingResponse,
+  OsmPurgeResult,
+} from "@territoriadf/contracts/osm";
 
 /** Cos d'ADF opcional: `adf_id` pot arribar com a número o com a text. */
 const adfIdValue = z.union([z.number(), z.string()]).optional();
@@ -84,7 +90,8 @@ export function registerOsmRoutes(app: FastifyInstance): void {
       }
       const pending = HidrantsRepository.findByAdfWithDetails(adfId);
       const stats = HidrantsRepository.getSyncStats(adfId);
-      return reply.send({ pending, stats });
+      const body: OsmPendingResponse = { pending, stats };
+      return reply.send(body);
     },
   );
 
@@ -199,7 +206,8 @@ export function registerOsmRoutes(app: FastifyInstance): void {
         );
       }
 
-      return reply.send({ discarded: toSync.length, deleted: toDelete.length });
+      const body: OsmDiscardResult = { discarded: toSync.length, deleted: toDelete.length };
+      return reply.send(body);
     },
   );
 
@@ -300,7 +308,8 @@ export function registerOsmRoutes(app: FastifyInstance): void {
       request.log
         .child({ module: "osm", operation: "purgeMissing" })
         .info({ adfId, ids: ids?.length, deleted }, "Hidrants que ja no són a OSM esborrats");
-      return reply.send({ deleted });
+      const body: OsmPurgeResult = { deleted };
+      return reply.send(body);
     },
   );
 
@@ -383,16 +392,15 @@ export function registerOsmRoutes(app: FastifyInstance): void {
         try {
           const errData = JSON.parse(hydrant.sync_error) as HidrantSyncConflict;
           if (errData.osmTags && errData.localTags) {
-            return reply.send({
-              diff: {
-                osmTags: errData.localTags,
-                remoteOsmTags: errData.osmTags,
-                localLat: errData.localLat ?? hydrant.lat,
-                localLon: errData.localLon ?? hydrant.lon,
-                remoteLat: errData.osmLat,
-                remoteLon: errData.osmLon,
-              },
-            });
+            const diff: OsmDiff = {
+              osmTags: errData.localTags,
+              remoteOsmTags: errData.osmTags,
+              localLat: errData.localLat ?? hydrant.lat,
+              localLon: errData.localLon ?? hydrant.lon,
+              remoteLat: errData.osmLat,
+              remoteLon: errData.osmLon,
+            };
+            return reply.send({ diff });
           }
         } catch {
           /* ignore parse error */
@@ -406,16 +414,15 @@ export function registerOsmRoutes(app: FastifyInstance): void {
           string
         >;
         const remoteOsmTags = JSON.parse(hydrant.remote_osm_tags) as Record<string, string>;
-        return reply.send({
-          diff: {
-            osmTags,
-            remoteOsmTags,
-            localLat: hydrant.lat,
-            localLon: hydrant.lon,
-            remoteLat: hydrant.remote_lat ?? hydrant.lat,
-            remoteLon: hydrant.remote_lon ?? hydrant.lon,
-          },
-        });
+        const diff: OsmDiff = {
+          osmTags,
+          remoteOsmTags,
+          localLat: hydrant.lat,
+          localLon: hydrant.lon,
+          remoteLat: hydrant.remote_lat ?? hydrant.lat,
+          remoteLon: hydrant.remote_lon ?? hydrant.lon,
+        };
+        return reply.send({ diff });
       }
 
       return reply.send({ diff: null });

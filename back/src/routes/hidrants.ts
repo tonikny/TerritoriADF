@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { hidrantUiFieldsSchema } from "@territoriadf/contracts/hidrants";
+import type { OsmPullSyncResult } from "@territoriadf/contracts/osm";
 
 import { HidrantsService } from "../services/hidrantsService.js";
 import { BadRequestError } from "../errors.js";
@@ -111,7 +112,8 @@ export function registerHidrantRoutes(app: FastifyInstance): void {
       const msg = force
         ? `Forçat des d'OSM: ${result.total} hidrants.`
         : `Sincronitzats ${result.total} hidrants d'OSM. ${result.skipped > 0 ? `${result.skipped} locals mantinguts.` : ""}${result.conflicts > 0 ? `${result.conflicts} conflictes nous.` : ""}`;
-      return reply.send({ success: true, message: msg, ...result });
+      const body: OsmPullSyncResult = { success: true, message: msg, ...result };
+      return reply.send(body);
     },
   );
 

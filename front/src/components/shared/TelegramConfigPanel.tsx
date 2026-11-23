@@ -1,4 +1,5 @@
 import { can } from "@territoriadf/contracts/permissions";
+import type { TelegramStatus, TelegramStatusResponse } from "@territoriadf/contracts/telegram";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { adfLabel } from "../../utils/adfLabel";
@@ -18,8 +19,6 @@ import {
   getTelegramStatus,
   registerTelegramBot,
   sendTelegramTest,
-  type TelegramStatus,
-  type TelegramStatusResponse,
 } from "../../shared/api/telegram";
 
 const POLL_MS = 10000;
@@ -133,9 +132,9 @@ export function TelegramConfigPanel() {
       if (data.status) {
         setStatus(data.status);
       }
-      setBotUsername(data.bot_username);
-      setBotName(data.bot_name);
-      setGroupName(data.group_name);
+      setBotUsername(data.bot_username ?? undefined);
+      setBotName(data.bot_name ?? undefined);
+      setGroupName(data.group_name ?? undefined);
     };
 
     // Només fem polling mentre el panell és realment visible: en tancar el
@@ -188,10 +187,10 @@ export function TelegramConfigPanel() {
     setRegistering(true);
     try {
       const data = await registerTelegramBot(adfId, token);
-      setStatus(data.status ?? "BOT_CONFIGURAT");
-      setBotUsername(data.bot_username);
-      setBotName(data.bot_name);
-      if (data.group_name !== undefined) {
+      setStatus(data.status);
+      setBotUsername(data.bot_username ?? undefined);
+      setBotName(data.bot_name ?? undefined);
+      if (data.group_name) {
         setGroupName(data.group_name);
       }
       setTokenInput("");

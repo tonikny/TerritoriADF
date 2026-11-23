@@ -1,30 +1,7 @@
 // Gestió d'usuaris (GET/POST/PUT/DELETE /api/users) i enllaços d'accés.
+import type { AccessLink, CreatedUser, ManagedUser } from "@territoriadf/contracts/users";
+
 import { request } from "./client";
-
-export interface ManagedUser {
-  id: string;
-  username: string;
-  adf_id: number | null;
-  role: string;
-  created_at?: string;
-}
-
-/** Enllaç d'accés d'un sol ús: el token en clar només surt en aquesta resposta. */
-export interface AccessLink {
-  username: string;
-  access_url: string;
-  access_expires_at: string;
-}
-
-/** Alta d'usuari: pot portar l'enllaç d'accés acabat de generar. */
-export interface CreatedUser {
-  id?: string;
-  username?: string;
-  adf_id?: number | null;
-  role?: string;
-  access_url?: string;
-  access_expires_at?: string;
-}
 
 export function getUsers(signal?: AbortSignal): Promise<ManagedUser[]> {
   return request<ManagedUser[]>("/api/users", { signal });

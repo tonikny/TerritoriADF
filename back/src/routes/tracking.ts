@@ -1,4 +1,5 @@
 // Rutes de tracking OwnTracks: activar/descarregar config, estat, posicions i stream SSE.
+import type { OtrcConfig, Position, TrackingStatus } from "@territoriadf/contracts/tracking";
 import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
@@ -87,7 +88,7 @@ const SSE_MAX_AGE_MS = 5 * 60_000;
 const OWTRACKS_MONITORING = 1;
 
 /** Genera l'objecte de configuració OwnTracks (.otrc). */
-function buildOtrc(username: string, password: string) {
+function buildOtrc(username: string, password: string): OtrcConfig {
   return {
     _type: "configuration",
     auth: true,
@@ -115,10 +116,11 @@ export function registerTrackingRoutes(app: FastifyInstance): void {
       schema: { tags: ["tracking"], summary: "Estat d'OwnTracks de l'usuari" },
     },
     async (request, reply) => {
-      return reply.send({
+      const status: TrackingStatus = {
         available: isAvailable(),
         enabled: isEnabledFor(request.authUser!.id),
-      });
+      };
+      return reply.send(status);
     },
   );
 
@@ -129,7 +131,10 @@ export function registerTrackingRoutes(app: FastifyInstance): void {
       schema: { tags: ["tracking"], summary: "Posicions visibles per a l'usuari" },
     },
     async (request, reply) => {
-      return reply.send({ positions: visiblePositions(request.authUser!) });
+      const body: { positions: Record<string, Position> } = {
+        positions: visiblePositions(request.authUser!),
+      };
+      return reply.send(body);
     },
   );
 

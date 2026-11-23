@@ -1,26 +1,8 @@
 // Funcions pures de la feature de tracking OwnTracks. El stream SSE
 // (`EventSource`) no passa per aquí: no és una petició `fetch`.
+import type { OtrcConfig, Position, TrackingStatus } from "@territoriadf/contracts/tracking";
+
 import { request } from "./client";
-
-/** Posició OwnTracks tal com la serveix `GET /api/tracking/positions`. */
-export interface Position {
-  lat: number;
-  lon: number;
-  accuracy: number;
-  timestamp: number;
-  battery: number;
-  receivedAt: number;
-}
-
-export interface TrackingStatus {
-  /** Broker MQTT disponible al backend. */
-  available: boolean;
-  /** OwnTracks activat per a l'usuari actual. */
-  enabled: boolean;
-}
-
-/** Configuració `.otrc` (conté la contrasenya MQTT de l'usuari). */
-export type OtrcConfig = Record<string, unknown>;
 
 export function getTrackingStatus(signal?: AbortSignal): Promise<TrackingStatus> {
   return request<TrackingStatus>("/api/tracking/status", { signal });

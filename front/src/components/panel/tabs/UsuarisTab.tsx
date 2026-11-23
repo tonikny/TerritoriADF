@@ -1,3 +1,4 @@
+import type { ManagedUser } from "@territoriadf/contracts/users";
 import React, { useState, useEffect, useMemo } from "react";
 import { changePassword } from "../../../shared/api/auth";
 import {
@@ -6,7 +7,6 @@ import {
   deleteUser,
   getUsers,
   updateUser,
-  type ManagedUser,
 } from "../../../shared/api/users";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdf } from "../../../contexts/AdfContext";
@@ -135,7 +135,7 @@ export function UsuarisTab() {
       adfId: u.adf_id ?? 0,
       numero: m ? m[2] : "",
       gi: u.username.includes("/GI/"),
-      role: u.role,
+      role: u.role ?? "voluntari",
     });
     setCreateAdf(null);
     setPwDraft(null);

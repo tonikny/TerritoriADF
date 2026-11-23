@@ -1,5 +1,6 @@
 // Servei MQTT: connexió persistent a Mosquitto, subscripció a owntracks/#,
 // emmagatzematge en memòria de les últimes posicions, i gestió d'usuaris via DynSec.
+import type { Position } from "@territoriadf/contracts/tracking";
 import mqtt from "mqtt";
 import { z } from "zod";
 import { config } from "../utils/config.js";
@@ -13,14 +14,8 @@ const RECONNECT_BASE = 5000;
 const RECONNECT_MAX = 60000;
 const RECONNECT_FACTOR = 2;
 
-export interface LocationData {
-  lat: number;
-  lon: number;
-  accuracy: number;
-  timestamp: number;
-  battery: number;
-  receivedAt: number;
-}
+/** Posició OwnTracks rebuda (contracte compartit amb el front). */
+export type LocationData = Position;
 
 /** Converteix un username d'app (XXX/YYY o XXX/GI/YYY) a una identitat MQTT sense
  *  barres ("278_GI_001"). El broker MQTT (DynSec, ACL %u als topics) no encamina

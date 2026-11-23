@@ -1,4 +1,8 @@
 // Configuració Telegram per ADF: registrar bot, vincular grup, prova i desvincular.
+import type {
+  TelegramLinkResponse,
+  TelegramStatusResponse,
+} from "@territoriadf/contracts/telegram";
 import { randomBytes } from "node:crypto";
 import { and, eq, ne } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
@@ -66,30 +70,33 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
       const adfId = request.params.id;
       const bot = db.select().from(telegramBots).where(eq(telegramBots.adf_id, adfId)).get();
       if (!bot) {
-        return reply.send({ status: "NO_CONFIGURAT" });
+        const body: TelegramStatusResponse = { status: "NO_CONFIGURAT" };
+        return reply.send(body);
       }
       const token = bot.token_enc ? decrypt(bot.token_enc) : null;
       // Si el token no es pot desxifrar (p. ex. s'ha canviat ENCRYPTION_SECRET) no
       // es pot enviar res: no podem anunciar la configuració com a correcta.
       if (!token) {
-        return reply.send({
+        const body: TelegramStatusResponse = {
           status: "TOKEN_INVALID",
           bot_username: bot.bot_username,
           bot_name: bot.bot_name,
           group_name: bot.group_name,
-        });
+        };
+        return reply.send(body);
       }
       // Un estat CONFIGURAT sense chat_id no pot enviar missatges: el tractem com
       // a grup pendent de vincular perquè la UI no menteixi.
       const estat = bot.estat ?? "NO_CONFIGURAT";
       const effectiveStatus =
         estat === "CONFIGURAT" && bot.chat_id === null ? "GRUP_PENDENT" : estat;
-      return reply.send({
+      const body: TelegramStatusResponse = {
         status: effectiveStatus,
         bot_username: bot.bot_username,
         bot_name: bot.bot_name,
         group_name: bot.group_name,
-      });
+      };
+      return reply.send(body);
     },
   );
 
@@ -215,12 +222,13 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
       // Invalida sol·licituds de vinculació pendents del bot
       db.delete(telegramLinks).where(eq(telegramLinks.telegram_bot_id, botId)).run();
 
-      return reply.send({
+      const body: TelegramStatusResponse = {
         status: newEstat,
         bot_username: botInfo.username,
         bot_name: botInfo.first_name,
         group_name: newGroupName ?? undefined,
-      });
+      };
+      return reply.send(body);
     },
   );
 
@@ -303,12 +311,13 @@ export function registerTelegramRoutes(app: FastifyInstance): void {
         .where(eq(telegramBots.id, bot.id))
         .run();
 
-      return reply.send({
+      const body: TelegramLinkResponse = {
         url: `https://t.me/${bot.bot_username}?startgroup=${code}`,
         expires_at: expiresAt,
         bot_username: bot.bot_username,
         bot_name: bot.bot_name,
-      });
+      };
+      return reply.send(body);
     },
   );
 

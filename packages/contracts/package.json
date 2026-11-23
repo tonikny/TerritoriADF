@@ -32,6 +32,18 @@
     "./users": {
       "types": "./dist/users.d.ts",
       "default": "./dist/users.js"
+    },
+    "./tracking": {
+      "types": "./dist/tracking.d.ts",
+      "default": "./dist/tracking.js"
+    },
+    "./osm": {
+      "types": "./dist/osm.d.ts",
+      "default": "./dist/osm.js"
+    },
+    "./telegram": {
+      "types": "./dist/telegram.d.ts",
+      "default": "./dist/telegram.js"
     }
   },
   "files": [

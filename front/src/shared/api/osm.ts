@@ -1,56 +1,16 @@
 // Funcions pures de la feature OSM: consulta de pendents i accions de push/pull.
 // Les mutacions que hi ha darrere canvien hidrants i estats de sync, així que qui
 // les crida ha d'invalidar les consultes afectades (`osmPending` i `hidrants`).
-import type { OsmPushResult, SyncStatus } from "@territoriadf/contracts/sync";
+import type {
+  OsmDiff,
+  OsmDiscardResult,
+  OsmPendingResponse,
+  OsmPullSyncResult,
+  OsmPurgeResult,
+} from "@territoriadf/contracts/osm";
+import type { OsmPushResult } from "@territoriadf/contracts/sync";
 
 import { request } from "./client";
-
-/** Fila de `GET /api/osm/pending`: el backend no parseja `sync_error`. */
-export interface PendingHidrant {
-  id: string;
-  osm_id: number | null;
-  lat: number;
-  lon: number;
-  /** `GET /api/osm/pending` filtra els SYNCED: aquí no hi poden arribar. */
-  sync_status: Exclude<SyncStatus, "SYNCED">;
-  sync_error: string | null;
-  street: string;
-  num: string;
-}
-
-export interface OsmSyncStats {
-  PENDING_CREATE: number;
-  PENDING_UPDATE: number;
-  PENDING_DELETE: number;
-  CONFLICT: number;
-  ERROR: number;
-  REVIEW: number;
-  MISSING_IN_OSM: number;
-  total_pending: number;
-}
-
-export interface OsmPendingResponse {
-  pending: PendingHidrant[];
-  stats: OsmSyncStats | null;
-}
-
-export interface OsmDiscardResult {
-  discarded: number;
-  deleted: number;
-}
-
-export interface OsmPurgeResult {
-  deleted: number;
-}
-
-/** Resposta de `POST /api/hidrants/sync` (pull des d'OSM). */
-export interface OsmPullSyncResult {
-  success: boolean;
-  message: string;
-  total: number;
-  skipped: number;
-  conflicts: number;
-}
 
 export async function getOsmPending(
   adfId: number,
@@ -84,18 +44,6 @@ export function purgeMissingFromOsm(adfId: number, ids?: string[]): Promise<OsmP
     method: "POST",
     body: ids && ids.length > 0 ? { adf_id: adfId, ids } : { adf_id: adfId },
   });
-}
-
-/** Diff entre les dades locals i les d'OSM d'un hidrant, o `null` si no n'hi ha. */
-export interface OsmDiff {
-  /** Etiquetes locals (el backend les anomena `osmTags`). */
-  osmTags: Record<string, string>;
-  /** Etiquetes remotes d'OSM (el backend les anomena `remoteOsmTags`). */
-  remoteOsmTags: Record<string, string>;
-  localLat: number;
-  localLon: number;
-  remoteLat: number;
-  remoteLon: number;
 }
 
 export async function getOsmDiff(id: string, signal?: AbortSignal): Promise<OsmDiff | null> {
