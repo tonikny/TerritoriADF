@@ -2,7 +2,7 @@
 // Permet a un admin "veure com" un altre rol (coordinador/voluntari) sense canviar la sessió.
 import type { SessionResponse, SessionUser } from "@territoriadf/contracts/users";
 import { useQuery } from "@tanstack/react-query";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { useAppConfig } from "@/contexts/AppConfigContext";
 import { ApiError, request } from "@/shared/api/client";
@@ -91,12 +91,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  // Sessió buida (401 inicial o logout): fora les dades de l'usuari anterior.
+  // En passar d'una sessió amb usuari a buida (logout o 401), fora les dades de
+  // l'usuari anterior. Un 401 inicial no ha de netejar res: no hi ha dades de cap
+  // usuari i esborrar consultes públiques en vol (com la llista d'ADFs) provoca
+  // peticions duplicades.
+  const hadUserRef = useRef(false);
   useEffect(() => {
-    if (sessionQuery.data === null) {
+    if (rawUser) {
+      hadUserRef.current = true;
+      return;
+    }
+    if (sessionQuery.data === null && hadUserRef.current) {
+      hadUserRef.current = false;
       clearCachedData();
     }
-  }, [sessionQuery.data]);
+  }, [rawUser, sessionQuery.data]);
 
   // Persisteix cada canvi de vista "com".
   useEffect(() => {

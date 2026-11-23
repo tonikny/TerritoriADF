@@ -107,6 +107,16 @@ describe("AuthProvider", () => {
     expect(fetchCalls("/api/config")).toBe(1);
   });
 
+  it("el 401 inicial no esborra dades públiques que ja són a la caché", async () => {
+    queryClient.setQueryData(queryKeys.adfs, [{ id: 278 }]);
+    renderAuth();
+
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+    // Sense usuari previ no hi ha res de privat a purgar; esborrar-ho faria
+    // que la llista d'ADFs es tornés a demanar just en carregar.
+    expect(queryClient.getQueryData(queryKeys.adfs)).toEqual([{ id: 278 }]);
+  });
+
   it("el login escriu la sessió a la caché sense tornar a demanar /auth/me", async () => {
     renderAuth();
     await waitFor(() => expect(screen.getByTestId("user").textContent).toBe("cap"));
