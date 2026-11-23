@@ -14,6 +14,9 @@ export const queryKeys = {
   // es resol contra l'ADF de qui mira, i no s'ha de reutilitzar entre ADFs.
   incidencia: (id: string, adfId: number | null, viewer: string) =>
     ["incidencia", id, adfId, viewer] as const,
+  osmPending: (adfId: number | null, viewer: string) => ["osm-pending", adfId, viewer] as const,
+  trackingStatus: (viewer: string) => ["tracking-status", viewer] as const,
+  trackingPositions: (viewer: string) => ["tracking-positions", viewer] as const,
 };
 
 /** Signatura del visor efectiu (rol i identitat reals, no la vista prèvia). */

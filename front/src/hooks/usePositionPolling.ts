@@ -1,16 +1,14 @@
-import { apiFetch } from "../utils/api";
-// Hook que polla GET /api/tracking/positions cada intervalMs i retorna les posicions.
-import { useState, useEffect, useRef } from "react";
+// Polling de posicions OwnTracks a través de la caché de TanStack Query: el
+// `refetchInterval` fa la feina que abans feia un `setInterval` manual i el
+// resultat es comparteix entre els consumidors del mateix visor.
+import { useQuery } from "@tanstack/react-query";
+
+import { useAuth } from "../contexts/AuthContext";
+import { getTrackingPositions, type Position } from "../shared/api/tracking";
+import { queryKeys, viewerKey } from "../shared/query/keys";
 import { storageKey } from "../utils/storageKeys";
 
-export interface Position {
-  lat: number;
-  lon: number;
-  accuracy: number;
-  timestamp: number;
-  battery: number;
-  receivedAt: number;
-}
+export type { Position };
 
 export const POSITIONS_POLL_ACTIVE_MS = 15_000;
 export const POSITIONS_POLL_IDLE_MS = 5 * 60 * 1000;
@@ -25,36 +23,16 @@ export function usePositionPolling(
       ? { enabled: true, intervalMs: arg }
       : { enabled: arg.enabled ?? true, intervalMs: arg.intervalMs ?? POSITIONS_POLL_ACTIVE_MS };
 
-  const [positions, setPositions] = useState<Record<string, Position>>({});
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    const poll = async () => {
-      try {
-        const res = await apiFetch(`/api/tracking/positions?_=${Date.now()}`, {
-          credentials: "same-origin",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setPositions(data.positions || {});
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    void poll();
-    intervalRef.current = setInterval(() => {
-      void poll();
-    }, intervalMs);
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [enabled, intervalMs]);
+  const query = useQuery({
+    queryKey: queryKeys.trackingPositions(viewerKey(user)),
+    queryFn: ({ signal }) => getTrackingPositions(signal),
+    enabled,
+    refetchInterval: enabled ? intervalMs : false,
+    // Les posicions són efímeres: cada lectura ha de ser la més nova.
+    staleTime: 0,
+  });
 
-  return positions;
+  return query.data ?? {};
 }

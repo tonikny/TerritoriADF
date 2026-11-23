@@ -106,6 +106,14 @@ export class ApiError extends Error {
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+/** Missatge presentable d'un error de la capa d'API: el del backend si n'hi ha. */
+export function apiErrorMessage(error: unknown, fallback = "Error de connexió"): string {
+  if (error instanceof ApiError && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
+
 /** Paràmetres de query: `undefined` i `null` s'ometen. */
 export type ApiQuery = Record<string, string | number | boolean | null | undefined>;
 

@@ -28,3 +28,19 @@ export async function getAdfBoundary(adfId: number, signal?: AbortSignal): Promi
     throw err;
   }
 }
+
+export interface TrackingSharingResult {
+  adf_id: number;
+  tracking_shared: boolean;
+}
+
+/** Comparteix o revoca el tracking de l'ADF (opt-in per a la resta d'ADFs). */
+export function setAdfTrackingSharing(
+  adfId: number,
+  shared: boolean,
+): Promise<TrackingSharingResult> {
+  return request<TrackingSharingResult>(`/api/adfs/${adfId}/tracking-sharing`, {
+    method: "PUT",
+    body: { shared },
+  });
+}
