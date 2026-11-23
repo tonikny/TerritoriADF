@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import type { OsmPendingResponse, OsmSyncStats, PendingHidrant } from "@territoriadf/contracts/osm";
-import type { SyncStatus } from "@territoriadf/contracts/sync";
 import { useAdf } from "../../contexts/AdfContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiErrorMessage } from "../../shared/api/client";
@@ -16,7 +15,7 @@ import {
 } from "../../shared/api/osm";
 import { queryKeys, viewerKey } from "../../shared/query/keys";
 
-type SectionKey = Exclude<SyncStatus, "SYNCED">;
+type SectionKey = PendingHidrant["sync_status"];
 
 /** Comptadors buits per quan encara no hi ha cap ADF activa. */
 const EMPTY_SYNC_STATS: OsmSyncStats = {
@@ -76,7 +75,7 @@ function hidrantLabel(h: PendingHidrant) {
   return h.osm_id ? `OSM ${h.osm_id}` : h.id.slice(0, 8);
 }
 
-function parseSyncError(syncError: string | null): string[] {
+function parseSyncError(syncError?: string | null): string[] {
   if (!syncError) {
     return [];
   }
@@ -147,8 +146,7 @@ export function OsmSyncPanel({
 
   const grouped = pending.reduce<Record<SectionKey, PendingHidrant[]>>(
     (acc, h) => {
-      const key = h.sync_status;
-      acc[key].push(h);
+      acc[h.sync_status].push(h);
       return acc;
     },
     {
@@ -495,7 +493,7 @@ export function OsmSyncPanel({
                   {isOpen && (
                     <div className="bg-bg">
                       {items.map((h) => {
-                        const errors = parseSyncError(h.sync_error ?? null);
+                        const errors = parseSyncError(h.sync_error);
                         return (
                           <div
                             key={h.id}

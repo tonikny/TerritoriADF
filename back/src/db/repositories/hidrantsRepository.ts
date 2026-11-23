@@ -28,7 +28,7 @@ export interface HidrantData {
 }
 
 /** Fila de `GET /api/osm/pending`: la consulta ja filtra els `SYNCED`. */
-export type PendingHidrantData = Omit<HidrantData, "sync_status"> & {
+type PendingHidrantData = Omit<HidrantData, "sync_status"> & {
   sync_status: Exclude<SyncStatus, "SYNCED">;
   street: string;
   num: string;
