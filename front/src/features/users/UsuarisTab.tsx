@@ -1,8 +1,8 @@
 import type { ManagedUser } from "@territoriadf/contracts/users";
 import React, { useMemo, useState } from "react";
 import { changePassword } from "@/shared/api/auth";
-import { createAccessLink } from "@/shared/api/users";
-import { useUserMutations, useUsers } from "@/features/users/useUsers";
+import { createAccessLink } from "./api";
+import { useUserMutations, useUsers } from "./useUsers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdf } from "@/contexts/AdfContext";
 import { Login } from "@/components/shared/Login";

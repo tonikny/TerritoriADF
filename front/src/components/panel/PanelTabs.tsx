@@ -7,7 +7,7 @@ import type { EnginePreference } from "@/map/core/engineSelection";
 import { MapaTab } from "./tabs/MapaTab";
 import { SeguimentTab } from "./tabs/SeguimentTab";
 import { InformesTab } from "./tabs/InformesTab";
-import { UsuarisTab } from "./tabs/UsuarisTab";
+import { UsuarisTab } from "@/features/users/UsuarisTab";
 import { ConfigTab } from "./tabs/ConfigTab";
 import { AjudaTab } from "./tabs/AjudaTab";
 

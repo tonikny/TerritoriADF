@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 import { useAdf } from "@/contexts/AdfContext";
 import { useOsmMutations } from "@/features/osm/mutations";
-import { sendToTelegram } from "@/utils/sendToTelegram";
+import { sendToTelegram } from "@/shared/api/notifications";
 import { logError } from "@/utils/log";
 import { apiErrorMessage } from "@/shared/api/client";
 import { getOsmDiff } from "@/shared/api/osm";

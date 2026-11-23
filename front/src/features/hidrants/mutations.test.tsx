@@ -4,8 +4,9 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
+import { invalidateHidrantQueries } from "@/shared/query/invalidate";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
-import { invalidateHidrantQueries, useCreateHidrant } from "./mutations";
+import { useCreateHidrant } from "./mutations";
 
 const api = vi.hoisted(() => ({ createHidrant: vi.fn() }));
 

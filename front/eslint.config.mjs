@@ -30,28 +30,30 @@ const noParentImports = {
 const LAYER_BOUNDARIES = [
   {
     files: "src/utils/**/*.{ts,tsx}",
-    forbid: ["@/components/**", "@/contexts/**", "@/hooks/**", "@/map/**"],
-    message: "utils/ no pot dependre de la UI, dels contexts, dels hooks ni del mapa.",
+    forbid: ["@/components/**", "@/contexts/**", "@/features/**", "@/hooks/**", "@/map/**"],
+    message: "utils/ no pot dependre de la UI, dels contexts, de les features, dels hooks ni del mapa.",
   },
   {
     files: "src/shared/**/*.{ts,tsx}",
-    forbid: ["@/components/**", "@/contexts/**", "@/hooks/**", "@/map/**"],
-    message: "shared/ no pot dependre de components, contexts, hooks ni map.",
+    forbid: ["@/components/**", "@/contexts/**", "@/features/**", "@/hooks/**", "@/map/**"],
+    message: "shared/ no pot dependre de components, contexts, features, hooks ni map.",
   },
   {
     files: "src/map/**/*.{ts,tsx}",
-    forbid: ["@/components/**", "@/contexts/**", "@/hooks/**", "@/shared/**"],
-    message: "La capa de mapa no pot dependre de la UI, dels contexts, dels hooks ni de shared/.",
+    forbid: ["@/components/**", "@/contexts/**", "@/features/**", "@/hooks/**", "@/shared/**"],
+    message:
+      "La capa de mapa no pot dependre de la UI, dels contexts, de les features, dels hooks ni de shared/.",
   },
   {
     files: "src/hooks/**/*.{ts,tsx}",
-    forbid: ["@/components/**"],
-    message: "Els hooks no poden importar components: seria un cicle vista → hook → vista.",
+    forbid: ["@/components/**", "@/features/**"],
+    message:
+      "Els hooks no poden importar components ni features: seria un cicle vista → hook → vista.",
   },
   {
     files: "src/contexts/**/*.{ts,tsx}",
-    forbid: ["@/components/**", "@/hooks/**"],
-    message: "Els contexts no poden dependre de components ni de hooks.",
+    forbid: ["@/components/**", "@/features/**", "@/hooks/**"],
+    message: "Els contexts no poden dependre de components, features ni hooks.",
   },
   {
     files: "src/components/**/*.{ts,tsx}",
@@ -64,6 +66,44 @@ const LAYER_BOUNDARIES = [
     "@typescript-eslint/no-restricted-imports": [
       "error",
       { patterns: [noParentImports, { group: forbid, message }] },
+    ],
+  },
+}));
+
+/**
+ * Cada feature només pot importar-se a si mateixa. El que es comparteix entre
+ * dominis ha de viure a `shared/` (o pujar-se a la composició de la vista), no
+ * en una altra feature. Igual que a les capes, cada bloc inclou la prohibició
+ * de `../` perquè el darrer bloc que defineix la regla és el que compta.
+ */
+const FEATURE_NAMES = [
+  "adfs",
+  "hidrants",
+  "incidencies",
+  "map-view",
+  "osm",
+  "telegram",
+  "tracking",
+  "users",
+];
+
+const FEATURE_BOUNDARIES = FEATURE_NAMES.map((feature) => ({
+  files: [`src/features/${feature}/**/*.{ts,tsx}`],
+  rules: {
+    "@typescript-eslint/no-restricted-imports": [
+      "error",
+      {
+        patterns: [
+          noParentImports,
+          {
+            group: FEATURE_NAMES.filter((other) => other !== feature).map(
+              (other) => `@/features/${other}/**`,
+            ),
+            message:
+              "Una feature no pot importar una altra feature: mou la dependència compartida a shared/.",
+          },
+        ],
+      },
     ],
   },
 }));
@@ -172,4 +212,5 @@ export default tseslint.config(
   },
 
   ...LAYER_BOUNDARIES,
+  ...FEATURE_BOUNDARIES,
 );

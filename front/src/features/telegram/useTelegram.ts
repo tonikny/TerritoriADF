@@ -7,7 +7,7 @@ import {
   getTelegramStatus,
   registerTelegramBot,
   sendTelegramTest,
-} from "@/shared/api/telegram";
+} from "./api";
 import { queryKeys } from "@/shared/query/keys";
 
 /** El panell refresca l'estat mentre és visible; la consulta es comparteix per ADF. */

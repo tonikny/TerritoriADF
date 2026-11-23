@@ -1,7 +1,7 @@
 // Gestió d'usuaris (GET/POST/PUT/DELETE /api/users) i enllaços d'accés.
 import type { AccessLink, CreatedUser, ManagedUser } from "@territoriadf/contracts/users";
 
-import { request } from "./client";
+import { request } from "@/shared/api/client";
 
 export function getUsers(signal?: AbortSignal): Promise<ManagedUser[]> {
   return request<ManagedUser[]>("/api/users", { signal });

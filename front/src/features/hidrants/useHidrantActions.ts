@@ -5,11 +5,11 @@ import { toast } from "react-toastify";
 
 import type { Adf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { invalidateHidrantQueries } from "@/features/hidrants/mutations";
+import { invalidateHidrantQueries } from "@/shared/query/invalidate";
 import { deleteHidrant, updateHidrant } from "@/shared/api/hidrants";
 import { viewerKey } from "@/shared/query/keys";
 import { logError } from "@/utils/log";
-import { sendToTelegram } from "@/utils/sendToTelegram";
+import { sendToTelegram } from "@/shared/api/notifications";
 
 type FieldPatch = Partial<HidrantUiFields & { observacions: string; coordinates: string }>;
 

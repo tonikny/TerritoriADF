@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useAdf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { invalidateHidrantQueries } from "@/features/hidrants/mutations";
+import { invalidateHidrantQueries } from "@/shared/query/invalidate";
 import {
   discardOsmChanges,
   pullHydrantFromOsm,

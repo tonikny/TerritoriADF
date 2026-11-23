@@ -15,7 +15,7 @@ const api = vi.hoisted(() => ({
   deleteTelegram: vi.fn(),
 }));
 
-vi.mock("@/shared/api/telegram", () => api);
+vi.mock("./api", () => api);
 
 function createClient() {
   return new QueryClient({

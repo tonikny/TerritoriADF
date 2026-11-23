@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { adfLabel } from "@/utils/adfLabel";
 import { useAdf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTelegramActions, useTelegramStatus } from "@/features/telegram/useTelegram";
+import { useTelegramActions, useTelegramStatus } from "./useTelegram";
 import {
   dangerButtonClass,
   inputClass,
@@ -12,7 +12,7 @@ import {
   secondaryButtonClass,
 } from "@/styles/uiStyles";
 import { CollapsibleSection } from "@/components/panel/shared/CollapsibleSection";
-import { PasswordInput } from "./PasswordInput";
+import { PasswordInput } from "@/components/shared/PasswordInput";
 
 /** Exemple d'usuari de bot per a @BotFather: curts (màxim ~32 caràcters a Telegram). */
 function botUsernameExample(adf: { id: number; nom?: string }): string {

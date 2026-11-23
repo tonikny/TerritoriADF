@@ -13,7 +13,7 @@ const api = vi.hoisted(() => ({
   deleteUser: vi.fn(),
 }));
 
-vi.mock("@/shared/api/users", () => api);
+vi.mock("./api", () => api);
 
 const auth = vi.hoisted(() => ({
   user: { id: "u1", role: "coordinador" } as { id: string; role: string } | null,

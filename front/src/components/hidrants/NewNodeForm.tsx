@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCreateHidrant } from "@/features/hidrants/mutations";
-import { sendToTelegram } from "@/utils/sendToTelegram";
+import { sendToTelegram } from "@/shared/api/notifications";
 import type { LatLon } from "@/map/core/types";
 import { toast } from "react-toastify";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/styles/uiStyles";

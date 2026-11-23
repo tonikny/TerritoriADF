@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { createUser, deleteUser, getUsers, updateUser } from "@/shared/api/users";
+import { createUser, deleteUser, getUsers, updateUser } from "./api";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 
 /**
