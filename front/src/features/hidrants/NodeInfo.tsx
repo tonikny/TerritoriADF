@@ -38,14 +38,14 @@ export const NodeInfo = ({
   const { activeAdf } = useAdf();
   const props = feature.properties;
   const [data, setData] = useState(props.ui_fields);
-  const [observacions, setObservacions] = useState(props.private_tags?.observacions || "");
+  const [observacions, setObservacions] = useState(props.service_tags?.observacions || "");
 
   // Sincronitzar l'estat del formulari quan feature canvia (actualització des del backend)
   /* eslint-disable react-hooks/set-state-in-effect -- actualització necessària quan canvien les dades del backend */
   useEffect(() => {
     setData(props.ui_fields);
-    setObservacions(props.private_tags?.observacions || "");
-  }, [props.ui_fields, props.private_tags?.observacions]);
+    setObservacions(props.service_tags?.observacions || "");
+  }, [props.ui_fields, props.service_tags?.observacions]);
 
   const canDelete = canEdit && can(user?.permissions, "delete_hydrant");
 
@@ -56,7 +56,7 @@ export const NodeInfo = ({
       uiFields: data,
       observacions,
       originalUiFields: props.ui_fields,
-      originalObservacions: props.private_tags?.observacions || "",
+      originalObservacions: props.service_tags?.observacions || "",
       newLat: draftPosition?.lat,
       newLon: draftPosition?.lon,
     });
@@ -86,7 +86,7 @@ export const NodeInfo = ({
   const hasChanges =
     editing &&
     (JSON.stringify(data) !== JSON.stringify(props.ui_fields) ||
-      observacions !== (props.private_tags?.observacions || "") ||
+      observacions !== (props.service_tags?.observacions || "") ||
       !!draftPosition);
 
   usePreventLeave(hasChanges);

@@ -52,7 +52,7 @@ export const HidrantsService = {
     return result;
   },
 
-  async getGeoJson(adfId: number, options: { includePrivateTags?: boolean } = {}) {
+  async getGeoJson(adfId: number, options: { includeServiceTags?: boolean } = {}) {
     // Lectura pura: aquí no es fa cap pull d'OSM. Baixar els hidrants és una acció
     // explícita (panell OSM → "Baixar d'OSM", o POST /api/hidrants/sync), de manera
     // que una recàrrega de la pàgina no depèn de cap servei extern ni es queda
@@ -75,11 +75,12 @@ export const HidrantsService = {
           osm_id: row.osm_id,
           osm_tags, // Ara van en el seu propi objecte, no escampats
           ui_fields,
-          // Les observacions privades només surten amb sessió iniciada (de qualsevol
-          // ADF). La resposta anònima manté la mateixa URL perquè la caché offline
-          // del service worker segueixi funcionant.
-          ...(options.includePrivateTags
-            ? { private_tags: parseJsonObject(row.private_tags) }
+          // Informació de servei de l'hidrant (observacions, accessos...). No és
+          // privada d'una ADF: surt per a qualsevol sessió, de qualsevol ADF
+          // (ADR 0005). La resposta anònima manté la mateixa URL perquè la caché
+          // offline del service worker segueixi funcionant.
+          ...(options.includeServiceTags
+            ? { service_tags: parseJsonObject(row.service_tags) }
             : {}),
           sync_status: row.sync_status,
           sync_error: parseSyncError(row.sync_error),
@@ -103,7 +104,7 @@ export const HidrantsService = {
     lat: number,
     lon: number,
     ui_fields?: HidrantUiFields,
-    private_tags?: Record<string, unknown>,
+    service_tags?: Record<string, unknown>,
   ) {
     if (!lat || !lon) {
       throw new BadRequestError("Missing lat or lon");
@@ -120,7 +121,7 @@ export const HidrantsService = {
       lat,
       lon,
       osm_tags: JSON.stringify(osm_tags),
-      private_tags: JSON.stringify(private_tags || {}),
+      service_tags: JSON.stringify(service_tags || {}),
       sync_status: "PENDING_CREATE",
     });
 
@@ -133,7 +134,7 @@ export const HidrantsService = {
     lat?: number,
     lon?: number,
     ui_fields?: HidrantUiFields,
-    private_tags?: Record<string, unknown>,
+    service_tags?: Record<string, unknown>,
   ) {
     if (!id) {
       throw new BadRequestError("Missing hydrant ID");
@@ -198,7 +199,7 @@ export const HidrantsService = {
     }
 
     // Canvi de sync_status només si hi ha canvis en camps OSM (lat/lon/etiquetes d'OSM),
-    // sense tenir en compte camps privats (observacions, etc.)
+    // sense tenir en compte els tags de servei (observacions, etc.)
     //
     // Si tenim la darrera versió coneguda d'OSM (remote_*), l'estat reflecteix si
     // les dades locals difereixen d'OSM i no si hi ha hagut cap edició: així,
@@ -236,7 +237,7 @@ export const HidrantsService = {
       lat,
       lon,
       osm_tags: osm_tags ? JSON.stringify(osm_tags) : undefined,
-      private_tags: private_tags ? JSON.stringify(private_tags) : undefined,
+      service_tags: service_tags ? JSON.stringify(service_tags) : undefined,
       sync_status: newSyncStatus,
     });
 
@@ -266,7 +267,7 @@ export const HidrantsService = {
     return { success: true };
   },
 
-  getSyncStats(adfId: number) {
+  getSyncStats(adfId?: number) {
     return HidrantsRepository.getSyncStats(adfId);
   },
 };

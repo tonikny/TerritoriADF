@@ -81,8 +81,8 @@ export function useHidrantActions(feature: HidrantFeature, adf: Adf | null) {
     }
     setBusy(true);
     try {
-      const privateTags = {
-        ...feature.properties.private_tags,
+      const serviceTags = {
+        ...feature.properties.service_tags,
         observacions: opts.observacions.trim() || undefined,
       };
       const hasNewPosition = opts.newLat !== undefined && opts.newLon !== undefined;
@@ -98,14 +98,14 @@ export function useHidrantActions(feature: HidrantFeature, adf: Adf | null) {
       );
       await updateHidrant(feature.id, adf.id, {
         ui_fields: opts.uiFields,
-        private_tags: privateTags,
+        service_tags: serviceTags,
         ...(hasNewPosition ? { lat: opts.newLat, lon: opts.newLon } : {}),
       });
 
       await sendToTelegram({
         lat: finalLat,
         lon: finalLon,
-        tags: { ...feature.properties, ui_fields: opts.uiFields, private_tags: privateTags },
+        tags: { ...feature.properties, ui_fields: opts.uiFields, service_tags: serviceTags },
         originalData: originalValues,
         changes,
         adf_id: adf.id,

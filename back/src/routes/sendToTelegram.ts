@@ -153,11 +153,11 @@ export function registerTelegramNotificationRoutes(app: FastifyInstance): void {
           delete dbInfo.ui_fields;
         }
 
-        // Reordenar per posar private_tags al final
-        if (dbInfo.private_tags) {
-          const privateTags = dbInfo.private_tags;
-          delete dbInfo.private_tags;
-          dbInfo.private_tags = privateTags;
+        // Reordenar per posar service_tags al final
+        if (dbInfo.service_tags) {
+          const serviceTags = dbInfo.service_tags;
+          delete dbInfo.service_tags;
+          dbInfo.service_tags = serviceTags;
         }
 
         const nodeId =

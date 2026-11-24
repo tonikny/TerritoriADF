@@ -1,8 +1,30 @@
-# TerritoriADF
+<h1 align="center">
+  <img src="front/public/images/logo-horitzontal.png" width="293" alt="TerritoriADF">
+</h1>
 
-_Hidrants, incidències i seguiment d'unitats per a les ADF (Agrupacions de Defensa Forestal)_
+<p align="center">
+  <a href="https://github.com/tonikny/TerritoriADF/actions/workflows/ci.yml"><img src="https://github.com/tonikny/TerritoriADF/actions/workflows/ci.yml/badge.svg?branch=main" alt="Estat de la CI"></a>
+  <img src="https://img.shields.io/badge/Node-%E2%89%A526-5FA04E?logo=nodedotjs&logoColor=white" alt="Node 26 o superior">
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose">
+  <img src="https://img.shields.io/badge/PWA-instal%C2%B7lable-5A0FC8" alt="Aplicació web instal·lable">
+</p>
+
+<p align="center"><em>Hidrants, incidències i seguiment d'unitats per a les ADF (Agrupacions de Defensa Forestal)</em></p>
 
 TerritoriADF reuneix en una sola aplicació el que una ADF necessita per tenir cura del seu territori: la xarxa d'hidrants, les incidències que s'hi detecten i la posició de les unitats sobre el terreny. Funciona en un únic domini, amb una ADF o amb diverses, i cada ADF treballa amb les seves dades.
+
+<p align="center">
+  <img src="docs/images/mapa.jpg" width="820" alt="Mapa d'una ADF amb els hidrants, el límit territorial i el panell de l'ADF">
+</p>
+
+<p align="center"><sub>Mapa: © OpenStreetMap contributors · © ICGC, MDT 5 m (CC BY 4.0)</sub></p>
+
+## Contingut
+
+- [Què hi pots fer](#què-hi-pots-fer)
+- [Stack tecnològic](#stack-tecnològic)
+- [OpenStreetMap](#openstreetmap)
+- [Com començar](#com-començar)
 
 ## Què hi pots fer
 
@@ -14,11 +36,23 @@ TerritoriADF reuneix en una sola aplicació el que una ADF necessita per tenir c
 - **Rols i permisos** — Admin, coordinador, voluntari i consulta pública, cadascú amb el que li toca.
 - **També al mòbil** — Instal·lable com una app i amb les dades de l'ADF disponibles sense connexió.
 
+<p align="center">
+  <img src="docs/images/hidrant.png" width="360" alt="Fitxa d'un hidrant amb la data de revisió, l'estat, el tipus i les dades d'OSM">
+</p>
+
+<p align="center"><sub>La fitxa d'un hidrant: dades d'OSM, estat i accions de camp.</sub></p>
+
+<p align="center">
+  <img src="docs/images/mobil.png" width="360" alt="El mapa al mòbil amb els hidrants sobre el relleu 3D i la barra de pestanyes a baix">
+</p>
+
+<p align="center"><sub>El mateix mapa al mòbil, instal·lat com una app: relleu 3D, hidrants i el panell a mà.</sub></p>
+
 ## Stack tecnològic
 
 - **Frontend**: React 19, TypeScript i Vite, amb MapLibre GL com a motor de mapa i Leaflet com a alternativa.
 - **Backend**: Fastify 5, TypeScript, Drizzle ORM i SQLite.
-- **Temps real**: Eclipse Mosquitto (MQTT) amb OwnTracks.
+- **Seguiment en temps real**: Eclipse Mosquitto (MQTT) amb OwnTracks.
 - **Infraestructura**: Docker Compose, Nginx i GraphHopper.
 
 Estructura del codi, motors de mapa i tests: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

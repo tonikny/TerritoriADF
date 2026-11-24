@@ -67,12 +67,15 @@ describe("syncAdfFromOSM: importació", () => {
       lon: 0,
       sync_status: "SYNCED",
       osm_tags: JSON.stringify({ "addr:street": "Carrer Antic" }),
+      service_tags: JSON.stringify({ observacions: "Clau al pal" }),
     });
 
     await syncAdfFromOSM(ADF_278);
 
     const row = HidrantsRepository.findByIds(["existing"])[0]!;
     expect(row.osm_version).toBe(3);
+    // El pull sobreescriu el que ve d'OSM, però la informació de servei és local.
+    expect(JSON.parse(row.service_tags ?? "{}")).toEqual({ observacions: "Clau al pal" });
     expect(row.lat).toBe(41.6001);
     expect((JSON.parse(row.osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
       "Carrer OSM U",
@@ -175,7 +178,7 @@ describe("syncAdfFromOSM: hidrants absents", () => {
       id: "gone",
       osm_id: 9999,
       sync_status: "SYNCED",
-      private_tags: JSON.stringify({ nota: "no es pot perdre" }),
+      service_tags: JSON.stringify({ nota: "no es pot perdre" }),
     });
     createHydrant({ id: "other-adf", adf_id: ADF_279, osm_id: 9998, sync_status: "SYNCED" });
 
@@ -183,7 +186,7 @@ describe("syncAdfFromOSM: hidrants absents", () => {
 
     const gone = HidrantsRepository.findByIds(["gone"])[0]!;
     expect(gone.sync_status).toBe("MISSING_IN_OSM");
-    expect(JSON.parse(gone.private_tags ?? "{}")).toEqual({ nota: "no es pot perdre" });
+    expect(JSON.parse(gone.service_tags ?? "{}")).toEqual({ nota: "no es pot perdre" });
     expect(HidrantsRepository.findByIds(["other-adf"])[0]!.sync_status).toBe("SYNCED");
   });
 

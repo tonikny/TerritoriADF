@@ -11,6 +11,7 @@ export type ErrorBody = { error: string };
 export type HidrantFeature = {
   id: string;
   properties: {
+    service_tags?: Record<string, string>;
     private_tags?: Record<string, string>;
     notes?: string;
     sync_status?: string;

@@ -121,37 +121,37 @@ En desenvolupament, Vite proxya `/tiles/osm`, `/tiles/opentopo`, `/tiles/ign-*` 
 
 Font canònica: `package.json:5` i `back/package.json`. Agrupats per tema.
 
-| Script                            | Descripció                                                                                                                                                                                                                                                |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                     | Frontend + backend simultanis (Vite + tsx)                                                                                                                                                                                                                |
-| `npm run build`                   | Build front + back                                                                                                                                                                                                                                        |
-| `npm run start`                   | Arrenca backend compilat (`back/dist`)                                                                                                                                                                                                                    |
-| `npm run lint` / `lint:fix`       | ESLint a `front` + `back` (vegeu §11)                                                                                                                                                                                                                     |
-| `npm run typecheck`               | `tsc --noEmit` a `front` + `back`                                                                                                                                                                                                                         |
-| `npm test -w front`               | Vitest del frontend (tests de `front/src/map/core/*.test.ts`)                                                                                                                                                                                             |
-| `npm run format` / `format:check` | Prettier                                                                                                                                                                                                                                                  |
-| `npm run mqtt:up`                 | `docker compose up -d mosquitto`                                                                                                                                                                                                                          |
-| `npm run mqtt:cleanup`            | Neteja identitats MQTT obsoletes: alinea `mqtt_users.mqtt_username` amb username actual i esborra clients DynSec `owntracks-device` orfes. **Dry-run** per defecte; aplica amb `npm run mqtt:cleanup -- --apply` (`back/src/scripts/cleanupMqtt.ts`)      |
-| `npm run mqtt:sync-dynsec`        | `python3 scripts/init-dynsec.py sync` — no destructiu, conserva clients usuaris                                                                                                                                                                           |
-| `npm run mqtt:regen-dynsec`       | `python3 scripts/init-dynsec.py regen` — **destructiu**, esborra clients usuaris, demana confirmació                                                                                                                                                      |
-| `npm run docker:up`               | `docker compose up -d`                                                                                                                                                                                                                                    |
-| `npm run docker:down`             | `docker compose down`                                                                                                                                                                                                                                     |
-| `npm run docker:build`            | `docker compose build`                                                                                                                                                                                                                                    |
-| `npm run docker:logs`             | `docker compose logs -f`                                                                                                                                                                                                                                  |
-| `npm run docker:clean`            | `docker image prune -f`                                                                                                                                                                                                                                   |
-| `npm run nginx:render`            | Genera `config/site-docker.nginx` a partir de la plantilla i de `BASE_DOMAIN_URL` (`back/.env`). No el cridis a prod sense revisar el resultat                                                                                                            |
-| `npm run mosquitto:render`        | Genera `mosquitto/config/mosquitto.conf` de prod (TLS). Amb `-- --dev`, la de dev en clar (només local)                                                                                                                                                   |
-| `npm run docker:deploy`           | Actualització en producció: executa `scripts/deploy/update.sh` (còpia prèvia de la BD, `git pull --ff-only`, `npm ci`, `docker compose build` + `up -d`, healthchecks i `update:boundaries` best-effort). Detall i opcions a `local-doc/ops/deploy.md` §7 |
-| `npm run db:reset`                | Buida BD (`back/data/territoriadf.db`)                                                                                                                                                                                                                    |
-| `npm run db:seed`                 | Crea ADFs i usuaris inicials (admin global + coordinador per ADF); la contrasenya inicial és aleatòria i es mostra un sol cop al log                                                                                                                      |
-| `npm run db:import-osm`           | Pull sync OSM via Overpass (requereix `osm_relations` a `adfs`)                                                                                                                                                                                           |
-| `npm run db:export-osm`           | Push sync OSM (requereix `OSM_ACCESS_TOKEN`)                                                                                                                                                                                                              |
-| `npm run db:reset-hidrants`       | Neteja només hidrants i re-importa OSM                                                                                                                                                                                                                    |
-| `npm run db:setup`                | `db:reset && db:seed && db:import-osm && update:boundaries`                                                                                                                                                                                               |
-| `npm run update:boundaries`       | Actualitza `adfs.bbox`/`center`/`boundary_geojson` des d'Overpass                                                                                                                                                                                         |
-| `npm run create:user`             | `npm run create:user -w back -- <usuari> <contrasenya> [rol] [adf_id]` — crea usuari directe a BD (`admin`/`coordinador`/`voluntari`)                                                                                                                     |
-| `npm run telegram:selftest`       | Self-test lògica vinculació Telegram sense xarxa                                                                                                                                                                                                          |
-| `npm run prepare`                 | Husky hooks (`prepare: husky`)                                                                                                                                                                                                                            |
+| Script                              | Descripció                                                                                                                                                                                                                                                |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                       | Frontend + backend simultanis (Vite + tsx)                                                                                                                                                                                                                |
+| `npm run build`                     | Build front + back                                                                                                                                                                                                                                        |
+| `npm run start`                     | Arrenca backend compilat (`back/dist`)                                                                                                                                                                                                                    |
+| `npm run lint` / `lint:fix`         | ESLint a `front` + `back` (vegeu §11)                                                                                                                                                                                                                     |
+| `npm run typecheck`                 | `tsc --noEmit` a `front` + `back`                                                                                                                                                                                                                         |
+| `npm test -w front`                 | Vitest del frontend (tests de `front/src/map/core/*.test.ts`)                                                                                                                                                                                             |
+| `npm run format` / `format:check`   | Prettier                                                                                                                                                                                                                                                  |
+| `npm run mqtt:up`                   | `docker compose up -d mosquitto`                                                                                                                                                                                                                          |
+| `npm run mqtt:cleanup`              | Neteja identitats MQTT obsoletes: alinea `mqtt_users.mqtt_username` amb username actual i esborra clients DynSec `owntracks-device` orfes. **Dry-run** per defecte; aplica amb `npm run mqtt:cleanup -- --apply` (`back/src/scripts/cleanupMqtt.ts`)      |
+| `npm run mqtt:sync-dynsec`          | `python3 scripts/init-dynsec.py sync` — no destructiu, conserva clients usuaris                                                                                                                                                                           |
+| `npm run mqtt:regen-dynsec`         | `python3 scripts/init-dynsec.py regen` — **destructiu**, esborra clients usuaris, demana confirmació                                                                                                                                                      |
+| `npm run docker:up`                 | `docker compose up -d`                                                                                                                                                                                                                                    |
+| `npm run docker:down`               | `docker compose down`                                                                                                                                                                                                                                     |
+| `npm run docker:build`              | `docker compose build`                                                                                                                                                                                                                                    |
+| `npm run docker:logs`               | `docker compose logs -f`                                                                                                                                                                                                                                  |
+| `npm run docker:clean`              | `docker image prune -f`                                                                                                                                                                                                                                   |
+| `npm run nginx:render`              | Genera `config/site-docker.nginx` a partir de la plantilla i de `BASE_DOMAIN_URL` (`back/.env`). No el cridis a prod sense revisar el resultat                                                                                                            |
+| `npm run mosquitto:render`          | Genera `mosquitto/config/mosquitto.conf` de prod (TLS). Amb `-- --dev`, la de dev en clar (només local)                                                                                                                                                   |
+| `npm run docker:deploy`             | Actualització en producció: executa `scripts/deploy/update.sh` (còpia prèvia de la BD, `git pull --ff-only`, `npm ci`, `docker compose build` + `up -d`, healthchecks i `update:boundaries` best-effort). Detall i opcions a `local-doc/ops/deploy.md` §7 |
+| `npm run db:reset`                  | Buida BD (`back/data/territoriadf.db`)                                                                                                                                                                                                                    |
+| `npm run db:seed`                   | Crea ADFs i usuaris inicials (admin global + coordinador per ADF); la contrasenya inicial és aleatòria i es mostra un sol cop al log                                                                                                                      |
+| `npm run db:import-osm`             | Pull sync OSM via Overpass (requereix `osm_relations` a `adfs`)                                                                                                                                                                                           |
+| `npm run db:export-osm`             | Push sync OSM (requereix `OSM_ACCESS_TOKEN`)                                                                                                                                                                                                              |
+| `npm run db:reset-hidrants`         | Neteja només hidrants i re-importa OSM                                                                                                                                                                                                                    |
+| `npm run db:setup`                  | `db:reset && db:seed && db:import-osm && update:boundaries`                                                                                                                                                                                               |
+| `npm run update:boundaries`         | Actualitza `adfs.bbox`/`center`/`boundary_geojson` des d'Overpass                                                                                                                                                                                         |
+| `npm run create:user -w back`       | `npm run create:user -w back -- <usuari> <contrasenya> [rol] [adf_id]` — crea usuari directe a BD (`admin`/`coordinador`/`voluntari`)                                                                                                                     |
+| `npm run telegram:selftest -w back` | Self-test lògica vinculació Telegram sense xarxa                                                                                                                                                                                                          |
+| `npm run prepare`                   | Husky hooks (`prepare: husky`)                                                                                                                                                                                                                            |
 
 Per paquet: `front/` (`dev`, `build`, `preview`, `test`, `lint`, `typecheck`), `back/` (`db:migrate`, `db:generate`, `dev`, `build`, `lint`, `typecheck`, `mqtt:cleanup`). `create:user`, `telegram:selftest` i `db:*` només existeixen a `back/`: des de l'arrel, `npm run <script> -w back -- ...`.
 
@@ -313,7 +313,7 @@ Si `WEBHOOK_PUBLIC_URL` està definit, s'usa tal qual (`back/src/routes/telegram
 ### 8.3 Self-test
 
 ```bash
-npm run telegram:selftest   # lògica vinculació sense xarxa
+npm run telegram:selftest -w back   # lògica vinculació sense xarxa
 ```
 
 > **Producció:** no cal `WEBHOOK_PUBLIC_URL` si entres per domini públic amb Nginx que proxya `/api/telegram/webhook/*`. El domini ha de ser públic. Detall: `local-doc/ops/deploy.md#9`.
@@ -359,7 +359,7 @@ Descarrega via Overpass per les `osm_relations` de l'ADF.
 | `ERROR`          | No toca                                     | Sobreescriu → `SYNCED`   |
 | `REVIEW`         | No toca                                     | Sobreescriu → `SYNCED`   |
 
-Els hidrants que hi havia a la BD i ja no apareixen a OSM **no s'esborren**: es marquen `MISSING_IN_OSM`, es conserven amb `osm_tags` i `private_tags` i s'amaguen del mapa. La purga és manual: panell OSM → secció «Ja no són a OSM» (🗑 per fila o «Esborrar-los tots») o `POST /api/osm/missing/purge` amb `{ adf_id }` o `{ ids }`.
+Els hidrants que hi havia a la BD i ja no apareixen a OSM **no s'esborren**: es marquen `MISSING_IN_OSM`, es conserven amb `osm_tags` i `service_tags` i s'amaguen del mapa. La purga és manual: panell OSM → secció «Ja no són a OSM» (🗑 per fila o «Esborrar-los tots») o `POST /api/osm/missing/purge` amb `{ adf_id }` o `{ ids }`.
 
 ### 9.3 Push sync (publicació)
 
@@ -380,7 +380,7 @@ POST /api/osm/pull-hydrant     # { "id": "abc123" } sobreescriu amb OSM
 
 ### 9.4 UI panell sincronització
 
-`front/src/components/osm/OsmSyncPanel.tsx`: capçalera “Baixar d'OSM” (pull normal), seccions col·lapsables per estat amb comptador, checkboxes + “Seleccionar tot”, accions lot “Pujar seleccionats” / “Descartar”, accions individuals ↑ Pujar / ↓ Baixar (sobreescriu) / ✕ Descartar (amb confirmació), selecció al mapa (`select-hydrant-by-id` → cercle + info), refresc automàtic `refresh-hidrants`. Vegeu `docs/OSM_SYNC.md#4` per detall.
+`front/src/features/osm/OsmSyncPanel.tsx`: capçalera “Baixar d'OSM” (pull normal), seccions col·lapsables per estat amb comptador, checkboxes + “Seleccionar tot”, accions lot “Pujar seleccionats” / “Descartar”, accions individuals ↑ Pujar / ↓ Baixar (sobreescriu) / ✕ Descartar (amb confirmació), selecció al mapa (`select-hydrant-by-id` → cercle + info), refresc automàtic `refresh-hidrants`. Vegeu `docs/OSM_SYNC.md#4` per detall.
 
 ### 9.5 Exportació .osc
 
@@ -422,24 +422,23 @@ Transicions i casos d'ús detallats: `docs/OSM_SYNC.md#5-6`.
 
 ### 9.8 Endpoints OSM
 
-| Endpoint                     | Mètode | Descripció                                      |
-| ---------------------------- | ------ | ----------------------------------------------- |
-| `/api/osm/status`            | GET    | Estat token i comptador conflictes              |
-| `/api/osm/pending?adf=ID`    | GET    | Canvis pendents amb detalls                     |
-| `/api/osm/push-sync`         | POST   | Push global                                     |
-| `/api/osm/push-selected`     | POST   | Push selectiu `{ ids }`                         |
-| `/api/osm/discard-selected`  | POST   | Descarta `{ ids }`                              |
-| `/api/osm/conflicts`         | GET    | Conflictes amb detalls                          |
-| `/api/osm/conflicts/osc`     | GET    | Fitxer `.osc` per JOSM                          |
-| `/api/osm/conflicts/resolve` | POST   | Resol conflicte `{ id }`                        |
-| `/api/osm/reviews`           | GET    | Hidrants `REVIEW`                               |
-| `/api/osm/missing/purge`     | POST   | Purga `MISSING_IN_OSM` `{ adf_id }` o `{ ids }` |
-| `/api/osm/pull-hydrant`      | POST   | Baixa node `{ id }`                             |
-| `/api/osm/diff/:id`          | GET    | Diff local vs OSM                               |
-| `/api/hidrants/sync?adf=ID`  | POST   | Pull sync `{ force? }` (vegeu taula §9.2)       |
-| `/api/hidrants/stats?adf=ID` | GET    | Comptadors per `sync_status`                    |
+| Endpoint                     | Mètode | Descripció                                       |
+| ---------------------------- | ------ | ------------------------------------------------ |
+| `/api/osm/status`            | GET    | Estat token, conflictes i comptadors (`?adf=ID`) |
+| `/api/osm/pending?adf=ID`    | GET    | Canvis pendents amb detalls                      |
+| `/api/osm/push-sync`         | POST   | Push global                                      |
+| `/api/osm/push-selected`     | POST   | Push selectiu `{ ids }`                          |
+| `/api/osm/discard-selected`  | POST   | Descarta `{ ids }`                               |
+| `/api/osm/conflicts`         | GET    | Conflictes amb detalls                           |
+| `/api/osm/conflicts/osc`     | GET    | Fitxer `.osc` per JOSM                           |
+| `/api/osm/conflicts/resolve` | POST   | Resol conflicte `{ id }`                         |
+| `/api/osm/reviews`           | GET    | Hidrants `REVIEW`                                |
+| `/api/osm/missing/purge`     | POST   | Purga `MISSING_IN_OSM` `{ adf_id }` o `{ ids }`  |
+| `/api/osm/pull-hydrant`      | POST   | Baixa node `{ id }`                              |
+| `/api/osm/diff/:id`          | GET    | Diff local vs OSM                                |
+| `/api/hidrants/sync?adf=ID`  | POST   | Pull sync `{ force? }` (vegeu taula §9.2)        |
 
-Fitxers clau: `back/src/services/osmSync.ts` (pull Overpass), `back/src/services/osmPushSync.ts` (push), `back/src/services/osmDataValidator.ts`, `back/src/services/osmConflictResolver.ts`, `back/src/routes/osm.ts`, `front/src/components/osm/OsmConflictList.tsx`, `OsmReviewList.tsx`. Detall API complet: `docs/OSM_SYNC.md#9`.
+Fitxers clau: `back/src/services/osmSync.ts` (pull Overpass), `back/src/services/osmPushSync.ts` (push), `back/src/services/osmDataValidator.ts`, `back/src/services/osmConflictResolver.ts`, `back/src/routes/osm.ts`, `front/src/features/osm/OsmSyncPanel.tsx`. Detall API complet: `docs/OSM_SYNC.md#9`.
 
 ---
 
@@ -476,14 +475,13 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 
 ### 10.3 Hidrants
 
-| Endpoint                     | Mètode | Auth (capacitat)      | Descripció                                                                                     |
-| ---------------------------- | ------ | --------------------- | ---------------------------------------------------------------------------------------------- |
-| `/api/hidrants?adf=ID`       | GET    | no                    | GeoJSON hidrants ADF (`back/src/routes/hidrants.ts`, `Cache-Control: no-cache`)                |
-| `/api/hidrants`              | POST   | sí (`create_hydrant`) | Crea hidrant local `PENDING_CREATE` `{ lat, lon, ui_fields?, private_tags? }`                  |
-| `/api/hidrants/:id`          | PUT    | sí (`edit_hydrant`)   | Actualitza `{ lat?, lon?, ui_fields?, private_tags? }`; valida límit `max_hydrant_move_meters` |
-| `/api/hidrants/:id?id=ID`    | DELETE | sí (`delete_hydrant`) | Marca `PENDING_DELETE` (esborra directe si era `PENDING_CREATE` o `MISSING_IN_OSM`)            |
-| `/api/hidrants/sync?adf=ID`  | POST   | sí (`sync_osm`)       | Pull Overpass (vegeu §9.2)                                                                     |
-| `/api/hidrants/stats?adf=ID` | GET    | no                    | Comptadors per `sync_status`                                                                   |
+| Endpoint                    | Mètode | Auth (capacitat)      | Descripció                                                                                                        |
+| --------------------------- | ------ | --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `/api/hidrants?adf=ID`      | GET    | no                    | GeoJSON hidrants ADF; amb sessió inclou `service_tags` (`back/src/routes/hidrants.ts`, `Cache-Control: no-cache`) |
+| `/api/hidrants`             | POST   | sí (`create_hydrant`) | Crea hidrant local `PENDING_CREATE` `{ lat, lon, ui_fields?, service_tags? }`                                     |
+| `/api/hidrants/:id`         | PUT    | sí (`edit_hydrant`)   | Actualitza `{ lat?, lon?, ui_fields?, service_tags? }`; valida límit `max_hydrant_move_meters`                    |
+| `/api/hidrants/:id?id=ID`   | DELETE | sí (`delete_hydrant`) | Marca `PENDING_DELETE` (esborra directe si era `PENDING_CREATE` o `MISSING_IN_OSM`)                               |
+| `/api/hidrants/sync?adf=ID` | POST   | sí (`sync_osm`)       | Pull Overpass (vegeu §9.2)                                                                                        |
 
 ### 10.4 Incidències
 
@@ -498,7 +496,7 @@ Tots els `POST/PUT/DELETE` d'hidrants i incidències requereixen sessió (`auth_
 
 Username `XXX/YYY` o `XXX/GI/YYY` (3 dígits, `back/src/routes/users.ts`), rols `admin|coordinador|voluntari`. Admin veu/toca tot; coordinador només la seva ADF i mai a si mateix.
 
-**Contrasenyes:** ningú no en tria per un altre. En crear un usuari o en demanar un enllaç, el backend guarda el `sha256` del token a `access_tokens` i retorna **una sola vegada** `access_url` (`/acces/<token>`, TTL 7 dies en alta i 24 h en restabliment). L'usuari obre l'enllaç, hi tria la seva contrasenya i queda amb la sessió oberta. Un sol enllaç viu per usuari (`back/src/services/accessTokens.ts`). El backend exigeix **mínim 8 caràcters**, que combinin lletres i xifres, i rebutja les d'un sol caràcter repetit i les que contenen el nom d'usuari o el de l'ADF (`back/src/utils/password.ts`); la mateixa validació s'aplica a `PUT /api/auth/password` i a `npm run create:user`. El mínim no es duplica al front: es publica a `GET /api/config` (`min_password_length`) i els formularis el fan servir per a l'atribut `minLength`.
+**Contrasenyes:** ningú no en tria per un altre. En crear un usuari o en demanar un enllaç, el backend guarda el `sha256` del token a `access_tokens` i retorna **una sola vegada** `access_url` (`/acces/<token>`, TTL 7 dies en alta i 24 h en restabliment). L'usuari obre l'enllaç, hi tria la seva contrasenya i queda amb la sessió oberta. Un sol enllaç viu per usuari (`back/src/services/accessTokens.ts`). El backend exigeix **mínim 8 caràcters**, que combinin lletres i xifres, i rebutja les d'un sol caràcter repetit i les que contenen el nom d'usuari o el de l'ADF (`back/src/utils/password.ts`); la mateixa validació s'aplica a `PUT /api/auth/password` i a `npm run create:user -w back`. El mínim no es duplica al front: es publica a `GET /api/config` (`min_password_length`) i els formularis el fan servir per a l'atribut `minLength`.
 
 | Endpoint                     | Mètode | Auth                | Descripció                                                                                                                                                                                           |
 | ---------------------------- | ------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

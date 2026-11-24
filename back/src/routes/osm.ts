@@ -54,17 +54,25 @@ function adfIdFromBody(value: number | string | undefined): number | undefined {
 export function registerOsmRoutes(app: FastifyInstance): void {
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
-  /** GET /api/osm/status → estat del token i comptador de conflictes. */
+  /**
+   * GET /api/osm/status → estat del token i comptador de conflictes.
+   * Sense `?adf=` les estadístiques són globals; amb `?adf=ID`, només d'aquella ADF.
+   */
   typed.get(
     "/api/osm/status",
     {
       preHandler: VIEW_SYNC,
-      schema: { tags: ["osm"], summary: "Estat de la sincronització amb OSM" },
+      schema: {
+        tags: ["osm"],
+        summary: "Estat de la sincronització amb OSM",
+        querystring: pendingQuerySchema,
+      },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       const configured = isConfigured();
-      const conflicts = HidrantsRepository.findConflicts();
-      const stats = HidrantsRepository.getSyncStats(0); // global
+      const adfId = request.query.adf;
+      const conflicts = HidrantsRepository.findConflicts(adfId);
+      const stats = HidrantsRepository.getSyncStats(adfId);
       return reply.send({ configured, conflictCount: conflicts.length, stats });
     },
   );

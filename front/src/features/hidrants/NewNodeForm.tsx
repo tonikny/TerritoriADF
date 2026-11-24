@@ -68,7 +68,7 @@ export const NewNodeForm = ({ lat, lon, onClose, setNewNodePosition }: NewNodeFo
         lat,
         lon,
         ui_fields: data,
-        private_tags: {
+        service_tags: {
           observacions: observacions.trim() || undefined,
         },
       });
@@ -80,7 +80,7 @@ export const NewNodeForm = ({ lat, lon, onClose, setNewNodePosition }: NewNodeFo
           tags: {
             id: created.id,
             ui_fields: data,
-            private_tags: {
+            service_tags: {
               observacions: observacions.trim() || undefined,
             },
           },
@@ -130,7 +130,7 @@ export const NewNodeForm = ({ lat, lon, onClose, setNewNodePosition }: NewNodeFo
           value={observacions}
           onChange={(e) => setObservacions(e.target.value)}
           rows={2}
-          placeholder="Observacions internes de l'hidrant..."
+          placeholder="Observacions de servei de l'hidrant..."
           className={`${inputClass} w-full resize-y`}
         />
       </label>

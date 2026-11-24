@@ -1,6 +1,6 @@
 # Arquitectura i estructura de fitxers
 
-Aquest document descriu l'organització actual del codi, el contracte dels motors de mapa i les comprovacions automàtiques. Per al dia a dia de desenvolupament, consulta [`DEV.md`](DEV.md); les regles de contribució per a persones i agents viuen a `AGENTS.md`, una guia interna que no es versiona en aquest repositori.
+Aquest document descriu l'organització actual del codi, el contracte dels motors de mapa i les comprovacions automàtiques. Per al dia a dia de desenvolupament, consulta [`DEV.md`](DEV.md); les regles de contribució per a persones i agents viuen a `AGENTS.md`, un enllaç a la documentació privada del projecte (`local-doc/`), on també hi ha les auditories i els plans datats.
 
 ## 1. Visió general
 
@@ -31,18 +31,19 @@ territoriadf/
 │   │   │   │   └── maplibre/       # adaptador MapLibre
 │   │   │   ├── shared/             # capes, estils, icones, rutes, vista
 │   │   │   └── ui/                 # LayersPanel, MapAttribution i MapErrorBoundary
-│   │   ├── components/
+│   │   ├── components/             # només el shell: no carreguen dades
 │   │   │   ├── layout/             # MapPanel, Panel, BottomSheet, TabBar
-│   │   │   ├── controls/           # logo, escala, zoom, GPS, pantalla completa
-│   │   │   ├── hidrants/
-│   │   │   ├── incidencies/
-│   │   │   ├── panel/              # pestanyes ADF, seguiment, informes...
-│   │   │   └── shared/
+│   │   │   ├── lists/              # llistes i exportació a PDF
+│   │   │   ├── panel/              # PanelTabs i tabs/
+│   │   │   └── shared/             # UI compartida (accessos, avisos, selector)
 │   │   ├── contexts/               # AuthContext, AdfContext, AppConfigContext
-│   │   ├── features/               # consultes i mutacions per domini (users, telegram, hidrants, osm, adfs, tracking)
-│   │   ├── hooks/                  # dades, geolocalització, polling i comportament del mapa (map/)
+│   │   ├── features/               # una carpeta per domini: adfs, hidrants, incidencies,
+│   │   │                           # map-view, osm, telegram, tracking i users, amb
+│   │   │                           # api.ts, consultes, mutations i components
+│   │   ├── hooks/                  # geolocalització, polling i comportament del mapa
+│   │   ├── shared/                 # api/ (client únic), query/ (claus i invalidació), ui/
 │   │   ├── styles/                 # Tailwind i estils compartits
-│   │   └── utils/
+│   │   └── utils/                  # funcions pures (geo, temps, PDF, offline...)
 │   ├── index.html
 │   └── vite.config.ts
 ├── packages/
@@ -70,6 +71,16 @@ territoriadf/
 L'accés a dades dels serveis i les rutes passa sempre pels repositoris de `back/src/db/repositories/` (un per entitat: ADFs, hidrants, incidències, usuaris, identitats MQTT, tokens d'accés i Telegram); cap ruta ni servei no importa `db` ni l'esquema. Els scripts de `back/src/scripts/` en són l'excepció deliberada.
 
 Els tests del front viuen al costat del codi que proven (`*.test.ts` / `*.test.tsx`), no en una carpeta `tests/` separada.
+
+### 2.1 Model de dades: tags d'hidrant
+
+La taula `hidrants` (`back/src/db/schema.ts`) separa tres tipus de dades:
+
+- `osm_tags`: el que es publica a OSM. El pull i el push el mantenen sincronitzat i és l'única font de la posició publicada.
+- `service_tags`: informació de servei que **no** va a OSM (observacions, accés, claus). És compartida: qualsevol sessió iniciada, de qualsevol ADF, la llegeix quan consulta els hidrants d'una ADF; les respostes anònimes no la inclouen. Decisió i motius: ADR 0005, `local-doc/decisions/0005-tags-de-servei-dels-hidrants.md`.
+- `private_tags`: **reservat** per a dades que només ha de veure l'ADF propietària. L'API no l'escriu i no en retorna contingut: la columna es manté a `'{}'`. Fer-la servir requereix un ADR que reemplaci el 0005.
+
+`sync_status` és `NOT NULL DEFAULT 'SYNCED'`: les consultes amb `NOT IN` i `!=` descarten les files `NULL` en silenci, i un hidrant sense estat desapareixeria del mapa, del panell OSM i del push alhora.
 
 ## 3. Motors de mapa
 
@@ -139,15 +150,15 @@ Els dos adaptadors implementen les mateixes peces: `Rasters`, `Shapes`, `Markers
 
 Els tests viuen al costat del codi que proven i es descobreixen sols: `npm test -w front` en diu quants n'hi ha i quins passen. Aquí no se'n fixa el nombre, que canvia amb cada funcionalitat.
 
-| Fitxer                                       | Què cobreix                                                                                                                            |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `front/src/map/core/zoom.test.ts`            | Conversió del zoom neutral a MapLibre, reversibilitat i casos de diversos nivells.                                                     |
-| `front/src/map/core/geometry.test.ts`        | `bboxToBounds`, distància entre coordenades, retallada a un radi màxim i vista per defecte d'una ADF.                                  |
-| `front/src/map/core/engineSelection.test.ts` | MapLibre per defecte amb WebGL2, fallback sense WebGL2, overrides explícits i prioritat de `?engine=` sobre el fallback de sessió.     |
-| `front/src/map/core/builders.test.ts`        | Marcadors d'hidrant/incidència/tracking, arrossegament retallat al radi, màscara o frontera segons capa tècnica i línies de ruta.      |
-| `front/src/shared/api/client.test.ts`        | Client d'API: query serialitzada, cos JSON amb credencials, `ApiError` amb estat i codi, resposta 204 i propagació de l'`AbortSignal`. |
-| `front/src/hooks/useIncidencies.test.tsx`    | Cursa en canviar d'ADF: la resposta de l'ADF anterior no trepitja la de l'ADF activa.                                                  |
-| `front/src/utils/hidrantDisplay.test.ts`     | Imatges d'hidrant: UUID de Panoramax i llista d'hosts permesos, amb rebuig de path traversal i `javascript:`.                          |
+| Fitxer                                                   | Què cobreix                                                                                                                            |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `front/src/map/core/zoom.test.ts`                        | Conversió del zoom neutral a MapLibre, reversibilitat i casos de diversos nivells.                                                     |
+| `front/src/map/core/geometry.test.ts`                    | `bboxToBounds`, distància entre coordenades, retallada a un radi màxim i vista per defecte d'una ADF.                                  |
+| `front/src/map/core/engineSelection.test.ts`             | MapLibre per defecte amb WebGL2, fallback sense WebGL2, overrides explícits i prioritat de `?engine=` sobre el fallback de sessió.     |
+| `front/src/map/core/builders.test.ts`                    | Marcadors d'hidrant/incidència/tracking, arrossegament retallat al radi, màscara o frontera segons capa tècnica i línies de ruta.      |
+| `front/src/shared/api/client.test.ts`                    | Client d'API: query serialitzada, cos JSON amb credencials, `ApiError` amb estat i codi, resposta 204 i propagació de l'`AbortSignal`. |
+| `front/src/features/incidencies/useIncidencies.test.tsx` | Cursa en canviar d'ADF: la resposta de l'ADF anterior no trepitja la de l'ADF activa.                                                  |
+| `front/src/features/hidrants/hidrantDisplay.test.ts`     | Imatges d'hidrant: UUID de Panoramax i llista d'hosts permesos, amb rebuig de path traversal i `javascript:`.                          |
 
 El backend té la seva pròpia suite (`npm test -w back`, detalls a [`TESTING.md`](TESTING.md)). Les comprovacions de Telegram que no necessiten xarxa es fan amb `npm run telegram:selftest -w back`.
 
@@ -175,11 +186,14 @@ npm test -w front -- src/map/core/engineSelection.test.ts
 2. `npm run typecheck`
 3. `npm test -w packages/contracts`
 4. `npm run lint`
-5. `npm run db:migrate -w back`
-6. `npm run db:check -w back`
-7. `npm run test:coverage -w back`
-8. `npm run test:coverage -w front`
-9. `npm run build`
+5. `npm run docs:check`
+6. `npm run db:migrate -w back`
+7. `npm run db:check -w back`
+8. `npm run test:coverage -w back`
+9. `npm run test:coverage -w front`
+10. `npm run build`
+
+`docs:check` (`scripts/docs-check.mjs`) comprova que els enllaços relatius, les imatges i els camins de fitxer citats a `README.md` i `docs/**` existeixen, i que cada `npm run` citat és un script real. Els camins de `local-doc/` queden fora: és un altre repositori, privat, que no viatja amb el codi.
 
 El pipeline no publica artefactes ni desplega.
 

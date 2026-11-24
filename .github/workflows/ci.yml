@@ -26,6 +26,9 @@ jobs:
 
       - run: npm run lint
 
+      # La documentació versionada ha de resoldre enllaços, comandes i camins.
+      - run: npm run docs:check
+
       - run: npm run db:migrate -w back
 
       - run: npm run db:check -w back

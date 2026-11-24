@@ -15,6 +15,9 @@ export interface HidrantData {
   lat: number;
   lon: number;
   osm_tags?: string | null;
+  /** Informació de servei: la llegeix qualsevol ADF (ADR 0005). */
+  service_tags?: string | null;
+  /** Reservat: només l'ADF propietària (ADR 0005). Avui sempre `{}`. */
   private_tags?: string | null;
   /** La columna és `NOT NULL DEFAULT 'SYNCED'`: mai no pot ser `null`. */
   sync_status: SyncStatus;
@@ -84,13 +87,17 @@ export const HidrantsRepository = {
   },
 
   /**
-   * Obtenir tots els hidrants en estat CONFLICT.
+   * Obtenir tots els hidrants en estat CONFLICT (o els d'una ADF).
    */
-  findConflicts(): HidrantData[] {
+  findConflicts(adfId?: number): HidrantData[] {
     return db
       .select()
       .from(hidrants)
-      .where(eq(hidrants.sync_status, "CONFLICT"))
+      .where(
+        adfId === undefined
+          ? eq(hidrants.sync_status, "CONFLICT")
+          : and(eq(hidrants.sync_status, "CONFLICT"), eq(hidrants.adf_id, adfId)),
+      )
       .all() as HidrantData[];
   },
 
@@ -104,7 +111,7 @@ export const HidrantsRepository = {
         lat: data.lat,
         lon: data.lon,
         osm_tags: data.osm_tags || "{}",
-        private_tags: data.private_tags || "{}",
+        service_tags: data.service_tags || "{}",
         sync_status: data.sync_status,
       })
       .run();
@@ -116,7 +123,7 @@ export const HidrantsRepository = {
         lat: data.lat,
         lon: data.lon,
         osm_tags: data.osm_tags,
-        private_tags: data.private_tags,
+        service_tags: data.service_tags,
         sync_status: data.sync_status,
         updated_at: nowISO(),
       })
@@ -241,14 +248,15 @@ export const HidrantsRepository = {
       .run();
   },
 
-  getSyncStats(adfId: number) {
+  /** Sense `adfId` compta tota la base; amb `adfId`, només aquella ADF. */
+  getSyncStats(adfId?: number) {
     const results = db
       .select({
         status: hidrants.sync_status,
         count: count(),
       })
       .from(hidrants)
-      .where(eq(hidrants.adf_id, adfId))
+      .where(adfId === undefined ? undefined : eq(hidrants.adf_id, adfId))
       .groupBy(hidrants.sync_status)
       .all();
 

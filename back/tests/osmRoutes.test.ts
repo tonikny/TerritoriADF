@@ -54,25 +54,41 @@ beforeEach(() => {
 });
 
 describe("GET /api/osm/status", () => {
-  it("retorna l'estat del token, els conflictes i les estadístiques", async () => {
-    createHydrant({ id: "bad", sync_status: "CONFLICT" });
+  it("retorna comptadors reals i els filtra per ADF", async () => {
+    createHydrant({ id: "s-create", sync_status: "PENDING_CREATE" });
+    createHydrant({ id: "s-update", sync_status: "PENDING_UPDATE", osm_id: 1, osm_version: 1 });
+    createHydrant({ id: "s-synced", sync_status: "SYNCED" });
+    createHydrant({ id: "s-conflict", sync_status: "CONFLICT", osm_id: 2, osm_version: 1 });
+    createHydrant({ id: "s-279", adf_id: ADF_279, sync_status: "PENDING_CREATE" });
 
-    const response = await app.inject({
+    type StatusBody = { configured: boolean; conflictCount: number; stats: Record<string, number> };
+
+    const global = await app.inject({
       method: "GET",
       url: "/api/osm/status",
       headers: { cookie: adminCookie },
     });
 
-    expect(response.statusCode).toBe(200);
-    const body = response.json<{
-      configured: boolean;
-      conflictCount: number;
-      stats: Record<string, number>;
-    }>();
-    expect(body.configured).toBe(true);
-    expect(body.conflictCount).toBe(1);
-    expect(body.stats).toHaveProperty("SYNCED");
-    expect(body.stats).toHaveProperty("total_pending");
+    expect(global.statusCode).toBe(200);
+    const everyAdf = global.json<StatusBody>();
+    expect(everyAdf.configured).toBe(true);
+    expect(everyAdf.conflictCount).toBe(1);
+    expect(everyAdf.stats.PENDING_CREATE).toBe(2);
+    expect(everyAdf.stats.PENDING_UPDATE).toBe(1);
+    expect(everyAdf.stats.SYNCED).toBe(1);
+    expect(everyAdf.stats.total_pending).toBe(3);
+
+    const ownAdf = await app.inject({
+      method: "GET",
+      url: `/api/osm/status?adf=${ADF_278}`,
+      headers: { cookie: adminCookie },
+    });
+
+    expect(ownAdf.statusCode).toBe(200);
+    const only278 = ownAdf.json<StatusBody>();
+    expect(only278.conflictCount).toBe(1);
+    expect(only278.stats.PENDING_CREATE).toBe(1);
+    expect(only278.stats.total_pending).toBe(2);
   });
 
   it("requereix sessió i el permís view_sync_status", async () => {

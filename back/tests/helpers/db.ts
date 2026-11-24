@@ -113,7 +113,7 @@ export function createHydrant(data: HydrantSeed): void {
       lat: 41.6,
       lon: 1.6,
       osm_tags: "{}",
-      private_tags: "{}",
+      service_tags: "{}",
       sync_status: "SYNCED",
       ...data,
     })

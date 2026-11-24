@@ -179,7 +179,7 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
     }
 
     // Hidrants que ja no són a OSM: NO s'esborren. Es marquen com a MISSING_IN_OSM i
-    // es conserven amb totes les seves dades locals (private_tags inclosos) fins que
+    // es conserven amb totes les seves dades locals (service_tags inclosos) fins que
     // un admin els purgui des del panell OSM. Així un pull erroni, una resposta
     // parcial d'Overpass o una relació mal configurada no destrueixen res.
     // NOMÉS es marca si hem pogut consultar TOTES les relacions de l'ADF amb èxit.

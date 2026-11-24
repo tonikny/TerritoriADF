@@ -159,7 +159,7 @@ Lighthouse ja no té la categoria PWA: no serveix com a verificació.
 `vite-plugin-mkcert` genera un certificat que el mòbil no es refia, així que el service
 worker no es registrarà per IP. Opcions:
 
-- provar amb `npm run preview` des del mateix equip, o
+- provar amb `npm run preview -w front` des del mateix equip, o
 - servir el build amb un certificat de confiança (per exemple el del domini real), o
 - acceptar el certificat al mòbil abans de provar (el context segur ho requereix).
 
@@ -232,7 +232,7 @@ Detalls de la implementació a `PwaBanner.tsx`:
   una caché pròpia, `api-incidencies` (200 entrades, 7 dies), perquè el detall d'una
   incidència ocupa una entrada per id i no ha d'expulsar les dades bàsiques de l'ADF.
   Només `GET` i només respostes `200`: les escriptures no s'emmagatzemen mai.
-- **Antiguitat** (`utils/offlineData.ts` i `components/shared/OfflineNotice.tsx`): cada
+- **Antiguitat** (`front/src/utils/offlineData.ts` i `front/src/features/map-view/OfflineNotice.tsx`): cada
   lectura feta amb xarxa desa el moment a `localStorage`
   (`territoriadf-last-sync:<adf>`). Sense connexió, el mapa mostra
   «Sense connexió · dades de fa X», perquè una còpia no es confongui amb l'estat real.

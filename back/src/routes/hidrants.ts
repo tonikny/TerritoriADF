@@ -16,12 +16,15 @@ import {
 /**
  * Rutes d'hidrants amb handlers natius de Fastify i esquemes Zod.
  *
- * L'esquema valida la frontera (abans `ui_fields` i `private_tags` eren
+ * L'esquema valida la frontera (abans `ui_fields` i els tags lliures eren
  * `z.any()`), tipa el handler i alimenta l'OpenAPI. L'autorització és
  * declarativa: cada mutació diu quina capacitat necessita i d'on surt l'ADF.
+ *
+ * `service_tags` és informació de servei, no privada d'una ADF: qualsevol
+ * sessió, de qualsevol ADF, la pot llegir (ADR 0005).
  */
 
-const privateTagsSchema = z.record(z.string(), z.unknown());
+const serviceTagsSchema = z.record(z.string(), z.unknown());
 
 const adfQuerySchema = z.object({
   adf: z.coerce.number().int().positive().optional(),
@@ -32,7 +35,7 @@ const createBodySchema = z.object({
   lat: z.number().finite(),
   lon: z.number().finite(),
   ui_fields: hidrantUiFieldsSchema.optional(),
-  private_tags: privateTagsSchema.optional(),
+  service_tags: serviceTagsSchema.optional(),
 });
 
 const updateBodySchema = z.object({
@@ -41,7 +44,7 @@ const updateBodySchema = z.object({
   lat: z.number().finite().optional(),
   lon: z.number().finite().optional(),
   ui_fields: hidrantUiFieldsSchema.optional(),
-  private_tags: privateTagsSchema.optional(),
+  service_tags: serviceTagsSchema.optional(),
 });
 
 /** El cos del sync és opcional: el front només envia `force` quan força. */
@@ -66,7 +69,7 @@ export function registerHidrantRoutes(app: FastifyInstance): void {
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   // --- GET /api/hidrants: llistar hidrants de l'ADF (GeoJSON) ---
-  // Públic. Amb sessió s'hi inclouen les observacions privades.
+  // Públic. Amb sessió s'hi inclouen els tags de servei (`service_tags`).
   typed.get(
     "/api/hidrants",
     {
@@ -79,7 +82,7 @@ export function registerHidrantRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const adfId = adfIdFrom(request.query.adf);
       const geoJson = await HidrantsService.getGeoJson(adfId, {
-        includePrivateTags: Boolean(request.authUser),
+        includeServiceTags: Boolean(request.authUser),
       });
       return reply
         .header("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -135,8 +138,8 @@ export function registerHidrantRoutes(app: FastifyInstance): void {
     },
     async (request, reply) => {
       const adfId = adfIdFrom(request.query.adf, request.body.adf_id);
-      const { lat, lon, ui_fields, private_tags } = request.body;
-      const result = HidrantsService.createLocal(adfId, lat, lon, ui_fields, private_tags);
+      const { lat, lon, ui_fields, service_tags } = request.body;
+      const result = HidrantsService.createLocal(adfId, lat, lon, ui_fields, service_tags);
       return reply.code(201).send(result);
     },
   );
@@ -164,8 +167,8 @@ export function registerHidrantRoutes(app: FastifyInstance): void {
       if (!id) {
         throw new BadRequestError("Missing hydrant ID");
       }
-      const { lat, lon, ui_fields, private_tags } = request.body;
-      const result = HidrantsService.updateLocal(id, adfId, lat, lon, ui_fields, private_tags);
+      const { lat, lon, ui_fields, service_tags } = request.body;
+      const result = HidrantsService.updateLocal(id, adfId, lat, lon, ui_fields, service_tags);
       return reply.send(result);
     },
   );

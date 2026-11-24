@@ -40,7 +40,7 @@ export function HidrantEditForm({
           onChange={(e) => setObservacions(e.target.value)}
           rows={3}
           className={`${inputClass} w-full resize-y text-[0.8rem] p-1.5`}
-          placeholder="Observacions internes de l'hidrant..."
+          placeholder="Observacions de servei de l'hidrant..."
         />
       </label>
 

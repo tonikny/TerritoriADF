@@ -25,6 +25,13 @@ export const hidrants = sqliteTable(
     lat: real("lat").notNull(),
     lon: real("lon").notNull(),
     osm_tags: text("osm_tags").default("{}"),
+    // Informació de servei de l'hidrant (observacions, accessos, claus...). No és
+    // d'OSM, però tampoc no és privada d'una ADF: qualsevol usuari autenticat de
+    // qualsevol ADF la pot llegir (ADR 0005). Les respostes anònimes no la porten.
+    service_tags: text("service_tags").default("{}"),
+    // Reservat per a dades que només ha de veure l'ADF propietària (ADR 0005).
+    // Avui l'API no l'exposa ni l'escriu: la migració 0012 va buidar-lo després
+    // de copiar el contingut antic a `service_tags`.
     private_tags: text("private_tags").default("{}"),
     // `NOT NULL` perquè `null` no és un estat vàlid: les consultes amb `NOT IN`
     // i `!=` descarten les files NULL en silenci i l'hidrant desapareixeria del

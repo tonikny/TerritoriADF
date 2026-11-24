@@ -1,8 +1,9 @@
 # Tests del backend
 
-Aquesta pàgina descriu la suite de tests del backend (punt **F-08** de
-`docs/AUDIT.md`), com executar-la i què cal millorar al codi perquè sigui més
-fàcil de provar.
+Aquesta pàgina descriu la suite de tests del backend, com executar-la i què cal
+millorar al codi perquè sigui més fàcil de provar. L'estat de les troballes
+d'auditoria que l'afecten es segueix a `local-doc/audits/AUDITv3.md` (repositori privat
+de documentació).
 
 ## Execució
 
@@ -47,36 +48,41 @@ No s'obre cap port: tot passa per `app.inject()`, i `buildApp()` ja existia
 
 ## Cobertura actual
 
-**14 fitxers, 185 tests**, tots verds en ~13 s.
+La suite completa passa en menys de deu segons. Aquí no se'n fixa el nombre de
+fitxers ni de tests: els diu `npm test -w back`, i qualsevol xifra escrita a mà
+caduca.
 
-Cobertura mesurada (`npm run test:coverage -w back`): **61,3 % de línies**,
-61,2 % de sentències, 66,4 % de funcions i 50,5 % de branques sobre `src/**`
-(exclosos `src/scripts/**`, `src/server.ts` i `src/types.ts`). El CI aplica un
-llindar del 55 % de línies i sentències, 60 % de funcions i 45 % de branques per
-evitar regressions; és un ratchet per sobre de l'objectiu del 50 % del domini,
-no l'objectiu final. Les zones crítiques tenen
-molta més cobertura: `auth.ts` 86 %, `authorize.ts` 82 %, `hidrantsService.ts`
-82 %, `incidenciesService.ts` 80 %, i tot el nucli OSM: `osmSync.ts` 100 %,
-`osmXml.ts` 100 %, `overpass.ts` 100 %, `osmApi.ts` 98 %,
-`osmConflictResolver.ts` 98 %, `routes/osm.ts` 95 %, `osmPushSync.ts` 85 % i
-`osmDataValidator.ts` 98 %.
+Cobertura (`npm run test:coverage -w back`): es mesura sobre `src/**`, exclosos
+`src/scripts/**`, `src/server.ts` i `src/types.ts`. El CI aplica un llindar del
+55 % de línies i sentències, 60 % de funcions i 45 % de branques per evitar
+regressions; és un ratchet per sobre de l'objectiu del 50 % del domini, no
+l'objectiu final. El percentatge exacte és el que dona la comanda, no aquesta
+pàgina.
 
-| Fitxer                        | Què prova                                                                                                                                                                                                                                                                |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth.test.ts`                | Login correcte/incorrecte, cookie `httpOnly`, `/me`, `token_version`, usuari esborrat, logout, fre de força bruta, enllaç d'accés d'un sol ús.                                                                                                                           |
-| `users.test.ts`               | Matriu d'abast: admin / coordinador de la pròpia ADF / un altre coordinador / voluntari; alta, edició, esborrat, mai a un mateix, mai administradors.                                                                                                                    |
-| `hidrants.test.ts`            | 401/403/404, ADF 278 contra 279, `private_tags` només amb sessió, `PENDING_CREATE`, `PENDING_DELETE`, `MISSING_IN_OSM`, `SYNCED + edició → PENDING_UPDATE`, tornar a l'original → `SYNCED`, observacions privades sense canvi d'estat, clamp de 50 m, límit territorial. |
-| `incidencies.test.ts`         | Matriu de visibilitat (`PUBLICA` / `TOTES_ADFS` / `ADF_PRIVADA`), tancades, detall 404 per a alienes, creació amb visibilitat forçada per rol, permisos dels esdeveniments.                                                                                              |
-| `adfs.test.ts`                | CRUD d'ADFs, 403 de coordinador, 409 amb dades associades, `/api/config`, `/healthz`, `/readyz`, OpenAPI, 404/405.                                                                                                                                                       |
-| `osmPush.test.ts`             | `PENDING_CREATE → SYNCED`, esborrat a OSM, 409 → `CONFLICT`, actualització correcta, tags invàlids → `ERROR`, warnings → `REVIEW`, sense token, changeset buit. L'API d'OSM és un mock.                                                                                  |
-| `osmValidator.test.ts`        | Validador de tags i `osmDiff` (funcions pures).                                                                                                                                                                                                                          |
-| `osmRoutes.test.ts`           | `status`, `pending`, `discard-selected`, `missing/purge` i `push-selected`: 400/403, abast ADF, restauració de dades remotes i pujada selectiva.                                                                                                                         |
-| `osmSync.test.ts`             | Pull des d'Overpass amb **fixtures**: importació, actualització de SYNCED, PENDING_CREATE intacte, CONFLICT per timestamp, restauració de MISSING, detecció de desapareguts, deduplicació per relacions, fallades parcials/totals.                                       |
-| `osmConflicts.test.ts`        | Conflictes, exportació `.osc`, resolució post-JOSM, reviews, diff i `pull-hydrant` (Overpass mockejat).                                                                                                                                                                  |
-| `osmConflictResolver.test.ts` | `tryAutoResolve` (sense osm_id, posició canviada, merge net, merge publicat, rebuig), `getConflicts`, `generateOscFile` i `resolveAfterJOSM`.                                                                                                                            |
-| `osmApi.test.ts`              | Client HTTP d'OSM amb `fetch` stub: changeset, create/update/delete/get de nodes i parseig del 409.                                                                                                                                                                      |
-| `osmXml.test.ts`              | Constructors XML: changeset, create/update/delete de node i `.osc`.                                                                                                                                                                                                      |
-| `overpass.test.ts`            | Client d'Overpass: POST, User-Agent, cos de la consulta i resposta d'error.                                                                                                                                                                                              |
+Les zones amb més cobertura són el nucli OSM (`osmSync.ts`, `osmXml.ts`,
+`overpass.ts`, `osmApi.ts`, `osmConflictResolver.ts`, `osmPushSync.ts`,
+`osmDataValidator.ts`), les rutes `routes/osm.ts`, `auth.ts`, `authorize.ts`,
+`hidrantsService.ts` i `incidenciesService.ts`. Les que en tenen menys són
+`utils/crypto.ts`, `services/mqtt.ts`, `services/dynsec.ts`, les rutes de
+Telegram i `routes/tracking.ts`: són el forat que la fase 1 del pla ha de tapar
+abans de confiar-hi.
+
+| Fitxer                        | Què prova                                                                                                                                                                                                                                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth.test.ts`                | Login correcte/incorrecte, cookie `httpOnly`, `/me`, `token_version`, usuari esborrat, logout, fre de força bruta, enllaç d'accés d'un sol ús.                                                                                                                                                              |
+| `users.test.ts`               | Matriu d'abast: admin / coordinador de la pròpia ADF / un altre coordinador / voluntari; alta, edició, esborrat, mai a un mateix, mai administradors.                                                                                                                                                       |
+| `hidrants.test.ts`            | 401/403/404, ADF 278 contra 279, `service_tags` només amb sessió i llegibles entre ADFs (ADR 0005), `PENDING_CREATE`, `PENDING_DELETE`, `MISSING_IN_OSM`, `SYNCED + edició → PENDING_UPDATE`, tornar a l'original → `SYNCED`, observacions de servei sense canvi d'estat, clamp de 50 m, límit territorial. |
+| `incidencies.test.ts`         | Matriu de visibilitat (`PUBLICA` / `TOTES_ADFS` / `ADF_PRIVADA`), tancades, detall 404 per a alienes, creació amb visibilitat forçada per rol, permisos dels esdeveniments.                                                                                                                                 |
+| `adfs.test.ts`                | CRUD d'ADFs, 403 de coordinador, 409 amb dades associades, `/api/config`, `/healthz`, `/readyz`, OpenAPI, 404/405.                                                                                                                                                                                          |
+| `osmPush.test.ts`             | `PENDING_CREATE → SYNCED`, esborrat a OSM, 409 → `CONFLICT`, actualització correcta, tags invàlids → `ERROR`, warnings → `REVIEW`, sense token, changeset buit. L'API d'OSM és un mock.                                                                                                                     |
+| `osmValidator.test.ts`        | Validador de tags i `osmDiff` (funcions pures).                                                                                                                                                                                                                                                             |
+| `osmRoutes.test.ts`           | `status`, `pending`, `discard-selected`, `missing/purge` i `push-selected`: 400/403, abast ADF, restauració de dades remotes i pujada selectiva.                                                                                                                                                            |
+| `osmSync.test.ts`             | Pull des d'Overpass amb **fixtures**: importació, actualització de SYNCED, PENDING_CREATE intacte, CONFLICT per timestamp, restauració de MISSING, detecció de desapareguts, deduplicació per relacions, fallades parcials/totals.                                                                          |
+| `osmConflicts.test.ts`        | Conflictes, exportació `.osc`, resolució post-JOSM, reviews, diff i `pull-hydrant` (Overpass mockejat).                                                                                                                                                                                                     |
+| `osmConflictResolver.test.ts` | `tryAutoResolve` (sense osm_id, posició canviada, merge net, merge publicat, rebuig), `getConflicts`, `generateOscFile` i `resolveAfterJOSM`.                                                                                                                                                               |
+| `osmApi.test.ts`              | Client HTTP d'OSM amb `fetch` stub: changeset, create/update/delete/get de nodes i parseig del 409.                                                                                                                                                                                                         |
+| `osmXml.test.ts`              | Constructors XML: changeset, create/update/delete de node i `.osc`.                                                                                                                                                                                                                                         |
+| `overpass.test.ts`            | Client d'Overpass: POST, User-Agent, cos de la consulta i resposta d'error.                                                                                                                                                                                                                                 |
 
 La matriu de casos que proposava F-08 queda coberta:
 
@@ -93,12 +99,11 @@ La matriu de casos que proposava F-08 queda coberta:
 
 ### Troballes de la revisió
 
-La revisió amb ulls nous ha detectat tres punts del codi (no de la suite). No
-s'han corregit en aquest canvi perquè són decisions de producte/API:
+La revisió amb ulls nous va detectar tres punts del codi (no de la suite). El
+primer ja està corregit: `GET /api/osm/status` compta tota la base sense `?adf=`,
+`?adf=ID` la limita, i el test afirma els números i no només la forma de la
+resposta. Queden dos punts, que són decisions de producte/API:
 
-- `GET /api/osm/status` anuncia estadístiques globals, però crida
-  `getSyncStats(0)`; com que filtra per `adf_id = 0`, sempre torna zeros. El test
-  comprova la forma de la resposta, no els números.
 - `POST /api/osm/discard-selected` compta com a `discarded` els hidrants sense
   `remote_osm_tags`, però no els canvia l'estat (no tenen versió remota a què
   tornar). El recompte pot ser enganyós en aquest cas límit.
@@ -235,8 +240,8 @@ tests passen dobles i l'aplicació de producció no canvia.
 `process.exitCode = 1`; el `globalSetup` ha de duplicar la lògica (obrir SQLite,
 desactivar FK, cridar el migrador). Si canvia el procediment, hi ha dos llocs.
 
-**Millora:** exportar `runMigrations(sqlite, folder)` des de `src/db/migrate.ts` i
-fer-lo servir tant al script com al setup dels tests.
+**Millora:** exportar `runMigrations(sqlite, folder)` des del mòdul de migracions
+de `back/src/db/` i fer-lo servir tant al script com al setup dels tests.
 
 ## Com millorar-ho, per ordre
 

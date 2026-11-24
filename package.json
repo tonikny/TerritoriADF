@@ -13,6 +13,7 @@
     "test:contracts": "npm test -w packages/contracts",
     "format": "prettier . --write",
     "format:check": "prettier . --check .",
+    "docs:check": "node scripts/docs-check.mjs",
     "update:boundaries": "npm run update:boundaries -w back",
     "db:reset": "npm run db:reset -w back",
     "db:seed": "npm run db:seed -w back",

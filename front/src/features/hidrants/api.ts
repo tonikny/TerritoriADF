@@ -3,7 +3,7 @@
 // `features/hidrants/useHidrantData.ts`.
 import type {
   HidrantFeature,
-  HidrantPrivateTags,
+  HidrantServiceTags,
   HidrantUiFields,
 } from "@territoriadf/contracts/hidrants";
 
@@ -13,20 +13,20 @@ export interface HidrantCreateInput {
   lat: number;
   lon: number;
   ui_fields?: HidrantUiFields;
-  private_tags?: HidrantPrivateTags;
+  service_tags?: HidrantServiceTags;
 }
 
 export interface HidrantUpdateInput {
   lat?: number;
   lon?: number;
   ui_fields?: HidrantUiFields;
-  private_tags?: HidrantPrivateTags;
+  service_tags?: HidrantServiceTags;
 }
 
 /**
- * Hidrants d'una ADF en GeoJSON. La resposta canvia amb la sessió (les
- * observacions privades només surten amb sessió iniciada), per això qui crida
- * ha d'incloure el visor a la clau de caché.
+ * Hidrants d'una ADF en GeoJSON. La resposta canvia amb la sessió (els tags de
+ * servei només surten amb sessió iniciada), per això qui crida ha d'incloure el
+ * visor a la clau de caché.
  */
 export async function getHidrants(adfId: number, signal?: AbortSignal): Promise<HidrantFeature[]> {
   const data = await request<{ features?: HidrantFeature[] }>("/api/hidrants", {

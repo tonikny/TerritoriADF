@@ -45,11 +45,11 @@ export function HidrantInfoView({
         <HidrantImages images={getHidrantImages(props.osm_tags)} />
       </div>
 
-      {props.private_tags?.observacions && (
+      {props.service_tags?.observacions && (
         <div className="border border-border rounded p-2">
           <div className="text-xs text-muted mb-1">Observacions</div>
           <div className="text-[0.85rem] text-ink whitespace-pre-wrap">
-            {props.private_tags.observacions}
+            {props.service_tags.observacions}
           </div>
         </div>
       )}

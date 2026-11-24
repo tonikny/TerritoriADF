@@ -37,6 +37,7 @@ opencode.json
 !/scripts/render-mosquitto.sh
 !/scripts/backup/
 !/scripts/deploy/
+!/scripts/docs-check.mjs
 
 *.md
 !README.md

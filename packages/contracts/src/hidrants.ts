@@ -194,8 +194,12 @@ export interface HidrantSyncIssue {
  */
 type HidrantSyncError = HidrantSyncConflict | HidrantSyncIssue[] | string | null;
 
-/** Observacions privades: només surten amb la sessió iniciada. */
-export type HidrantPrivateTags = Record<string, unknown> & { observacions?: string };
+/**
+ * Informació de servei de l'hidrant (observacions, accessos, claus...). No és
+ * d'OSM, però tampoc no és privada d'una ADF: la llegeix qualsevol sessió, de
+ * qualsevol ADF (ADR 0005). Les respostes anònimes no la porten.
+ */
+export type HidrantServiceTags = Record<string, unknown> & { observacions?: string };
 
 /**
  * Un hidrant tal com el retorna `GET /api/hidrants`.
@@ -217,7 +221,7 @@ export interface HidrantFeature {
     osm_id: number | null;
     osm_tags: Record<string, string>;
     ui_fields: HidrantUiFields;
-    private_tags?: HidrantPrivateTags;
+    service_tags?: HidrantServiceTags;
     sync_status: SyncStatus;
     sync_error: HidrantSyncError;
     synced_at: string | null;

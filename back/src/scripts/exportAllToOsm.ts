@@ -130,10 +130,10 @@ async function run() {
 
     // Combinar tags
     const osmTags = JSON.parse(h.osm_tags || '{}') as Record<string, string>;
-    const privateTags = JSON.parse(h.private_tags || '{}') as {
+    const serviceTags = JSON.parse(h.service_tags || '{}') as {
       description?: string | { value?: string };
     };
-    const parsed = parsePrivateDescription(privateTags.description);
+    const parsed = parsePrivateDescription(serviceTags.description);
 
     const finalTags: Record<string, string> = {
       ...osmTags

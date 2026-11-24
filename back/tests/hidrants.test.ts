@@ -8,6 +8,7 @@ import { createTestApp, loginCookie } from "./helpers/app.js";
 import type { ErrorBody, HidrantFeatures } from "./helpers/types.js";
 import {
   ADF_278,
+  ADF_279,
   createSyncedHydrant,
   createHydrant,
   FULL_UI_FIELDS,
@@ -146,10 +147,10 @@ describe("POST /api/hidrants", () => {
 });
 
 describe("GET /api/hidrants", () => {
-  it("és públic i amaga les observacions privades sense sessió", async () => {
+  it("és públic i amaga els tags de servei sense sessió", async () => {
     createHydrant({
-      id: "h-private-tags",
-      private_tags: JSON.stringify({ nota: "intern" }),
+      id: "h-service-tags",
+      service_tags: JSON.stringify({ observacions: "Clau a la caseta" }),
     });
 
     const anonymous = await app.inject({
@@ -158,7 +159,7 @@ describe("GET /api/hidrants", () => {
     });
     expect(anonymous.statusCode).toBe(200);
     const anonymousFeature = anonymous.json<HidrantFeatures>().features[0]!;
-    expect(anonymousFeature.properties.private_tags).toBeUndefined();
+    expect(anonymousFeature.properties.service_tags).toBeUndefined();
     expect(anonymousFeature.properties.notes).toBeUndefined();
 
     const logged = await app.inject({
@@ -166,9 +167,32 @@ describe("GET /api/hidrants", () => {
       url: `/api/hidrants?adf=${ADF_278}`,
       headers: { cookie: voluntariCookie },
     });
-    expect(logged.json<HidrantFeatures>().features[0]!.properties.private_tags).toEqual({
-      nota: "intern",
+    expect(logged.json<HidrantFeatures>().features[0]!.properties.service_tags).toEqual({
+      observacions: "Clau a la caseta",
     });
+  });
+
+  it("un usuari de qualsevol ADF llegeix els tags de servei d'una altra ADF (ADR 0005)", async () => {
+    createHydrant({
+      id: "h-279-service",
+      adf_id: 279,
+      service_tags: JSON.stringify({ observacions: "Presa compartida" }),
+      private_tags: JSON.stringify({ nota_reservada: "pendent de política" }),
+    });
+
+    // Voluntari de l'ADF 278 consultant el mapa de l'ADF 279.
+    const fromOtherAdf = await app.inject({
+      method: "GET",
+      url: `/api/hidrants?adf=${ADF_279}`,
+      headers: { cookie: voluntariCookie },
+    });
+
+    expect(fromOtherAdf.statusCode).toBe(200);
+    const properties = fromOtherAdf.json<HidrantFeatures>().features[0]!.properties;
+    // La informació de servei és compartida entre ADFs...
+    expect(properties.service_tags).toEqual({ observacions: "Presa compartida" });
+    // ...i `private_tags` queda reservat: l'API encara no l'exposa.
+    expect(properties.private_tags).toBeUndefined();
   });
 
   it("no pinta els hidrants PENDING_DELETE ni MISSING_IN_OSM", async () => {
@@ -227,21 +251,21 @@ describe("PUT /api/hidrants/:id: màquina d'estats", () => {
     expect(reverted.json<SyncStatusBody>().sync_status).toBe("SYNCED");
   });
 
-  it("un canvi només d'observacions privades no genera PENDING_UPDATE", async () => {
+  it("un canvi només d'observacions de servei no genera PENDING_UPDATE", async () => {
     createSyncedHydrant();
 
     const response = await app.inject({
       method: "PUT",
       url: `/api/hidrants/hydrant-synced?adf=${ADF_278}`,
       headers: { cookie: voluntariCookie },
-      payload: { private_tags: { nota: "actualitzada" } },
+      payload: { service_tags: { observacions: "actualitzada" } },
     });
 
     expect(response.statusCode).toBe(200);
     expect(response.json<SyncStatusBody>().sync_status).toBe("SYNCED");
 
     const row = db.select().from(hidrants).where(eq(hidrants.id, "hydrant-synced")).get();
-    expect(JSON.parse(row?.private_tags ?? "{}")).toEqual({ nota: "actualitzada" });
+    expect(JSON.parse(row?.service_tags ?? "{}")).toEqual({ observacions: "actualitzada" });
   });
 
   it("limita el desplaçament a 50 metres", async () => {
