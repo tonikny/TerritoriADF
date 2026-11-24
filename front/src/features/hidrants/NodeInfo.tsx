@@ -40,12 +40,17 @@ export const NodeInfo = ({
   const [data, setData] = useState(props.ui_fields);
   const [observacions, setObservacions] = useState(props.service_tags?.observacions || "");
 
-  // Sincronitzar l'estat del formulari quan feature canvia (actualització des del backend)
+  // En sortir de l'edició es descarta l'esborrany: reobrir el formulari no ha de
+  // mostrar valors que l'usuari ja havia cancel·lat. Mentre s'edita no se
+  // sincronitza, per no sobreescriure el que s'està escrivint.
   /* eslint-disable react-hooks/set-state-in-effect -- actualització necessària quan canvien les dades del backend */
   useEffect(() => {
+    if (editing) {
+      return;
+    }
     setData(props.ui_fields);
     setObservacions(props.service_tags?.observacions || "");
-  }, [props.ui_fields, props.service_tags?.observacions]);
+  }, [editing, props.ui_fields, props.service_tags?.observacions]);
 
   const canDelete = canEdit && can(user?.permissions, "delete_hydrant");
 
