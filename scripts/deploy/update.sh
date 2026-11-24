@@ -25,7 +25,7 @@
 #   8. docker compose up -d + restart de mosquitto si la seva conf ha canviat
 #   9. Espera de healthcheck de backend i frontend
 #  10. npm run update:boundaries (no bloquejant: si falla, només avisa)
-#  11. docker image prune
+#  11. docker image prune + docker builder prune --filter until=168h
 #
 # Si una passa falla, l'script s'atura -- excepte la 10, que és best-effort.
 # Les migracions de la BD s'apliquen automàticament en arrencar el contenidor
@@ -474,6 +474,14 @@ main() {
 
   log_info "Netejant imatges sense etiqueta"
   run docker image prune -f
+
+  # Cache de build: el GC del dimoni (builder.gc a /etc/docker/daemon.json)
+  # ja el manté a ratlla on està configurat, però un servidor sense aquest
+  # bloc el deixa créixer fins a un percentatge del disc. Només cau el que
+  # fa més de 7 dies que no s'usa, així que els builds de cada desplegament
+  # segueixen calents. Vegeu ops/deploy.md §7, «Neteja de disc de Docker».
+  log_info "Netejant cache de build de més de 7 dies (until=168h)"
+  run docker builder prune --filter until=168h -f
 
   if (( DRY_RUN )); then
     log_ok "[dry-run] cap canvi aplicat"
