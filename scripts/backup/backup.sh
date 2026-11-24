@@ -89,10 +89,6 @@ send_telegram_document() {
         log_warning "Telegram no està configurat: no s'envia el document"
         return 1
     fi
-    if [ ! -f "$FILE" ]; then
-        log_warning "No existeix el fitxer a enviar: $FILE"
-        return 1
-    fi
 
     SIZE=$(stat -c %s "$FILE")
     if [ "$SIZE" -gt "$TELEGRAM_MAX_DOCUMENT_BYTES" ]; then
@@ -106,7 +102,8 @@ send_telegram_document() {
         "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
         -F "chat_id=$TELEGRAM_CHAT_ID" \
         -F "document=@$FILE;filename=$FILENAME" \
-        --form-string "caption=${CAPTION:0:1000}" > /dev/null; then
+        --form-string "caption=${CAPTION:0:1000}" \
+        --form-string "disable_notification=true" > /dev/null; then
         log_success "Document enviat per Telegram: $FILENAME ($(du -h "$FILE" | cut -f1))"
         return 0
     fi
@@ -130,7 +127,7 @@ db_file_path() {
 # és consistent.
 send_db_copy() {
     local BACKUP_TYPE="$1"
-    local DB_FILE DB_COPY
+    local DB_FILE DB_COPY RESULT
 
     DB_FILE=$(db_file_path)
     if [ ! -f "$DB_FILE" ]; then
@@ -145,15 +142,13 @@ send_db_copy() {
         return 1
     fi
 
-    if send_telegram_document "$DB_COPY" \
+    RESULT=0
+    send_telegram_document "$DB_COPY" \
         "🗄️ <b>Còpia de la BD</b> · $BACKUP_TYPE · $(date '+%Y-%m-%d %H:%M')" \
-        "territoriadf_${BACKUP_TYPE}_${TIMESTAMP}.db.gz"; then
-        rm -f "$DB_COPY"
-        return 0
-    fi
+        "territoriadf_${BACKUP_TYPE}_${TIMESTAMP}.db.gz" || RESULT=$?
 
     rm -f "$DB_COPY"
-    return 1
+    return $RESULT
 }
 
 check_docker() {
@@ -349,7 +344,7 @@ main() {
         elif send_db_copy "$BACKUP_TYPE"; then
             DB_COPY_STATUS="enviada"
         else
-            DB_COPY_STATUS="no enviada: Telegram l'ha rebutjada (vegeu backup.log)"
+            DB_COPY_STATUS="no enviada: Telegram no l'ha acceptada (vegeu backup.log)"
         fi
     fi
     
