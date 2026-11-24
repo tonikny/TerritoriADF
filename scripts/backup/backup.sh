@@ -8,12 +8,11 @@
 # Ús: ./backup.sh [daily|weekly|monthly|semester]
 #
 # Aquest script:
-# - Atura temporalment el contenidor backend
-# - Fa checkpoint de SQLite per consolidar el WAL
-# - Comprimeix tot el directori back/data/
+# - Fa una còpia en calent de la BD (`sqlite3 .backup`), sense aturar el servei
+# - Fa un checkpoint PASSIVE per mantenir el WAL petit (best-effort)
+# - Comprimeix tot el directori back/data/ amb la BD ja consistent
 # - Gestiona la rotació automàtica segons la política
-# - Reinicia el contenidor
-# - Envia notificació per Telegram (opcional)
+# - Envia el missatge de resultat i la còpia comprimida de la BD per Telegram
 
 set -e  # Sortir si hi ha errors
 
@@ -123,32 +122,13 @@ db_file_path() {
 
 # Còpia de la base de dades comprimida com a document: és l'única peça que no es
 # pot reconstruir, i el tar.gz sencer (WAL inclòs) no s'ha d'enviar a Telegram.
-# S'executa amb el contenidor aturat, després del checkpoint, així que el fitxer
-# és consistent.
+# Rep el `.db.gz` que ha creat `create_backup` a partir del snapshot.
 send_db_copy() {
-    local BACKUP_TYPE="$1"
-    local DB_FILE DB_COPY RESULT
+    local DB_COPY="$1" BACKUP_TYPE="$2"
 
-    DB_FILE=$(db_file_path)
-    if [ ! -f "$DB_FILE" ]; then
-        log_warning "No hi ha base de dades a $DB_FILE: no s'envia la còpia"
-        return 1
-    fi
-
-    DB_COPY=$(mktemp --suffix=.db.gz)
-    if ! gzip -c "$DB_FILE" > "$DB_COPY"; then
-        log_warning "No s'ha pogut comprimir la base de dades"
-        rm -f "$DB_COPY"
-        return 1
-    fi
-
-    RESULT=0
     send_telegram_document "$DB_COPY" \
-        "🗄️ <b>Còpia de la BD</b> · $BACKUP_TYPE · $(date '+%Y-%m-%d %H:%M')" \
-        "territoriadf_${BACKUP_TYPE}_${TIMESTAMP}.db.gz" || RESULT=$?
-
-    rm -f "$DB_COPY"
-    return $RESULT
+        "🗄️ *Còpia de la BD* · $BACKUP_TYPE · $(date '+%Y-%m-%d %H:%M')" \
+        "territoriadf_${BACKUP_TYPE}_${TIMESTAMP}.db.gz"
 }
 
 check_docker() {
@@ -192,54 +172,84 @@ start_container() {
     fi
 }
 
-# Retorna 0 només si el WAL ha quedat consolidat: si no, el fitxer .db sol no
-# és una còpia completa i no s'ha d'enviar fora del servidor.
+# No cal per consistència (la garanteix `.backup`), però mantenir el WAL petit
+# evita que creixi sense control. Best-effort: amb el servei escrivint, un
+# checkpoint PASSIVE pot no acabar i no passa res.
 sqlite_checkpoint() {
     local DB_FILE
     DB_FILE=$(db_file_path)
 
-    if [ ! -f "$DB_FILE" ]; then
-        log_warning "La base de dades no existeix a $DB_FILE"
-        return 1
-    fi
-    
-    log_info "Fent checkpoint de SQLite per consolidar el WAL..."
-    
-    if ! command -v sqlite3 &> /dev/null; then
-        log_warning "sqlite3 no està instal·lat, saltant checkpoint"
-        return 1
-    fi
-
-    if sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" > /dev/null 2>&1; then
+    log_info "Fent checkpoint de SQLite (PASSIVE)..."
+    if sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(PASSIVE);" > /dev/null 2>&1; then
         log_success "Checkpoint completat"
         return 0
     fi
 
-    log_warning "Checkpoint fallit: es continua amb el backup (el WAL queda al tar)"
+    log_warning "Checkpoint no completat: es continua (el snapshot no en depèn)"
     return 1
 }
 
 create_backup() {
-    local BACKUP_TYPE="$1"
+    local BACKUP_TYPE="$1" DB_FILE="$2"
     local BACKUP_DIR="$BACKUP_BASE_DIR/$BACKUP_TYPE"
+    local TMP STAGING DB_NAME SIZE
+
     CREATED_BACKUP_FILE="$BACKUP_DIR/territoriadf_${BACKUP_TYPE}_${TIMESTAMP}.tar.gz"
-    
-    # Crear directori si no existeix
+    CREATED_DB_SNAPSHOT=""
     mkdir -p "$BACKUP_DIR"
-    
+
+    TMP=$(mktemp -d)
+    STAGING="$TMP/$(basename "$DATA_DIR")"
+    DB_NAME=$(basename "$DB_FILE")
+    mkdir -p "$STAGING"
+
     log_info "Creant backup $BACKUP_TYPE..."
     log_info "Origen: $DATA_DIR"
     log_info "Destí: $CREATED_BACKUP_FILE"
-    
-    # Crear backup comprimit
-    if tar -czf "$CREATED_BACKUP_FILE" -C "$(dirname "$DATA_DIR")" "$(basename "$DATA_DIR")" 2>/dev/null; then
-        local SIZE=$(du -h "$CREATED_BACKUP_FILE" | cut -f1)
-        log_success "Backup creat correctament ($SIZE)"
-        return 0
-    else
-        log_error "Error creant el backup"
+
+    # Els altres fitxers es copien tal com són; la BD, amb un snapshot
+    # consistent, perquè pot estar canviant mentre es llegeix.
+    if ! tar -cf "$TMP/files.tar" -C "$DATA_DIR" \
+            --exclude='*.db' --exclude='*.db-wal' --exclude='*.db-shm' .; then
+        log_error "Error copiant els fitxers de $DATA_DIR"
+        rm -rf "$TMP"
         return 1
     fi
+    if ! tar -xf "$TMP/files.tar" -C "$STAGING"; then
+        log_error "Error preparant el backup"
+        rm -rf "$TMP"
+        return 1
+    fi
+    rm -f "$TMP/files.tar"
+
+    if [ "$HOT_COPY" = true ]; then
+        log_info "Fent snapshot de la BD amb el servei en marxa..."
+        if ! sqlite3 "$DB_FILE" ".backup '$STAGING/$DB_NAME'"; then
+            log_error "Error fent el snapshot de la BD"
+            rm -rf "$TMP"
+            return 1
+        fi
+    else
+        cp -a "$DB_FILE" "$STAGING/$DB_NAME"
+    fi
+
+    if ! tar -czf "$CREATED_BACKUP_FILE" -C "$TMP" "$(basename "$DATA_DIR")"; then
+        log_error "Error creant el backup"
+        rm -rf "$TMP"
+        return 1
+    fi
+    SIZE=$(du -h "$CREATED_BACKUP_FILE" | cut -f1)
+    log_success "Backup creat correctament ($SIZE)"
+
+    CREATED_DB_SNAPSHOT=$(mktemp --suffix=.db.gz)
+    if ! gzip -c "$STAGING/$DB_NAME" > "$CREATED_DB_SNAPSHOT"; then
+        log_warning "No s'ha pogut comprimir la còpia de la BD"
+        rm -f "$CREATED_DB_SNAPSHOT"
+        CREATED_DB_SNAPSHOT=""
+    fi
+
+    rm -rf "$TMP"
+    return 0
 }
 
 rotate_backups() {
@@ -314,38 +324,48 @@ main() {
         exit 1
     fi
     
-    # Aturar contenidor
+    DB_FILE=$(db_file_path)
+    if [ ! -f "$DB_FILE" ]; then
+        log_error "No hi ha base de dades a $DB_FILE"
+        exit 1
+    fi
+
+    # Còpia en calent: el servei no s'atura. Només si no hi ha `sqlite3` (qui sap
+    # llegir una BD amb escriptures en curs) s'atura el contenidor.
+    HOT_COPY=true
     CONTAINER_WAS_RUNNING=false
-    if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-        CONTAINER_WAS_RUNNING=true
-        stop_container || true
-        sleep 2
+    if ! command -v sqlite3 &> /dev/null; then
+        HOT_COPY=false
+        log_warning "sqlite3 no està instal·lat: s'atura el contenidor per fer la còpia"
+        if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+            CONTAINER_WAS_RUNNING=true
+            stop_container || true
+            sleep 2
+        fi
     else
-        log_info "El contenidor ja estava aturat"
+        sqlite_checkpoint || true
     fi
-    
-    # Checkpoint de SQLite
-    CHECKPOINT_OK=false
-    if sqlite_checkpoint; then
-        CHECKPOINT_OK=true
+
+    # Crear backup (usa les globals CREATED_BACKUP_FILE i CREATED_DB_SNAPSHOT)
+    if create_backup "$BACKUP_TYPE" "$DB_FILE"; then
+        BACKUP_SUCCESS=0
+    else
+        BACKUP_SUCCESS=1
     fi
-    
-    # Crear backup (usa variable global CREATED_BACKUP_FILE)
-    create_backup "$BACKUP_TYPE"
-    BACKUP_SUCCESS=$?
     BACKUP_FILE="$CREATED_BACKUP_FILE"
 
-    # La còpia de la BD s'envia amb el contenidor encara aturat (després del
-    # checkpoint), perquè el fitxer sigui consistent.
     DB_COPY_STATUS="no enviada"
     if [ $BACKUP_SUCCESS -eq 0 ]; then
-        if [ "$CHECKPOINT_OK" != true ]; then
-            DB_COPY_STATUS="no enviada: el checkpoint del WAL ha fallat"
-        elif send_db_copy "$BACKUP_TYPE"; then
+        if [ -z "$CREATED_DB_SNAPSHOT" ]; then
+            DB_COPY_STATUS="no enviada: no s'ha pogut comprimir la BD"
+        elif send_db_copy "$CREATED_DB_SNAPSHOT" "$BACKUP_TYPE"; then
             DB_COPY_STATUS="enviada"
         else
             DB_COPY_STATUS="no enviada: Telegram no l'ha acceptada (vegeu backup.log)"
         fi
+    fi
+    if [ -n "$CREATED_DB_SNAPSHOT" ]; then
+        rm -f "$CREATED_DB_SNAPSHOT"
     fi
     
     # Reiniciar contenidor si estava en marxa
