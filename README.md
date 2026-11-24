@@ -36,17 +36,15 @@ TerritoriADF reuneix en una sola aplicació el que una ADF necessita per tenir c
 - **Rols i permisos** — Admin, coordinador, voluntari i consulta pública, cadascú amb el que li toca.
 - **També al mòbil** — Instal·lable com una app i amb les dades de l'ADF disponibles sense connexió.
 
-<p align="center">
-  <img src="docs/images/hidrant.png" width="360" alt="Fitxa d'un hidrant amb la data de revisió, l'estat, el tipus i les dades d'OSM">
-</p>
-
-<p align="center"><sub>La fitxa d'un hidrant: dades d'OSM, estat i accions de camp.</sub></p>
+<br>
 
 <p align="center">
-  <img src="docs/images/mobil.png" width="360" alt="El mapa al mòbil amb els hidrants sobre el relleu 3D i la barra de pestanyes a baix">
+  <img src="docs/images/mobil.png" width="260" alt="El mapa al mòbil amb els hidrants sobre el relleu 3D i la barra de pestanyes a baix">
+  &nbsp;&nbsp;&nbsp;
+  <img src="docs/images/hidrant.png" width="260" alt="La fitxa d'un hidrant al mòbil: data de revisió, estat, tipus, posició, acoblaments i les accions de camp">
 </p>
 
-<p align="center"><sub>El mateix mapa al mòbil, instal·lat com una app: relleu 3D, hidrants i el panell a mà.</sub></p>
+<p align="center"><sub>Al mòbil: el mapa amb relleu 3D i la fitxa d'un hidrant amb les dades d'OSM i les accions de camp.</sub></p>
 
 ## Stack tecnològic
 
