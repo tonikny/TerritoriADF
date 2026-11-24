@@ -62,7 +62,7 @@ Com funciona amb detall: [docs/OSM_SYNC.md](docs/OSM_SYNC.md).
 ## Com començar
 
 - **Desenvolupament local**: [docs/DEV.md](docs/DEV.md) — variables d'entorn, base de dades, MQTT i proves.
-- **Producció**: el projecte s'orquestra amb Docker Compose. La guia de desplegament és interna i no es versiona en aquest repositori; les comandes principals (`docker:deploy`, `docker:logs`) són a [docs/DEV.md](docs/DEV.md).
+- **Producció**: el projecte s'orquestra amb Docker Compose. Les comandes principals (`docker:deploy`, `docker:logs`, etc) són a [docs/DEV.md](docs/DEV.md).
 - **Tests**: [docs/TESTING.md](docs/TESTING.md).
 - **App instal·lable i mode sense connexió**: [docs/PWA.md](docs/PWA.md).
 
