@@ -63,6 +63,9 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Límit de l'API de Telegram per a un document enviat per un bot.
+TELEGRAM_MAX_DOCUMENT_BYTES=$((50 * 1024 * 1024))
+
 send_telegram() {
     local MESSAGE="$1"
     if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
@@ -74,6 +77,83 @@ send_telegram() {
             -d "parse_mode=HTML" \
             -d "disable_notification=true" > /dev/null 2>&1
     fi
+}
+
+# Envia un fitxer com a document. Retorna 0 només si Telegram l'ha acceptat:
+# un enviament fallit no ha de fer fallar el backup (el tar.gz local ja hi és),
+# però ha de quedar clar al missatge de resultat.
+send_telegram_document() {
+    local FILE="$1" CAPTION="${2:-}" FILENAME="${3:-}" SIZE
+
+    if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+        log_warning "Telegram no està configurat: no s'envia el document"
+        return 1
+    fi
+    if [ ! -f "$FILE" ]; then
+        log_warning "No existeix el fitxer a enviar: $FILE"
+        return 1
+    fi
+
+    SIZE=$(stat -c %s "$FILE")
+    if [ "$SIZE" -gt "$TELEGRAM_MAX_DOCUMENT_BYTES" ]; then
+        log_warning "El document fa $(du -h "$FILE" | cut -f1) i supera el límit de 50 MB de Telegram: no s'envia"
+        return 1
+    fi
+
+    # Nom amb què arriba el fitxer al xat (el temporal pot ser un `mktemp`).
+    FILENAME="${FILENAME:-$(basename "$FILE")}"
+    if curl -sS --fail --max-time 120 -X POST \
+        "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
+        -F "chat_id=$TELEGRAM_CHAT_ID" \
+        -F "document=@$FILE;filename=$FILENAME" \
+        --form-string "caption=${CAPTION:0:1000}" > /dev/null; then
+        log_success "Document enviat per Telegram: $FILENAME ($(du -h "$FILE" | cut -f1))"
+        return 0
+    fi
+
+    log_warning "Telegram ha rebutjat el document: $FILENAME"
+    return 1
+}
+
+# Ruta de la BD, amb compatibilitat per al nom anterior del fitxer.
+db_file_path() {
+    local DB_FILE="$DATA_DIR/territoriadf.db"
+    if [ ! -f "$DB_FILE" ]; then
+        DB_FILE="$DATA_DIR/hidrants.db"
+    fi
+    printf '%s' "$DB_FILE"
+}
+
+# Còpia de la base de dades comprimida com a document: és l'única peça que no es
+# pot reconstruir, i el tar.gz sencer (WAL inclòs) no s'ha d'enviar a Telegram.
+# S'executa amb el contenidor aturat, després del checkpoint, així que el fitxer
+# és consistent.
+send_db_copy() {
+    local BACKUP_TYPE="$1"
+    local DB_FILE DB_COPY
+
+    DB_FILE=$(db_file_path)
+    if [ ! -f "$DB_FILE" ]; then
+        log_warning "No hi ha base de dades a $DB_FILE: no s'envia la còpia"
+        return 1
+    fi
+
+    DB_COPY=$(mktemp --suffix=.db.gz)
+    if ! gzip -c "$DB_FILE" > "$DB_COPY"; then
+        log_warning "No s'ha pogut comprimir la base de dades"
+        rm -f "$DB_COPY"
+        return 1
+    fi
+
+    if send_telegram_document "$DB_COPY" \
+        "🗄️ <b>Còpia de la BD</b> · $BACKUP_TYPE · $(date '+%Y-%m-%d %H:%M')" \
+        "territoriadf_${BACKUP_TYPE}_${TIMESTAMP}.db.gz"; then
+        rm -f "$DB_COPY"
+        return 0
+    fi
+
+    rm -f "$DB_COPY"
+    return 1
 }
 
 check_docker() {
@@ -117,15 +197,12 @@ start_container() {
     fi
 }
 
+# Retorna 0 només si el WAL ha quedat consolidat: si no, el fitxer .db sol no
+# és una còpia completa i no s'ha d'enviar fora del servidor.
 sqlite_checkpoint() {
-    local DB_FILE="$DATA_DIR/territoriadf.db"
+    local DB_FILE
+    DB_FILE=$(db_file_path)
 
-    # Compatibilitat: si el backend encara no s'ha reiniciat des del canvi de nom,
-    # el fitxer de la BD es diu com abans.
-    if [ ! -f "$DB_FILE" ]; then
-        DB_FILE="$DATA_DIR/hidrants.db"
-    fi
-    
     if [ ! -f "$DB_FILE" ]; then
         log_warning "La base de dades no existeix a $DB_FILE"
         return 1
@@ -133,15 +210,18 @@ sqlite_checkpoint() {
     
     log_info "Fent checkpoint de SQLite per consolidar el WAL..."
     
-    if command -v sqlite3 &> /dev/null; then
-        if sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" > /dev/null 2>&1; then
-            log_success "Checkpoint completat"
-        else
-            log_warning "Checkpoint fallit: es continua amb el backup (el WAL queda al tar)"
-        fi
-    else
+    if ! command -v sqlite3 &> /dev/null; then
         log_warning "sqlite3 no està instal·lat, saltant checkpoint"
+        return 1
     fi
+
+    if sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" > /dev/null 2>&1; then
+        log_success "Checkpoint completat"
+        return 0
+    fi
+
+    log_warning "Checkpoint fallit: es continua amb el backup (el WAL queda al tar)"
+    return 1
 }
 
 create_backup() {
@@ -250,12 +330,28 @@ main() {
     fi
     
     # Checkpoint de SQLite
-    sqlite_checkpoint
+    CHECKPOINT_OK=false
+    if sqlite_checkpoint; then
+        CHECKPOINT_OK=true
+    fi
     
     # Crear backup (usa variable global CREATED_BACKUP_FILE)
     create_backup "$BACKUP_TYPE"
     BACKUP_SUCCESS=$?
     BACKUP_FILE="$CREATED_BACKUP_FILE"
+
+    # La còpia de la BD s'envia amb el contenidor encara aturat (després del
+    # checkpoint), perquè el fitxer sigui consistent.
+    DB_COPY_STATUS="no enviada"
+    if [ $BACKUP_SUCCESS -eq 0 ]; then
+        if [ "$CHECKPOINT_OK" != true ]; then
+            DB_COPY_STATUS="no enviada: el checkpoint del WAL ha fallat"
+        elif send_db_copy "$BACKUP_TYPE"; then
+            DB_COPY_STATUS="enviada"
+        else
+            DB_COPY_STATUS="no enviada: Telegram l'ha rebutjada (vegeu backup.log)"
+        fi
+    fi
     
     # Reiniciar contenidor si estava en marxa
     if [ "$CONTAINER_WAS_RUNNING" = true ]; then
@@ -284,6 +380,7 @@ main() {
 Tipus: $BACKUP_TYPE
 📁 $(basename "$BACKUP_FILE")
 📊 $(du -h "$BACKUP_FILE" | cut -f1)
+🗄️ Còpia de la BD: $DB_COPY_STATUS
 🕐 $(date '+%Y-%m-%d %H:%M:%S')"
         
         exit 0
