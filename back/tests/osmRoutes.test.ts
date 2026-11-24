@@ -392,3 +392,59 @@ describe("POST /api/osm/push-selected", () => {
     expect(response.statusCode).toBe(403);
   });
 });
+
+describe("POST /api/osm/push-sync", () => {
+  it("amb adf_id només puja els pendents d'aquella ADF", async () => {
+    createHydrant({
+      id: "push-278",
+      sync_status: "PENDING_CREATE",
+      lat: 41.61,
+      lon: 1.61,
+      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+    });
+    createHydrant({
+      id: "push-279",
+      adf_id: ADF_279,
+      sync_status: "PENDING_CREATE",
+      lat: 41.62,
+      lon: 1.62,
+      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/osm/push-sync",
+      headers: { cookie: adminCookie },
+      payload: { adf_id: ADF_278 },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ synced: number }>().synced).toBe(1);
+    expect(osmApi.createNode).toHaveBeenCalledTimes(1);
+
+    const rows = HidrantsRepository.findByIds(["push-278", "push-279"]);
+    expect(rows.find((row) => row.id === "push-278")?.sync_status).toBe("SYNCED");
+    expect(rows.find((row) => row.id === "push-279")?.sync_status).toBe("PENDING_CREATE");
+  });
+
+  it("accepta adf_id com a text i rebutja un valor no numèric", async () => {
+    // Client antic: `adf_id` arriba com a text; `z.coerce` el converteix.
+    const asText = await app.inject({
+      method: "POST",
+      url: "/api/osm/push-sync",
+      headers: { cookie: adminCookie },
+      payload: { adf_id: "278" },
+    });
+    expect(asText.statusCode).toBe(200);
+
+    // Sense `z.coerce`, `Number("abc")` era `NaN` i acabava en un push global.
+    const invalid = await app.inject({
+      method: "POST",
+      url: "/api/osm/push-sync",
+      headers: { cookie: adminCookie },
+      payload: { adf_id: "abc" },
+    });
+    expect(invalid.statusCode).toBe(400);
+    expect(osmApi.createChangeset).not.toHaveBeenCalled();
+  });
+});

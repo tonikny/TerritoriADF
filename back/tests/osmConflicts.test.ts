@@ -372,4 +372,15 @@ describe("POST /api/osm/pull-hydrant", () => {
 
     expect(response.statusCode).toBe(400);
   });
+
+  it("retorna 403 per a un coordinador", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/osm/pull-hydrant",
+      headers: { cookie: coord278Cookie },
+      payload: { id: "conflict-1" },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
 });

@@ -25,8 +25,12 @@ import type {
   OsmPurgeResult,
 } from "@territoriadf/contracts/osm";
 
-/** Cos d'ADF opcional: `adf_id` pot arribar com a número o com a text. */
-const adfIdValue = z.union([z.number(), z.string()]).optional();
+/**
+ * `adf_id` opcional. `z.coerce` accepta el número o el text que envia un client
+ * antic, però rebutja el que no és un enter positiu (`"abc"` → 400) en lloc de
+ * deixar arribar un `NaN` als serveis.
+ */
+const adfIdValue = z.coerce.number().int().positive().optional();
 
 const adfBodySchema = z.object({ adf_id: adfIdValue }).optional();
 const idsBodySchema = z.object({ ids: z.array(z.string()).optional() }).optional();
@@ -39,17 +43,18 @@ const purgeBodySchema = z
 
 /** Consultar l'estat només demana veure'l; publicar demana `sync_osm`. */
 const VIEW_SYNC = [requireAuth, requirePermission("view_sync_status")];
+
+/**
+ * `sync_osm` és només d'admin (ADR 0006), així que aquestes rutes no declaren
+ * abast ADF. El dia que la matriu doni la capacitat a un altre rol, cal un guard
+ * per dades (`requireHydrantsInScope`, V3-02) abans o al mateix canvi.
+ */
 const MANAGE_SYNC = [requireAuth, requirePermission("sync_osm")];
 const MANAGE_SYNC_OWN_ADF = [
   requireAuth,
   requirePermission("sync_osm"),
   requireAdfScope(ADF_FROM_BODY),
 ];
-
-/** Converteix `adf_id` (número o text) al número que esperen els serveis. */
-function adfIdFromBody(value: number | string | undefined): number | undefined {
-  return value ? Number(value) : undefined;
-}
 
 export function registerOsmRoutes(app: FastifyInstance): void {
   const typed = app.withTypeProvider<ZodTypeProvider>();
@@ -112,7 +117,7 @@ export function registerOsmRoutes(app: FastifyInstance): void {
       },
     },
     async (request, reply) => {
-      const adfId = adfIdFromBody(request.body?.adf_id);
+      const adfId = request.body?.adf_id;
       request.log
         .child({ module: "osm", operation: "pushSync" })
         .info({ adfId }, "Iniciant push sync global");
@@ -296,7 +301,7 @@ export function registerOsmRoutes(app: FastifyInstance): void {
       },
     },
     async (request, reply) => {
-      const adfId = adfIdFromBody(request.body?.adf_id);
+      const adfId = request.body?.adf_id;
       const ids = request.body?.ids && request.body.ids.length > 0 ? request.body.ids : undefined;
       if (!adfId && !ids) {
         throw new BadRequestError("Cal especificar adf_id o els ids a esborrar");
