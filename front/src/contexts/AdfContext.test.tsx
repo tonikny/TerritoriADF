@@ -81,7 +81,9 @@ describe("AdfProvider", () => {
     renderProvider();
 
     await waitFor(() => expect(screen.getByTestId("active").textContent).toBe("278"));
-    expect(api.getAdfBoundary).toHaveBeenCalledWith(278, expect.anything());
+    // La frontera la demana l'observer de React Query en un efecte posterior al
+    // render que fixa l'ADF: cal esperar-la, no la pots asserir síncronament.
+    await waitFor(() => expect(api.getAdfBoundary).toHaveBeenCalledWith(278, expect.anything()));
     expect(document.title).toContain("ADF 278 Hostalets");
     expect(auth.setActiveAdfId).toHaveBeenCalledWith(278);
   });
