@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import Map, { NavigationControl, useMap } from "@vis.gl/react-maplibre";
 import * as maplibregl from "maplibre-gl";
-import type { MapMouseEvent, StyleSpecification } from "maplibre-gl";
+import type { MapMouseEvent, SkySpecification, StyleSpecification } from "maplibre-gl";
 import type { MapEngineProps, MapFocus, ViewState } from "@/map/core/types";
 import { toEngineZoom, toNeutralZoom } from "@/map/core/zoom";
 import { attachLongPress, isRecentLongPress } from "@/map/shared/longPress";
@@ -11,8 +11,24 @@ import { MaplibrePolygon, MaplibrePolyline } from "./Shapes";
 import { HILLSHADE_LAYER, MaplibreTerrain } from "./Terrain";
 import "./setup";
 
+/**
+ * Cel del mode 3D. El pitch està bloquejat a 0 sense relleu (`usePitchLock`),
+ * així que aquest cel només és visible amb el terreny actiu. L'horitzó comparteix
+ * el color del fons perquè la transició amb el mapa no es noti.
+ */
+const SKY_3D: SkySpecification = {
+  "sky-color": "#9dc3e6",
+  "horizon-color": "#e9e5df",
+  "fog-color": "#e9e5df",
+  "sky-horizon-blend": 0.7,
+  "horizon-fog-blend": 0.6,
+  "fog-ground-blend": 0.5,
+  "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 8, 1, 14, 0.3],
+};
+
 const EMPTY_STYLE: StyleSpecification = {
   version: 8,
+  sky: SKY_3D,
   sources: {},
   layers: [
     {
