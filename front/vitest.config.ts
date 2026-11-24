@@ -1,6 +1,7 @@
 import { defineConfig, mergeConfig } from "vitest/config";
+import type { ConfigEnv } from "vite";
 
-import viteConfig from "./vite.config.ts";
+import viteConfigFactory from "./vite.config.ts";
 
 /**
  * Configuració de la suite del front.
@@ -14,7 +15,22 @@ import viteConfig from "./vite.config.ts";
  *
  * `reporter: ["text"]` com al back: el CI llegeix el resum del log i no es
  * generen artefactes (`coverage/`) al disc.
+ *
+ * `vite.config.ts` és una funció de `ConfigEnv` i `mergeConfig` no la sabria
+ * combinar, així que es resol abans amb l'entorn de Vitest (`mode: "test"`):
+ * és el que fa que `vite-plugin-mkcert`, que només va al servidor de dev, no es
+ * carregui aquí ni intenti baixar res de GitHub.
  */
+const configEnv: ConfigEnv = {
+  command: "serve",
+  mode: "test",
+  isSsrBuild: false,
+  isPreview: false,
+};
+
+const viteConfig =
+  typeof viteConfigFactory === "function" ? viteConfigFactory(configEnv) : viteConfigFactory;
+
 export default mergeConfig(
   viteConfig,
   defineConfig({
