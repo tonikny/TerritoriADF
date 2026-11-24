@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { secondaryButtonClass } from "../../styles/uiStyles";
+import { secondaryButtonClass } from "@/styles/uiStyles";
 
 interface CreationSelectorProps {
   onSelectHidrant: () => void;

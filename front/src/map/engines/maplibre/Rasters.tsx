@@ -1,6 +1,6 @@
 import { Layer, Source } from "@vis.gl/react-maplibre";
 import type { RasterLayerSpecification } from "maplibre-gl";
-import type { MapRasterSpec, WmsSpec } from "../../core/types";
+import type { MapRasterSpec, WmsSpec } from "@/map/core/types";
 
 const RASTER_PAINT: RasterLayerSpecification["paint"] = {
   "raster-opacity": 1,

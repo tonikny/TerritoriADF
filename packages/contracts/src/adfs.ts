@@ -50,3 +50,11 @@ export interface TrackingSharingResult {
   adf_id: number;
   tracking_shared: boolean;
 }
+
+/** Resposta de `POST /api/adfs/:id/boundaries` (límits recalculats des d'OSM). */
+export interface AdfBoundariesResult {
+  success: boolean;
+  adf_id: number;
+  bbox: AdfBbox | null;
+  center: AdfCenter | null;
+}

@@ -1,11 +1,11 @@
-import type { IncidenciaFeature } from "../../types";
+import type { IncidenciaFeature } from "@/types";
 import type {
   IncidenciaEstatFilter,
   IncidenciaFilters,
   IncidenciaPrioritatFilter,
-} from "../../hooks/useListFilters";
-import { useAdf } from "../../contexts/AdfContext";
-import { exportIncidenciaListPdf } from "../../utils/listPdf";
+} from "@/hooks/useListFilters";
+import { useAdf } from "@/contexts/AdfContext";
+import { exportIncidenciaListPdf } from "@/utils/listPdf";
 import { PdfExportButton } from "./PdfExportButton";
 import {
   emojiPrioritatIncidencia,
@@ -13,8 +13,8 @@ import {
   ESTATS_INCIDENCIA,
   PRIORITATS_INCIDENCIA,
   labelDeCategoria,
-} from "../../utils/incidenciaConstants";
-import { selectClass } from "../../styles/uiStyles";
+} from "@/utils/incidenciaConstants";
+import { selectClass } from "@/styles/uiStyles";
 
 const filterSelectClass = `${selectClass} w-auto! flex-1 px-1.5 py-2 text-[0.8rem]`;
 

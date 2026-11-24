@@ -2,9 +2,9 @@ import type { ReactNode, Ref } from "react";
 import { TabBar } from "./TabBar";
 import { NodeHeader } from "./NodeHeader";
 import { BottomSheet } from "./BottomSheet";
-import { AdfHint } from "../shared/AdfHint";
-import { useLocalStorage } from "../../utils/useLocalStorage";
-import { storageKey } from "../../utils/storageKeys";
+import { AdfHint } from "@/components/shared/AdfHint";
+import { useLocalStorage } from "@/utils/useLocalStorage";
+import { storageKey } from "@/utils/storageKeys";
 import type { PanelTab, PanelNode, BottomSheetHandle } from "./types";
 
 export type { PanelTab, BottomSheetHandle };

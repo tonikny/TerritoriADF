@@ -1,14 +1,15 @@
 // Context d'autenticació: gestor de sessió via cookie httpOnly, exposa user/login/logout.
 // Permet a un admin "veure com" un altre rol (coordinador/voluntari) sense canviar la sessió.
-import type { AppConfig } from "@territoriadf/contracts/config";
-import type { Permission, Role } from "@territoriadf/contracts/permissions";
 import type { SessionResponse, SessionUser } from "@territoriadf/contracts/users";
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-import { ApiError, request } from "../shared/api/client";
-import { clearOfflineData } from "../utils/offlineData";
-import { storageKey } from "../utils/storageKeys";
-import { queryClient } from "../shared/query/queryClient";
+import { useAppConfig } from "@/contexts/AppConfigContext";
+import { ApiError, request } from "@/shared/api/client";
+import { queryKeys } from "@/shared/query/keys";
+import { queryClient } from "@/shared/query/queryClient";
+import { clearOfflineData } from "@/utils/offlineData";
+import { storageKey } from "@/utils/storageKeys";
 
 /** Usuari de la sessió (contracte compartit amb el backend). */
 export type User = SessionUser;
@@ -17,10 +18,42 @@ type ViewRole = "admin" | "coordinador" | "voluntari";
 
 const VIEW_ROLE_KEY = storageKey("view_role");
 
-// Matriu rol → permisos publicada pel backend (GET /api/config, que la treu de
-// back/src/permissions.ts). Es demana una sola vegada per sessió; mentre no ha arribat
-// (o si falla), la vista "veure com" queda sense permisos en lloc de duplicar la matriu aquí.
-let cachedRolePermissions: Record<Role, readonly Permission[]> | null = null;
+/**
+ * Sessió real (cookie httpOnly). Un 401 no és un error: vol dir "sense sessió"
+ * i es resol amb `null` perquè no es reintenti. La resta de fallades (xarxa)
+ * queden com a error i deixen l'usuari a `null`.
+ */
+async function fetchSession(): Promise<SessionResponse | null> {
+  try {
+    return await request<SessionResponse>("/api/auth/me");
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/** Escriu la sessió a la mateixa entrada de caché que llegeix la consulta. */
+function writeSession(session: SessionResponse | null): void {
+  queryClient.setQueryData(queryKeys.session, session);
+}
+
+/**
+ * Consultes que no depenen de l'usuari i no s'han de purgar en tancar sessió:
+ * `session` (esborrar-la faria que el mateix observador la tornés a demanar i el
+ * 401 es repetís en bucle), `config` i `adfs` (públiques; la llista pot estar en
+ * vol en un 401 inicial i treure-la en duplicaria la petició).
+ */
+const PUBLIC_KEYS: ReadonlySet<string> = new Set([
+  queryKeys.session[0],
+  queryKeys.config[0],
+  queryKeys.adfs[0],
+]);
+
+function clearQueryCache(): void {
+  queryClient.removeQueries({ predicate: (query) => !PUBLIC_KEYS.has(String(query.queryKey[0])) });
+}
 
 interface AuthContextType {
   user: User | null;
@@ -36,7 +69,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [rawUser, setRawUser] = useState<User | null>(null);
+  const { rolePermissions } = useAppConfig();
+  const sessionQuery = useQuery({
+    queryKey: queryKeys.session,
+    queryFn: fetchSession,
+    retry: false,
+  });
+  const rawUser = sessionQuery.data?.user ?? null;
+
   const [viewRole, setViewRole] = useState<ViewRole | null>(() => {
     const saved = localStorage.getItem(VIEW_ROLE_KEY);
     return saved === "admin" || saved === "coordinador" || saved === "voluntari" ? saved : null;
@@ -45,12 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem("active_adf_id");
     return saved ? Number(saved) : null;
   });
-  const [loading, setLoading] = useState(true);
   const [prevRawUser, setPrevRawUser] = useState<User | null>(null);
-  const [rolePermissions, setRolePermissions] = useState<Record<
-    Role,
-    readonly Permission[]
-  > | null>(cachedRolePermissions);
 
   // Els usuaris no-admin no poden mantenir la vista "com": s'ajusta en render, sense setState a l'effect.
   if (rawUser !== prevRawUser) {
@@ -60,51 +95,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  // Segueix l'ADF activa (emesa per AdfContext) per assignar-la quan un admin "veu com" un rol d'ADF.
-  // Verifica la sessió al mount (la cookie auth_token la gestiona el servidor).
+  // Una sessió buida (401 o logout) no pot deixar dades privades: s'esborren
+  // sempre les còpies persistents del service worker i les consultes de memòria,
+  // tret de les públiques.
   useEffect(() => {
-    const verifyToken = async () => {
-      try {
-        try {
-          const data = await request<SessionResponse>("/api/auth/me");
-          setRawUser(data.user);
-        } catch (err) {
-          setRawUser(null);
-          if (err instanceof ApiError && err.status === 401) {
-            // Sessió caducada: no deixem respostes d'API al dispositiu ni a la caché en memòria.
-            queryClient.clear();
-            void clearOfflineData().catch(() => {});
-          }
-        }
-      } catch {
-        setRawUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    void verifyToken();
-  }, []);
-
-  // Carrega la matriu de permisos per rol (només una vegada per sessió).
-  useEffect(() => {
-    if (cachedRolePermissions) {
+    if (sessionQuery.data !== null) {
       return;
     }
-    let cancelled = false;
-    void request<AppConfig>("/api/config")
-      .then((config) => {
-        cachedRolePermissions = config.role_permissions;
-        if (!cancelled) {
-          setRolePermissions(cachedRolePermissions);
-        }
-      })
-      .catch(() => {
-        /* sense config no hi ha permisos de vista prèvia; no bloquegem la sessió */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void clearOfflineData().catch(() => {});
+    clearQueryCache();
+  }, [sessionQuery.data]);
 
   // Persisteix cada canvi de vista "com".
   useEffect(() => {
@@ -115,8 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [viewRole]);
 
+  // La mateixa entrada que llegeix la consulta: entrar no ha de tornar a demanar `/auth/me`.
   const login = (newUser: User) => {
-    setRawUser(newUser);
+    writeSession({ user: newUser });
     setViewRole(null);
   };
   const logout = async () => {
@@ -125,11 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       /* ignore */
     }
-    setRawUser(null);
     setViewRole(null);
-    // Dispositiu compartit: fora les dades d'API del service worker i de la caché en memòria.
-    queryClient.clear();
-    void clearOfflineData().catch(() => {});
+    // L'effect de sobre neteja la resta en veure la sessió buida.
+    writeSession(null);
   };
 
   // Usuari efectiu: si l'admin "veu com" un altre rol, s'apliquen el rol i permisos d'aquell rol
@@ -156,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout: () => {
           void logout();
         },
-        loading,
+        loading: sessionQuery.isPending,
       }}
     >
       {children}

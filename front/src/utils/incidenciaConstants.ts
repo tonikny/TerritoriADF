@@ -1,4 +1,4 @@
-import type { IncidenciaEstat, IncidenciaPrecisio, IncidenciaPrioritat } from "../types";
+import type { IncidenciaEstat, IncidenciaPrecisio, IncidenciaPrioritat } from "@/types";
 
 export interface IncidenciaOption<T extends string = string> {
   value: T;
@@ -59,6 +59,8 @@ export function displayCategoria(
   valor?: string | null,
 ): string {
   const opcio = categoria.find((c) => c.value === valor?.toUpperCase());
-  if (!opcio) {return valor ?? "";}
+  if (!opcio) {
+    return valor ?? "";
+  }
   return opcio.icon ? `${opcio.icon} ${opcio.label}` : opcio.label;
 }

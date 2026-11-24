@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import mkcert from "vite-plugin-mkcert";
@@ -208,6 +209,11 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    // Àlies de `src` (vegeu `tsconfig.json`). Regex i no la cadena `@` perquè
+    // `@territoriadf/contracts` no hi coincideixi; Vitest hereta aquesta config.
+    alias: [{ find: /^@\//, replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/` }],
+  },
   build: {
     sourcemap: false,
   },

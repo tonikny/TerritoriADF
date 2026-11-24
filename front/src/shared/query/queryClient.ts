@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 
-import { ApiError } from "../api/client";
+import { ApiError } from "@/shared/api/client";
 
 /**
  * Client de caché de l'aplicació.

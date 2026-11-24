@@ -1,8 +1,8 @@
-import type { LatLon } from "../../map/core/types";
-import type { CreateType } from "../../types";
-import { CreationSelector } from "../shared/CreationSelector";
-import { NewNodeForm } from "../hidrants/NewNodeForm";
-import { NovaIncidenciaForm } from "../incidencies/NovaIncidenciaForm";
+import type { LatLon } from "@/map/core/types";
+import type { CreateType } from "@/types";
+import { CreationSelector } from "@/components/shared/CreationSelector";
+import { NewNodeForm } from "@/features/hidrants/NewNodeForm";
+import { NovaIncidenciaForm } from "@/features/incidencies/NovaIncidenciaForm";
 
 export function CreateNodePanel({
   form,
@@ -10,16 +10,12 @@ export function CreateNodePanel({
   setForm,
   onClose,
   setNewNodePosition,
-  refreshHidrants,
-  refreshIncidencies,
 }: {
   form: Exclude<CreateType, null>;
   position: LatLon;
   setForm: (form: CreateType) => void;
   onClose: () => void;
   setNewNodePosition: (position: LatLon | null) => void;
-  refreshHidrants: () => void;
-  refreshIncidencies: () => void;
 }) {
   if (form === "selection") {
     return (
@@ -41,7 +37,6 @@ export function CreateNodePanel({
           lon={position.lon}
           onClose={onClose}
           setNewNodePosition={setNewNodePosition}
-          refreshHidrants={refreshHidrants}
         />
       </div>
     );
@@ -49,14 +44,7 @@ export function CreateNodePanel({
 
   return (
     <div className="p-3">
-      <NovaIncidenciaForm
-        lat={position.lat}
-        lon={position.lon}
-        onClose={() => {
-          onClose();
-          refreshIncidencies();
-        }}
-      />
+      <NovaIncidenciaForm lat={position.lat} lon={position.lon} onClose={onClose} />
     </div>
   );
 }

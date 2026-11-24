@@ -6,10 +6,17 @@
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "strict": true,
+    "noEmit": true,
+    // `vitest.config.ts` ha d'importar `vite.config.ts` amb extensió (Vite ho
+    // demana); aquesta app no emet mai res amb `tsc`.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src", "vite-env.d.ts", "vite.config.ts"]
+  "include": ["src", "vite-env.d.ts", "vite.config.ts", "vitest.config.ts"]
 }

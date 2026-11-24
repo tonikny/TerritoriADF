@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import turfCircle from "@turf/circle";
 import { Layer, Marker, Popup, Source } from "@vis.gl/react-maplibre";
 import type { Marker as MaplibreMarkerInstance, Popup as MaplibrePopupInstance } from "maplibre-gl";
-import type { MapMarkerSpec, MarkerIcon } from "../../core/types";
+import type { MapMarkerSpec, MarkerIcon } from "@/map/core/types";
 
 function MarkerContent({ icon }: { icon: MarkerIcon }) {
   if (icon.kind === "image") {

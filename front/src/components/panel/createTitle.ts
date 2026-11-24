@@ -1,7 +1,11 @@
-import type { CreateType } from '../../types';
+import type { CreateType } from "@/types";
 
 export function createTitle(form: CreateType): string {
-  if (form === 'hydrant') {return '📍 Nou hidrant';}
-  if (form === 'incidencia') {return '⚠️ Nova incidència';}
-  return '📍 Selecciona una acció';
+  if (form === "hydrant") {
+    return "📍 Nou hidrant";
+  }
+  if (form === "incidencia") {
+    return "⚠️ Nova incidència";
+  }
+  return "📍 Selecciona una acció";
 }

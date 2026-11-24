@@ -3,13 +3,13 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "./AuthContext";
-import { adfLabel } from "../utils/adfLabel";
-import { getQueryParam, setAdfUrlParam, setNodeUrlParam } from "../utils/urlParams";
-import { APP_NAME } from "../utils/appInfo";
+import { adfLabel } from "@/utils/adfLabel";
+import { getQueryParam, setAdfUrlParam, setNodeUrlParam } from "@/utils/urlParams";
+import { APP_NAME } from "@/utils/appInfo";
 import type { Adf } from "@territoriadf/contracts/adfs";
-import { getAdfs, getAdfBoundary } from "../shared/api/adfs";
-import { apiErrorMessage } from "../shared/api/client";
-import { queryKeys } from "../shared/query/keys";
+import { getAdfs, getAdfBoundary } from "@/shared/api/adfs";
+import { apiErrorMessage } from "@/shared/api/client";
+import { queryKeys } from "@/shared/query/keys";
 
 export type { Adf };
 
@@ -48,9 +48,12 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     [setAuthActiveAdfId],
   );
 
+  // Sense `signal` a posta: la llista té una sola clau i no depèn de l'ADF, i si
+  // es consumís el signal, el desmuntatge temporal de StrictMode cancel·laria la
+  // petició i en faria una altra en remuntar (dues GET /api/adfs seguides).
   const adfsQuery = useQuery({
     queryKey: queryKeys.adfs,
-    queryFn: ({ signal }) => getAdfs(signal),
+    queryFn: () => getAdfs(),
   });
   const adfs = useMemo(() => adfsQuery.data ?? [], [adfsQuery.data]);
 
@@ -58,7 +61,7 @@ export const AdfProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const refreshAdfs = useCallback(async (): Promise<Adf[]> => {
     return queryClient.fetchQuery({
       queryKey: queryKeys.adfs,
-      queryFn: ({ signal }) => getAdfs(signal),
+      queryFn: () => getAdfs(),
       staleTime: 0,
     });
   }, [queryClient]);

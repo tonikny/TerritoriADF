@@ -1,5 +1,5 @@
 import L from "leaflet";
-import type { MarkerIcon } from "../../core/types";
+import type { MarkerIcon } from "@/map/core/types";
 
 export function toLeafletIcon(icon: MarkerIcon): L.Icon | L.DivIcon {
   if (icon.kind === "image") {

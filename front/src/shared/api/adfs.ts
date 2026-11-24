@@ -1,14 +1,17 @@
 // Funcions pures de la feature d'ADFs: llista i frontera geogràfica.
 import type {
   Adf,
+  AdfBoundariesResult,
   AdfBoundaryFeature,
   AdfInput,
   TrackingSharingResult,
 } from "@territoriadf/contracts/adfs";
 import { ApiError, request } from "./client";
 
-export function getAdfs(signal?: AbortSignal): Promise<Adf[]> {
-  return request<Adf[]>("/api/adfs", { signal });
+// Sense `signal`: la llista és global i no depèn de l'ADF, així que no s'ha de
+// cancel·lar en desmuntar (StrictMode la tornaria a demanar).
+export function getAdfs(): Promise<Adf[]> {
+  return request<Adf[]>("/api/adfs");
 }
 
 /**
@@ -56,6 +59,6 @@ export async function deleteAdf(adfId: number): Promise<void> {
 }
 
 /** Recalcula límits, bbox i centre des de les relacions OSM (operació externa lenta). */
-export async function recalculateAdfBoundaries(adfId: number): Promise<void> {
-  await request<unknown>(`/api/adfs/${adfId}/boundaries`, { method: "POST" });
+export function recalculateAdfBoundaries(adfId: number): Promise<AdfBoundariesResult> {
+  return request<AdfBoundariesResult>(`/api/adfs/${adfId}/boundaries`, { method: "POST" });
 }

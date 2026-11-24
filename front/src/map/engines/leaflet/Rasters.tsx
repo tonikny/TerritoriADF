@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { TileLayer, WMSTileLayer } from "react-leaflet";
 import type { WMSTileLayerProps } from "react-leaflet";
-import type { MapRasterSpec } from "../../core/types";
+import type { MapRasterSpec } from "@/map/core/types";
 
 /** react-leaflet encara no tipa el paràmetre `time` de WMS. */
 const WmsTileLayer = WMSTileLayer as FC<WMSTileLayerProps & { time?: string }>;

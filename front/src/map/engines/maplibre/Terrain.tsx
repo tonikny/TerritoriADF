@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMap } from "@vis.gl/react-maplibre";
-import { TERRAIN_ATTRIBUTION } from "../../shared/attribution";
+import { TERRAIN_ATTRIBUTION } from "@/map/shared/attribution";
 
 // El servei de l'ICGC publica tessel·les entre z6 i z14. La ruta és local perquè
 // el Nginx del host les cachegi; en desenvolupament la proxya Vite.

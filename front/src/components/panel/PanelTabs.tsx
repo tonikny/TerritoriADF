@@ -1,13 +1,14 @@
-import type { PanelTab } from "../layout/Panel";
+import type { PanelTab } from "@/components/layout/Panel";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaFeature } from "../../types";
-import type { Position } from "../../hooks/usePositionPolling";
-import type { EngineId } from "../../map/core/types";
-import type { EnginePreference } from "../../map/core/engineSelection";
-import { MapaTab } from "./tabs/MapaTab";
-import { SeguimentTab } from "./tabs/SeguimentTab";
+import type { IncidenciaFeature } from "@/types";
+import type { Position } from "@territoriadf/contracts/tracking";
+import type { EngineId } from "@/map/core/types";
+import type { EnginePreference } from "@/map/core/engineSelection";
+import { MapaTab } from "@/features/adfs/MapaTab";
+import { OsmSyncPanel } from "@/features/osm/OsmSyncPanel";
+import { SeguimentTab } from "@/features/tracking/SeguimentTab";
 import { InformesTab } from "./tabs/InformesTab";
-import { UsuarisTab } from "./tabs/UsuarisTab";
+import { UsuarisTab } from "@/features/users/UsuarisTab";
 import { ConfigTab } from "./tabs/ConfigTab";
 import { AjudaTab } from "./tabs/AjudaTab";
 
@@ -18,7 +19,6 @@ export function buildTabs({
   onSelectNode,
   onSelectIncidencia,
   onSelectHidrantById,
-  onRefreshHidrants,
   onCenterCoordinates,
   engine,
   enginePreference,
@@ -30,7 +30,6 @@ export function buildTabs({
   onSelectNode?: (feature: HidrantFeature) => void;
   onSelectIncidencia?: (feature: IncidenciaFeature) => void;
   onSelectHidrantById?: (id: string) => void;
-  onRefreshHidrants?: () => void;
   onCenterCoordinates?: (coords: [number, number]) => void;
   engine?: EngineId;
   enginePreference?: EnginePreference;
@@ -41,7 +40,7 @@ export function buildTabs({
       id: "mapa",
       icon: "🗺️",
       label: "ADF",
-      content: <MapaTab onSelectHidrant={onSelectHidrantById} onRefresh={onRefreshHidrants} />,
+      content: <MapaTab osmSyncPanel={<OsmSyncPanel onSelectHidrant={onSelectHidrantById} />} />,
     },
     {
       id: "seguiment",

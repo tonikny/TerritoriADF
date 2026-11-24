@@ -12,7 +12,7 @@
 // llegides de `localStorage`). El backend les ignora si la sessió no és
 // d'admin, de manera que mai permeten escalar privilegis: només degraden una
 // sessió real d'admin al rol/ADF previsualitzats.
-import { storageKey } from "../../utils/storageKeys";
+import { storageKey } from "@/utils/storageKeys";
 
 const VIEW_ROLE_KEY = storageKey("view_role");
 // AdfContext guarda l'ADF activa amb la clau literal "active_adf_id" (sense prefix).

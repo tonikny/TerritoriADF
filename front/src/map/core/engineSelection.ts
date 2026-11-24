@@ -1,5 +1,5 @@
-import { getQueryParam } from "../../utils/urlParams";
-import { storageKey } from "../../utils/storageKeys";
+import { getQueryParam } from "@/utils/urlParams";
+import { storageKey } from "@/utils/storageKeys";
 import type { EngineId } from "./types";
 
 export type EnginePreference = "auto" | EngineId;

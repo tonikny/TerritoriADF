@@ -1,9 +1,9 @@
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaFeature } from "../../../types";
-import { useHidrantFilters, useIncidenciaFilters } from "../../../hooks/useListFilters";
-import { CollapsibleSection } from "../shared/CollapsibleSection";
-import { HidrantList } from "../../lists/HidrantList";
-import { IncidenciaList } from "../../lists/IncidenciaList";
+import type { IncidenciaFeature } from "@/types";
+import { useHidrantFilters, useIncidenciaFilters } from "@/hooks/useListFilters";
+import { CollapsibleSection } from "@/shared/ui/CollapsibleSection";
+import { HidrantList } from "@/components/lists/HidrantList";
+import { IncidenciaList } from "@/components/lists/IncidenciaList";
 
 export function InformesTab({
   features,
