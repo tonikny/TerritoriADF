@@ -11,3 +11,6 @@ backups/
 
 back/data/
 back/drizzle/
+
+# Documentació privada (repo niat: no el formategis des de l'arrel)
+local-doc/

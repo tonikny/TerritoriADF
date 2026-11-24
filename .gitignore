@@ -54,6 +54,7 @@ mosquitto/data/
 mosquitto/certs/
 mosquitto/config/mosquitto.conf
 
-# Expedient d'una migració (dominis, dates, commits, decisions).
-# Viu només al servidor; no entra al repositori.
-docs/migracio/
+# Documentació privada: repo niat independent (TerritoriADF-doc).
+# Git no hi entra sol perquè té .git propi; ho deixem explícit per a
+# `git add -A` i perquè cap eina no el confongui amb codi del projecte.
+/local-doc/

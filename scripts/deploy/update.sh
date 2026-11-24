@@ -136,7 +136,7 @@ check_prerequisites() {
   grep -qE '^[[:space:]]*keyfile[[:space:]]+' "$mq_conf" \
     || die "$mq_conf sense 'keyfile': el port 51823 aniria en TEXT PLA. Regenera'l amb npm run mosquitto:render (producció, amb TLS)."
   [[ -f mosquitto/certs/fullchain.pem && -f mosquitto/certs/privkey.pem ]] \
-    || die "Falten mosquitto/certs/fullchain.pem i/o privkey.pem. Copia'ls des de /etc/letsencrypt/live/<domini>/ (vegeu docs/MQTT_DEPLOY.md#3)."
+    || die "Falten mosquitto/certs/fullchain.pem i/o privkey.pem. Copia'ls des de /etc/letsencrypt/live/<domini>/ (documentació interna: ops/mqtt.md §3)."
   if grep -qE '^[[:space:]]*OTRC_TLS[[:space:]]*=[[:space:]]*(false|0)' back/.env; then
     log_warn "back/.env porta OTRC_TLS=false: el .otrc dirà als mòbils que vagin en pla. En producció ha de ser true (o no definir-lo)."
   fi
@@ -291,7 +291,7 @@ render_mosquitto_config() {
   # Fail-closed: el render ja garanteix certfile/keyfile/tls_version a la
   # plantilla; aquí només cal comprovar els certs reals del host.
   [[ -f mosquitto/certs/fullchain.pem && -f mosquitto/certs/privkey.pem ]] \
-    || die "Falten mosquitto/certs/fullchain.pem i/o privkey.pem. Copia'ls des de /etc/letsencrypt/live/<domini>/ (vegeu docs/MQTT_DEPLOY.md#3)."
+    || die "Falten mosquitto/certs/fullchain.pem i/o privkey.pem. Copia'ls des de /etc/letsencrypt/live/<domini>/ (documentació interna: ops/mqtt.md §3)."
   local new_sum
   new_sum=$(sha256sum "$mq_conf" | cut -d' ' -f1)
   if [[ "$old_sum" != "$new_sum" ]]; then

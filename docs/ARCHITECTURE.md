@@ -1,6 +1,6 @@
 # Arquitectura i estructura de fitxers
 
-Aquest document descriu l'organització actual del codi, el contracte dels motors de mapa i les comprovacions automàtiques. Per al dia a dia de desenvolupament, consulta [`DEV.md`](DEV.md); per a les regles de contribució, [`AGENTS.md`](../AGENTS.md).
+Aquest document descriu l'organització actual del codi, el contracte dels motors de mapa i les comprovacions automàtiques. Per al dia a dia de desenvolupament, consulta [`DEV.md`](DEV.md); les regles de contribució per a persones i agents viuen a `AGENTS.md`, una guia interna que no es versiona en aquest repositori.
 
 ## 1. Visió general
 
@@ -190,4 +190,4 @@ El pipeline no publica artefactes ni desplega.
 - Si una funcionalitat no es pot implementar a Leaflet, amaga-la o degrada-la amb `EngineCapabilities`; no deixis controls morts.
 - Els textos d'interfície i la documentació són en català; els identificadors de codi, en anglès.
 - Abans de tancar un canvi: `typecheck`, `lint`, tests del front i build han de passar.
-- Els canvis de desplegament o de variables d'entorn van a [`DEV.md`](DEV.md), [`DEPLOY.md`](DEPLOY.md) o [`MIGRATION.md`](MIGRATION.md), no aquí.
+- Els canvis de desplegament o de variables d'entorn van a [`DEV.md`](DEV.md); la documentació interna de producció (`local-doc/ops/deploy.md`, `local-doc/ops/migration.md`) viu al repositori privat de documentació, no aquí.

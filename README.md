@@ -87,7 +87,7 @@ Per desenvolupar localment cal configurar les variables d'entorn del backend i d
 
 ### Deploy amb Docker
 
-Per a producció, el projecte s'orquestra amb Docker Compose (frontend servit per Nginx, backend i broker Mosquitto). El desplegament automatitzat actualitza el codi, les dependències i la base de dades. La guia completa, inclosa la configuració MQTT amb certificats i els backups automàtics, es troba a [docs/DEPLOY.md](docs/DEPLOY.md).
+Per a producció, el projecte s'orquestra amb Docker Compose (frontend servit per Nginx, backend i broker Mosquitto). El desplegament automatitzat actualitza el codi, les dependències i la base de dades. La guia completa, inclosa la configuració MQTT amb certificats i els backups automàtics, és documentació interna i no es versiona en aquest repositori; les comandes implicades (`docker:deploy`, `docker:logs`) es descriuen a [docs/DEV.md](docs/DEV.md).
 
 ---
 

@@ -4,19 +4,21 @@ Aquesta guia cobreix **desenvolupament local**. Per a altres entorns i temes esp
 
 ## Mapa de documentació
 
-| Document                | Contingut                                                                                                        | Quan usar-lo                                     |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `README.md`             | Visió general, característiques, stack i resum OSM                                                               | Presentació ràpida del projecte                  |
-| `docs/DEV.md`           | **Aquest fitxer**: setup local, execució, variables, MQTT dev, Telegram dev, OSM quickref, API i troubleshooting | Desenvolupar en local                            |
-| `docs/ARCHITECTURE.md`  | Estructura de fitxers, motors MapLibre/Leaflet, contracte del mapa, controls i tests                             | Entendre el codi o afegir funcionalitats de mapa |
-| `docs/DEPLOY.md`        | Deploy producció amb Docker, backups, Telegram prod i MQTT prod resum                                            | Pujar a servidor                                 |
-| `docs/OSM_SYNC.md`      | Sincronització bidireccional OSM completa (fluxos, UI, conflictes, validació, API)                               | Treballar amb OSM a fons                         |
-| `docs/MQTT_DEPLOY.md`   | MQTT producció: TLS, certs, Dynamic Security, `init-dynsec.py`, permisos `mosquitto/data`                        | Configurar Mosquitto en prod                     |
-| `docs/MIGRATION.md`     | Migrar una instància: identitat de la pila i canvi de domini, amb rollback                                       | Canviar de servidor o d'instància                |
-| `docs/backup-README.md` | Backups automàtics: scripts, cron, rotació, restauració i verificació                                            | Configurar o recuperar còpies                    |
-| `docs/DOMAIN_CHANGE.md` | Canviar domini, ubicació o nom; renombrar backups i canvis de MQTT/estat                                         | Moure o renombrar el desplegament                |
-| `AGENTS.md`             | Arquitectura, model ADF-centric, rols/permisos i convencions per agents                                          | Context ràpid per a IA/col·laboradors            |
-| `back/.env.example`     | Referència canònica de totes les variables d'entorn del backend                                                  | Consultar valors per defecte                     |
+| Document                         | Contingut                                                                                                        | Quan usar-lo                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `README.md`                      | Visió general, característiques, stack i resum OSM                                                               | Presentació ràpida del projecte                  |
+| `docs/DEV.md`                    | **Aquest fitxer**: setup local, execució, variables, MQTT dev, Telegram dev, OSM quickref, API i troubleshooting | Desenvolupar en local                            |
+| `docs/ARCHITECTURE.md`           | Estructura de fitxers, motors MapLibre/Leaflet, contracte del mapa, controls i tests                             | Entendre el codi o afegir funcionalitats de mapa |
+| `local-doc/ops/deploy.md`        | Deploy producció amb Docker, backups, Telegram prod i MQTT prod resum                                            | Pujar a servidor                                 |
+| `docs/OSM_SYNC.md`               | Sincronització bidireccional OSM completa (fluxos, UI, conflictes, validació, API)                               | Treballar amb OSM a fons                         |
+| `local-doc/ops/mqtt.md`          | MQTT producció: TLS, certs, Dynamic Security, `init-dynsec.py`, permisos `mosquitto/data`                        | Configurar Mosquitto en prod                     |
+| `local-doc/ops/migration.md`     | Migrar una instància: identitat de la pila i canvi de domini, amb rollback                                       | Canviar de servidor o d'instància                |
+| `local-doc/ops/backups.md`       | Backups automàtics: scripts, cron, rotació, restauració i verificació                                            | Configurar o recuperar còpies                    |
+| `local-doc/ops/domain-change.md` | Canviar domini, ubicació o nom; renombrar backups i canvis de MQTT/estat                                         | Moure o renombrar el desplegament                |
+| `AGENTS.md`                      | Arquitectura, model ADF-centric, rols/permisos i convencions per agents                                          | Context ràpid per a IA/col·laboradors            |
+| `back/.env.example`              | Referència canònica de totes les variables d'entorn del backend                                                  | Consultar valors per defecte                     |
+
+> Els fitxers de `local-doc/` — desplegament, migració, domini, MQTT de producció, backups i auditories — viuen al repositori privat `TerritoriADF-doc`, niat com a repositori independent; no es versionen aquí. `AGENTS.md` de l'arrel és un enllaç a `local-doc/AGENTS.md`.
 
 ---
 
@@ -39,7 +41,7 @@ npm run db:setup       # db:reset + db:seed + db:import-osm + update:boundaries
 npm run mqtt:sync-dynsec
 ```
 
-**Nota `mqtt:sync-dynsec`:** genera `mosquitto/data/dynamic-security.json` llegint les contrasenyes MQTT de `back/.env` (`MQTT_ADMIN_PASSWORD`, `MQTT_BACKEND_PASSWORD` i opcionals `MQTT_ADMIN_USERNAME`/`MQTT_BACKEND_USERNAME`, per defecte `admin`/`backend`). Cal executar-ho **abans** de `npm run mqtt:up`. El plugin Dynamic Security llegeix aquest JSON en arrencar; sense ell Mosquitto no autoritza `backend`. Detall producció i format exacte del JSON: `docs/MQTT_DEPLOY.md#4`.
+**Nota `mqtt:sync-dynsec`:** genera `mosquitto/data/dynamic-security.json` llegint les contrasenyes MQTT de `back/.env` (`MQTT_ADMIN_PASSWORD`, `MQTT_BACKEND_PASSWORD` i opcionals `MQTT_ADMIN_USERNAME`/`MQTT_BACKEND_USERNAME`, per defecte `admin`/`backend`). Cal executar-ho **abans** de `npm run mqtt:up`. El plugin Dynamic Security llegeix aquest JSON en arrencar; sense ell Mosquitto no autoritza `backend`. Detall producció i format exacte del JSON: `local-doc/ops/mqtt.md#4`.
 
 ---
 
@@ -111,7 +113,7 @@ npm run docker:down  # atura contenidors
 | Mosquitto intern/dev       | `mqtt://localhost:1883`                                               |
 | Mosquitto OwnTracks públic | `mqtt://<BASE_DOMAIN_URL>:51823` (`OTRC_TLS=true` prod / `false` dev) |
 
-En desenvolupament, Vite proxya `/tiles/osm`, `/tiles/opentopo`, `/tiles/ign-*` i `/tiles/icgc-terrain`; en producció ho fa el Nginx del host, que a més cacheja les tessel·les. La configuració del relleu ICGC és a `docs/DEPLOY.md` §8.1.
+En desenvolupament, Vite proxya `/tiles/osm`, `/tiles/opentopo`, `/tiles/ign-*` i `/tiles/icgc-terrain`; en producció ho fa el Nginx del host, que a més cacheja les tessel·les. La configuració del relleu ICGC és a `local-doc/ops/deploy.md` §8.1.
 
 ---
 
@@ -119,37 +121,37 @@ En desenvolupament, Vite proxya `/tiles/osm`, `/tiles/opentopo`, `/tiles/ign-*` 
 
 Font canònica: `package.json:5` i `back/package.json`. Agrupats per tema.
 
-| Script                            | Descripció                                                                                                                                                                                                                                           |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                     | Frontend + backend simultanis (Vite + tsx)                                                                                                                                                                                                           |
-| `npm run build`                   | Build front + back                                                                                                                                                                                                                                   |
-| `npm run start`                   | Arrenca backend compilat (`back/dist`)                                                                                                                                                                                                               |
-| `npm run lint` / `lint:fix`       | ESLint a `front` + `back` (vegeu §11)                                                                                                                                                                                                                |
-| `npm run typecheck`               | `tsc --noEmit` a `front` + `back`                                                                                                                                                                                                                    |
-| `npm test -w front`               | Vitest del frontend (tests de `front/src/map/core/*.test.ts`)                                                                                                                                                                                        |
-| `npm run format` / `format:check` | Prettier                                                                                                                                                                                                                                             |
-| `npm run mqtt:up`                 | `docker compose up -d mosquitto`                                                                                                                                                                                                                     |
-| `npm run mqtt:cleanup`            | Neteja identitats MQTT obsoletes: alinea `mqtt_users.mqtt_username` amb username actual i esborra clients DynSec `owntracks-device` orfes. **Dry-run** per defecte; aplica amb `npm run mqtt:cleanup -- --apply` (`back/src/scripts/cleanupMqtt.ts`) |
-| `npm run mqtt:sync-dynsec`        | `python3 scripts/init-dynsec.py sync` — no destructiu, conserva clients usuaris                                                                                                                                                                      |
-| `npm run mqtt:regen-dynsec`       | `python3 scripts/init-dynsec.py regen` — **destructiu**, esborra clients usuaris, demana confirmació                                                                                                                                                 |
-| `npm run docker:up`               | `docker compose up -d`                                                                                                                                                                                                                               |
-| `npm run docker:down`             | `docker compose down`                                                                                                                                                                                                                                |
-| `npm run docker:build`            | `docker compose build`                                                                                                                                                                                                                               |
-| `npm run docker:logs`             | `docker compose logs -f`                                                                                                                                                                                                                             |
-| `npm run docker:clean`            | `docker image prune -f`                                                                                                                                                                                                                              |
-| `npm run nginx:render`            | Genera `config/site-docker.nginx` a partir de la plantilla i de `BASE_DOMAIN_URL` (`back/.env`). No el cridis a prod sense revisar el resultat                                                                                                       |
-| `npm run mosquitto:render`        | Genera `mosquitto/config/mosquitto.conf` de prod (TLS). Amb `-- --dev`, la de dev en clar (només local)                                                                                                                                              |
-| `npm run docker:deploy`           | Actualització en producció: executa `scripts/deploy/update.sh` (còpia prèvia de la BD, `git pull --ff-only`, `npm ci`, `docker compose build` + `up -d`, healthchecks i `update:boundaries` best-effort). Detall i opcions a `docs/DEPLOY.md` §7     |
-| `npm run db:reset`                | Buida BD (`back/data/territoriadf.db`)                                                                                                                                                                                                               |
-| `npm run db:seed`                 | Crea ADFs i usuaris inicials (admin global + coordinador per ADF); la contrasenya inicial és aleatòria i es mostra un sol cop al log                                                                                                                 |
-| `npm run db:import-osm`           | Pull sync OSM via Overpass (requereix `osm_relations` a `adfs`)                                                                                                                                                                                      |
-| `npm run db:export-osm`           | Push sync OSM (requereix `OSM_ACCESS_TOKEN`)                                                                                                                                                                                                         |
-| `npm run db:reset-hidrants`       | Neteja només hidrants i re-importa OSM                                                                                                                                                                                                               |
-| `npm run db:setup`                | `db:reset && db:seed && db:import-osm && update:boundaries`                                                                                                                                                                                          |
-| `npm run update:boundaries`       | Actualitza `adfs.bbox`/`center`/`boundary_geojson` des d'Overpass                                                                                                                                                                                    |
-| `npm run create:user`             | `npm run create:user -w back -- <usuari> <contrasenya> [rol] [adf_id]` — crea usuari directe a BD (`admin`/`coordinador`/`voluntari`)                                                                                                                |
-| `npm run telegram:selftest`       | Self-test lògica vinculació Telegram sense xarxa                                                                                                                                                                                                     |
-| `npm run prepare`                 | Husky hooks (`prepare: husky`)                                                                                                                                                                                                                       |
+| Script                            | Descripció                                                                                                                                                                                                                                                |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                     | Frontend + backend simultanis (Vite + tsx)                                                                                                                                                                                                                |
+| `npm run build`                   | Build front + back                                                                                                                                                                                                                                        |
+| `npm run start`                   | Arrenca backend compilat (`back/dist`)                                                                                                                                                                                                                    |
+| `npm run lint` / `lint:fix`       | ESLint a `front` + `back` (vegeu §11)                                                                                                                                                                                                                     |
+| `npm run typecheck`               | `tsc --noEmit` a `front` + `back`                                                                                                                                                                                                                         |
+| `npm test -w front`               | Vitest del frontend (tests de `front/src/map/core/*.test.ts`)                                                                                                                                                                                             |
+| `npm run format` / `format:check` | Prettier                                                                                                                                                                                                                                                  |
+| `npm run mqtt:up`                 | `docker compose up -d mosquitto`                                                                                                                                                                                                                          |
+| `npm run mqtt:cleanup`            | Neteja identitats MQTT obsoletes: alinea `mqtt_users.mqtt_username` amb username actual i esborra clients DynSec `owntracks-device` orfes. **Dry-run** per defecte; aplica amb `npm run mqtt:cleanup -- --apply` (`back/src/scripts/cleanupMqtt.ts`)      |
+| `npm run mqtt:sync-dynsec`        | `python3 scripts/init-dynsec.py sync` — no destructiu, conserva clients usuaris                                                                                                                                                                           |
+| `npm run mqtt:regen-dynsec`       | `python3 scripts/init-dynsec.py regen` — **destructiu**, esborra clients usuaris, demana confirmació                                                                                                                                                      |
+| `npm run docker:up`               | `docker compose up -d`                                                                                                                                                                                                                                    |
+| `npm run docker:down`             | `docker compose down`                                                                                                                                                                                                                                     |
+| `npm run docker:build`            | `docker compose build`                                                                                                                                                                                                                                    |
+| `npm run docker:logs`             | `docker compose logs -f`                                                                                                                                                                                                                                  |
+| `npm run docker:clean`            | `docker image prune -f`                                                                                                                                                                                                                                   |
+| `npm run nginx:render`            | Genera `config/site-docker.nginx` a partir de la plantilla i de `BASE_DOMAIN_URL` (`back/.env`). No el cridis a prod sense revisar el resultat                                                                                                            |
+| `npm run mosquitto:render`        | Genera `mosquitto/config/mosquitto.conf` de prod (TLS). Amb `-- --dev`, la de dev en clar (només local)                                                                                                                                                   |
+| `npm run docker:deploy`           | Actualització en producció: executa `scripts/deploy/update.sh` (còpia prèvia de la BD, `git pull --ff-only`, `npm ci`, `docker compose build` + `up -d`, healthchecks i `update:boundaries` best-effort). Detall i opcions a `local-doc/ops/deploy.md` §7 |
+| `npm run db:reset`                | Buida BD (`back/data/territoriadf.db`)                                                                                                                                                                                                                    |
+| `npm run db:seed`                 | Crea ADFs i usuaris inicials (admin global + coordinador per ADF); la contrasenya inicial és aleatòria i es mostra un sol cop al log                                                                                                                      |
+| `npm run db:import-osm`           | Pull sync OSM via Overpass (requereix `osm_relations` a `adfs`)                                                                                                                                                                                           |
+| `npm run db:export-osm`           | Push sync OSM (requereix `OSM_ACCESS_TOKEN`)                                                                                                                                                                                                              |
+| `npm run db:reset-hidrants`       | Neteja només hidrants i re-importa OSM                                                                                                                                                                                                                    |
+| `npm run db:setup`                | `db:reset && db:seed && db:import-osm && update:boundaries`                                                                                                                                                                                               |
+| `npm run update:boundaries`       | Actualitza `adfs.bbox`/`center`/`boundary_geojson` des d'Overpass                                                                                                                                                                                         |
+| `npm run create:user`             | `npm run create:user -w back -- <usuari> <contrasenya> [rol] [adf_id]` — crea usuari directe a BD (`admin`/`coordinador`/`voluntari`)                                                                                                                     |
+| `npm run telegram:selftest`       | Self-test lògica vinculació Telegram sense xarxa                                                                                                                                                                                                          |
+| `npm run prepare`                 | Husky hooks (`prepare: husky`)                                                                                                                                                                                                                            |
 
 Per paquet: `front/` (`dev`, `build`, `preview`, `test`, `lint`, `typecheck`), `back/` (`db:migrate`, `db:generate`, `dev`, `build`, `lint`, `typecheck`, `mqtt:cleanup`). `create:user`, `telegram:selftest` i `db:*` només existeixen a `back/`: des de l'arrel, `npm run <script> -w back -- ...`.
 
@@ -192,7 +194,7 @@ OTRC_TLS=true
 #OTRC_HOST=<ALTRE_HOST>   # només si el broker MQTT no és al mateix domini
 ```
 
-El listener `51823` usa certs Let's Encrypt (`mosquitto/certs/fullchain.pem`/`privkey.pem`). Vegeu `docs/MQTT_DEPLOY.md` per certs, `docker-compose.yml` i `scripts/copy-mosquitto-certs.sh` (hook renovació que llegeix `BASE_DOMAIN_URL`).
+El listener `51823` usa certs Let's Encrypt (`mosquitto/certs/fullchain.pem`/`privkey.pem`). Vegeu `local-doc/ops/mqtt.md` per certs, `docker-compose.yml` i `scripts/copy-mosquitto-certs.sh` (hook renovació que llegeix `BASE_DOMAIN_URL`).
 
 **Desenvolupament** (pla, sense TLS, mateix port publicat a `0.0.0.0` a `docker-compose.yml`):
 
@@ -262,7 +264,7 @@ npm run mqtt:cleanup -- --apply
 
 Alinia `mqtt_users.mqtt_username` amb el nom actual i esborra clients DynSec orfes. Script: `back/src/scripts/cleanupMqtt.ts`. També s'auto-cura a `PUT /api/users/:id` i `GET /api/tracking/config`.
 
-> **Producció completa:** `docs/MQTT_DEPLOY.md` (certs + renovació, Dynamic Security JSON exacte, `mqtt:sync-dynsec`/`regen`, permisos `mosquitto/data` amb `group mosquitto` + `setfacl`, backup, `createMqttUser` via `$CONTROL`).
+> **Producció completa:** `local-doc/ops/mqtt.md` (certs + renovació, Dynamic Security JSON exacte, `mqtt:sync-dynsec`/`regen`, permisos `mosquitto/data` amb `group mosquitto` + `setfacl`, backup, `createMqttUser` via `$CONTROL`).
 
 ---
 
@@ -314,7 +316,7 @@ Si `WEBHOOK_PUBLIC_URL` està definit, s'usa tal qual (`back/src/routes/telegram
 npm run telegram:selftest   # lògica vinculació sense xarxa
 ```
 
-> **Producció:** no cal `WEBHOOK_PUBLIC_URL` si entres per domini públic amb Nginx que proxya `/api/telegram/webhook/*`. El domini ha de ser públic. Detall: `docs/DEPLOY.md#9`.
+> **Producció:** no cal `WEBHOOK_PUBLIC_URL` si entres per domini públic amb Nginx que proxya `/api/telegram/webhook/*`. El domini ha de ser públic. Detall: `local-doc/ops/deploy.md#9`.
 
 ---
 
@@ -558,17 +560,17 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 
 ## 12. Troubleshooting
 
-| Símptoma                                        | Causa / Context                                                                    | Solució                                                                                                                                                                 |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getaddrinfo ENOTFOUND mosquitto`               | `MQTT_BROKER_URL` incorrecte segons entorn                                         | Dev local: `mqtt://localhost:1883`. Docker: `mqtt://mosquitto:1883`                                                                                                     |
-| `npm ci`/`npm install` fallen amb `EBADENGINE`  | El Node del shell no és el de `.nvmrc` (26.13.0); `.npmrc` té `engine-strict=true` | `nvm use` o `fnm use` (llegeixen `.nvmrc`), comprova `node -v` → `v26.13.0` i torna-ho a provar                                                                         |
-| `Not authorized` (Mosquitto)                    | `back/.env` vs `dynamic-security.json` desincronitzats                             | `npm run mqtt:sync-dynsec` (o `regen` si cal), verificar `docker compose logs mosquitto` → `Opening TLS listening socket on port 51823` (vegeu `docs/MQTT_DEPLOY.md#7`) |
-| `Not authorized` amb `mosquitto_sub -u backend` | Hash `encoded_password` incorrecte / format JSON DynSec invàlid                    | Regenerar amb `scripts/init-dynsec.py` (Python directe, sense `mosquitto_passwd` amb expansió shell) — detall `docs/MQTT_DEPLOY.md#4`                                   |
-| `Permission denied` generant DynSec             | `mosquitto/data` propietat `root` (contenidor) sense grup `mosquitto`              | `chown root:mosquitto`, `chmod 2770/660`, `setfacl -d -m g:mosquitto:rw` — vegeu `docs/MQTT_DEPLOY.md#4`                                                                |
-| `docker compose config` no cal `mosquitto/.env` | Mosquitto no consumeix env en runtime                                              | Contrasenyes només a `back/.env` (`MQTT_*_PASSWORD`); el JSON és la font de veritat                                                                                     |
-| Webhook Telegram `{"ok":false}` sempre          | Secret no trobat (`telegramBots.webhook_secret`)                                   | Verificar `WEBHOOK_PUBLIC_URL` i que Nginx proxya `/api/telegram/webhook/*` (vegeu §8.2)                                                                                |
-| `Token OSM no vàlid` / push 401                 | `OSM_ACCESS_TOKEN` invàlid o sense `write_api`                                     | Regenerar a https://www.openstreetmap.org/oauth2/applications, scope `write_api`                                                                                        |
+| Símptoma                                        | Causa / Context                                                                    | Solució                                                                                                                                                                   |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getaddrinfo ENOTFOUND mosquitto`               | `MQTT_BROKER_URL` incorrecte segons entorn                                         | Dev local: `mqtt://localhost:1883`. Docker: `mqtt://mosquitto:1883`                                                                                                       |
+| `npm ci`/`npm install` fallen amb `EBADENGINE`  | El Node del shell no és el de `.nvmrc` (26.13.0); `.npmrc` té `engine-strict=true` | `nvm use` o `fnm use` (llegeixen `.nvmrc`), comprova `node -v` → `v26.13.0` i torna-ho a provar                                                                           |
+| `Not authorized` (Mosquitto)                    | `back/.env` vs `dynamic-security.json` desincronitzats                             | `npm run mqtt:sync-dynsec` (o `regen` si cal), verificar `docker compose logs mosquitto` → `Opening TLS listening socket on port 51823` (vegeu `local-doc/ops/mqtt.md#7`) |
+| `Not authorized` amb `mosquitto_sub -u backend` | Hash `encoded_password` incorrecte / format JSON DynSec invàlid                    | Regenerar amb `scripts/init-dynsec.py` (Python directe, sense `mosquitto_passwd` amb expansió shell) — detall `local-doc/ops/mqtt.md#4`                                   |
+| `Permission denied` generant DynSec             | `mosquitto/data` propietat `root` (contenidor) sense grup `mosquitto`              | `chown root:mosquitto`, `chmod 2770/660`, `setfacl -d -m g:mosquitto:rw` — vegeu `local-doc/ops/mqtt.md#4`                                                                |
+| `docker compose config` no cal `mosquitto/.env` | Mosquitto no consumeix env en runtime                                              | Contrasenyes només a `back/.env` (`MQTT_*_PASSWORD`); el JSON és la font de veritat                                                                                       |
+| Webhook Telegram `{"ok":false}` sempre          | Secret no trobat (`telegramBots.webhook_secret`)                                   | Verificar `WEBHOOK_PUBLIC_URL` i que Nginx proxya `/api/telegram/webhook/*` (vegeu §8.2)                                                                                  |
+| `Token OSM no vàlid` / push 401                 | `OSM_ACCESS_TOKEN` invàlid o sense `write_api`                                     | Regenerar a https://www.openstreetmap.org/oauth2/applications, scope `write_api`                                                                                          |
 
 ---
 
-_Darrera actualització: generat des de `back/src/routes/` (rutes), `back/.env.example`, `package.json:5`, `docs/ARCHITECTURE.md` i `docs/OSM_SYNC.md` / `docs/MQTT_DEPLOY.md` / `docs/DEPLOY.md`._
+_Darrera actualització: generat des de `back/src/routes/` (rutes), `back/.env.example`, `package.json:5`, `docs/ARCHITECTURE.md` i `docs/OSM_SYNC.md` / `local-doc/ops/mqtt.md` / `local-doc/ops/deploy.md`._

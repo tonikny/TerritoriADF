@@ -39,9 +39,10 @@ mosquitto/certs
 **/*.tgz
 **/*.tar.gz
 
-# Documentació
+# Documentació (docs/ és públic; local-doc/ és el repo privat niat)
 docs
 *.md
+local-doc
 
 # Els Dockerfiles no calen dins la imatge
 **/Dockerfile
