@@ -8,7 +8,9 @@
  *  2. Cada `npm run <script>` i cada `npm test -w <workspace>` cita un script
  *     que existeix al `package.json` corresponent.
  *  3. Cada camí entre cometes invertides amb `/` i extensió de fitxer existeix
- *     (s'ignoren els globs, les rutes amb `<...>`, les URLs i els directoris).
+ *     (s'ignoren els globs, les rutes amb `<...>`, les URLs, els directoris i
+ *     els camins generats llistats a `GENERATED_PATHS`: no viatgen al
+ *     repositori i no existeixen en un clon net com el del CI).
  *
  * No comprova rutes d'API, noms de funcions ni textos: això és feina dels tests.
  * Els camins de `local-doc/` queden fora: és un altre repositori (privat) que no
@@ -44,6 +46,19 @@ const SEARCH_ROOTS = [
 ];
 /** Repositori privat de documentació: no es versiona aquí. */
 const SKIP_PATH_PREFIX = "local-doc/";
+/**
+ * Camins que la documentació cita a propòsit però que no són al repositori: es
+ * generen en local (`npm run mosquitto:render`, `mqtt:sync-dynsec`, build del
+ * front) i estan al `.gitignore`, o sigui que no existeixen en un clon net com
+ * el del CI. Han d'anar llistats aquí un a un: un camí nou és un error del
+ * document fins que no se'l declara generat.
+ */
+const GENERATED_PATHS = new Set([
+  "mosquitto/config/mosquitto.conf",
+  "mosquitto/data/dynamic-security.json",
+  "front/dist/sw.js",
+  "dist/sw.js",
+]);
 const SKIP_PATH_CHARS = ["*", "<", ">", "…", "{", "}", "(", ")", "|", " ", "#", "$"];
 const NPM_BUILTINS = new Set([
   "install",
@@ -195,7 +210,7 @@ async function checkPaths(file, text) {
           break;
         }
       }
-      if (!found) {
+      if (!found && !GENERATED_PATHS.has(token)) {
         report(file, index + 1, `fitxer inexistent → ${token}`);
       }
     }

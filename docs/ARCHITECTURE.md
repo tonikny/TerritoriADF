@@ -193,7 +193,7 @@ npm test -w front -- src/map/core/engineSelection.test.ts
 9. `npm run test:coverage -w front`
 10. `npm run build`
 
-`docs:check` (`scripts/docs-check.mjs`) comprova que els enllaços relatius, les imatges i els camins de fitxer citats a `README.md` i `docs/**` existeixen, i que cada `npm run` citat és un script real. Els camins de `local-doc/` queden fora: és un altre repositori, privat, que no viatja amb el codi.
+`docs:check` (`scripts/docs-check.mjs`) comprova que els enllaços relatius, les imatges i els camins de fitxer citats a `README.md` i `docs/**` existeixen, i que cada `npm run` citat és un script real. Els camins de `local-doc/` queden fora: és un altre repositori, privat, que no viatja amb el codi. També queden fora els camins generats, llistats a `GENERATED_PATHS` al mateix script: la documentació cita a propòsit artefactes que es creen en local (`front/dist/sw.js`, `mosquitto/config/mosquitto.conf`) i que no existeixen en un clon net com el del CI. La llista és tancada: un camí nou que no existeixi segueix sent un error.
 
 El pipeline no publica artefactes ni desplega.
 
