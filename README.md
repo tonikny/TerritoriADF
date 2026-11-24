@@ -14,10 +14,8 @@
 TerritoriADF reuneix en una sola aplicació el que una ADF necessita per tenir cura del seu territori: la xarxa d'hidrants, les incidències que s'hi detecten i la posició de les unitats sobre el terreny. Funciona en un únic domini, amb una ADF o amb diverses, i cada ADF treballa amb les seves dades.
 
 <p align="center">
-  <img src="docs/images/mapa.jpg" width="820" alt="Mapa d'una ADF amb els hidrants, el límit territorial i el panell de l'ADF">
+  <img src="docs/images/mapa.png" width="820" alt="Mapa d'una ADF amb els hidrants, el límit territorial i el panell de l'ADF">
 </p>
-
-<p align="center"><sub>Mapa: © OpenStreetMap contributors · © ICGC, MDT 5 m (CC BY 4.0)</sub></p>
 
 ## Contingut
 
