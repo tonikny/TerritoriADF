@@ -39,6 +39,10 @@ opencode.json
 !/scripts/deploy/
 !/scripts/docs-check.mjs
 
+# Skills d'agents: instal·lació local (npx skills), no es versionen
+.agents/skills/
+skills-lock.json
+
 *.md
 !README.md
 !docs/**
