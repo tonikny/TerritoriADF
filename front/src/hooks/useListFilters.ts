@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaEstat, IncidenciaFeature, IncidenciaPrioritat } from "@/types";
+import type {
+  IncidenciaEstat,
+  IncidenciaFeature,
+  IncidenciaPrioritat,
+} from "@territoriadf/contracts/incidencies";
 import { ESTATS_INCIDENCIA, PRIORITATS_INCIDENCIA } from "@/utils/incidenciaConstants";
 
 /** Valor del filtre per als hidrants sense estat informat. */

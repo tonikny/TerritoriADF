@@ -1,4 +1,4 @@
-import type { IncidenciaFeature } from "@/types";
+import type { IncidenciaFeature } from "@territoriadf/contracts/incidencies";
 import type {
   IncidenciaEstatFilter,
   IncidenciaFilters,

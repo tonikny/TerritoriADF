@@ -1,5 +1,5 @@
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaFeature } from "@/types";
+import type { IncidenciaFeature } from "@territoriadf/contracts/incidencies";
 import { useHidrantFilters, useIncidenciaFilters } from "@/hooks/useListFilters";
 import { CollapsibleSection } from "@/shared/ui/CollapsibleSection";
 import { HidrantList } from "@/components/lists/HidrantList";

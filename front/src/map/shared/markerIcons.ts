@@ -1,6 +1,6 @@
 import type { MarkerIcon } from "@/map/core/types";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaFeature } from "@/types";
+import type { IncidenciaFeature } from "@territoriadf/contracts/incidencies";
 import { getHidrantIconUrl, getHidrantStatus, hidrant_shadow } from "@/utils/icons";
 import { emojiTipusIncidencia } from "@/utils/incidenciaConstants";
 

@@ -1,4 +1,4 @@
-import type { CreateType } from "@/types";
+import type { CreateType } from "@/features/map-view/createType";
 
 export function createTitle(form: CreateType): string {
   if (form === "hydrant") {

@@ -3,14 +3,15 @@ import { toast } from "react-toastify";
 
 import type { Adf } from "@territoriadf/contracts/adfs";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
+import type { IncidenciaFeature } from "@territoriadf/contracts/incidencies";
 import type { SessionUser } from "@territoriadf/contracts/users";
 
 import { fromLngLat } from "@/map/core/geometry";
 import type { FocusCommand, LatLon } from "@/map/core/types";
 import { getBottomSheetInset } from "@/map/shared/uiInset";
-import type { CreateType, IncidenciaFeature } from "@/types";
 import { isPointInBoundary } from "@/utils/geo";
 import { setIncidenciaUrlParam, setNodeUrlParam } from "@/utils/urlParams";
+import type { CreateType } from "./createType";
 
 /**
  * Què hi ha obert al bottomsheet: un hidrant, una incidència o una creació.

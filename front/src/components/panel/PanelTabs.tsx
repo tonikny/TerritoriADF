@@ -1,6 +1,6 @@
 import type { PanelTab } from "@/components/layout/Panel";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaFeature } from "@/types";
+import type { IncidenciaFeature } from "@territoriadf/contracts/incidencies";
 import type { Position } from "@territoriadf/contracts/tracking";
 import type { EngineId } from "@/map/core/types";
 import type { EnginePreference } from "@/map/core/engineSelection";

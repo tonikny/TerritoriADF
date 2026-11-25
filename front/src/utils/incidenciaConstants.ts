@@ -1,4 +1,8 @@
-import type { IncidenciaEstat, IncidenciaPrecisio, IncidenciaPrioritat } from "@/types";
+import type {
+  IncidenciaEstat,
+  IncidenciaPrecisio,
+  IncidenciaPrioritat,
+} from "@territoriadf/contracts/incidencies";
 
 export interface IncidenciaOption<T extends string = string> {
   value: T;

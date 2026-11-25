@@ -19,7 +19,16 @@ const api = vi.hoisted(() => ({
   getAdfs: vi.fn(),
 }));
 
-vi.mock("@/shared/api/adfs", () => api);
+// Les escriptures són de la feature i la llista, de la closca: es mocken totes
+// dues perquè les assercions de «no tornar a demanar la llista» segueixin
+// vigilant el codi real.
+vi.mock("./api", () => ({
+  createAdf: api.createAdf,
+  updateAdf: api.updateAdf,
+  deleteAdf: api.deleteAdf,
+  recalculateAdfBoundaries: api.recalculateAdfBoundaries,
+}));
+vi.mock("@/shared/api/adfs", () => ({ getAdfs: api.getAdfs }));
 
 function adf(id: number, nom = `ADF ${id}`): Adf {
   return {

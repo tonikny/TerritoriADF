@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { setAdfTrackingSharing } from "@/shared/api/adfs";
-import { enableTracking } from "./api";
+import { enableTracking, setAdfTrackingSharing } from "./api";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 
 export function useTrackingMutations() {

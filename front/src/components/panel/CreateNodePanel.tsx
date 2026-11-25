@@ -1,5 +1,5 @@
 import type { LatLon } from "@/map/core/types";
-import type { CreateType } from "@/types";
+import type { CreateType } from "@/features/map-view/createType";
 import { CreationSelector } from "@/components/shared/CreationSelector";
 import { NewNodeForm } from "@/features/hidrants/NewNodeForm";
 import { NovaIncidenciaForm } from "@/features/incidencies/NovaIncidenciaForm";

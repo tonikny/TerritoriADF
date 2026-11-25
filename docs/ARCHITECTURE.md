@@ -41,7 +41,7 @@ territoriadf/
 │   │   │                           # map-view, osm, telegram, tracking i users, amb
 │   │   │                           # api.ts, consultes, mutations i components
 │   │   ├── hooks/                  # geolocalització, polling i comportament del mapa
-│   │   ├── shared/                 # api/ (client únic), query/ (claus i invalidació), ui/
+│   │   ├── shared/                 # api/ (client i crides transversals), query/, ui/
 │   │   ├── styles/                 # Tailwind i estils compartits
 │   │   └── utils/                  # funcions pures (geo, temps, PDF, offline...)
 │   ├── index.html
@@ -206,6 +206,7 @@ El pipeline no publica artefactes ni desplega.
 
 - Mantén el contracte neutral: la UI no ha de conèixer API de tercers del mapa.
 - Dins de `front/src`, els imports creuats es fan amb l'àlies `@/...` (`tsconfig.json` i `vite.config.ts`); ESLint prohibeix els imports amb `../`. Les fronteres entre `components`, `hooks`, `contexts`, `shared`, `map` i `utils` també estan imposades a `front/eslint.config.mjs`.
+- Les crides a l'API d'un domini viuen a `features/<domini>/api.ts`. `shared/api/` queda per al que travessa dominis: el client, la identitat (`auth.ts`), les notificacions (hidrants i OSM) i les lectures del catàleg d'ADFs que fa `AdfContext`, perquè `contexts/` no pot dependre de features.
 - Si una funcionalitat no es pot implementar a Leaflet, amaga-la o degrada-la amb `EngineCapabilities`; no deixis controls morts.
 - Els textos d'interfície i la documentació són en català; els identificadors de codi, en anglès.
 - Abans de tancar un canvi: `typecheck`, `lint`, tests del front i build han de passar.

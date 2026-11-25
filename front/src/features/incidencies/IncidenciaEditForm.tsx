@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Incidencia } from "@/types";
+import type { Incidencia } from "@territoriadf/contracts/incidencies";
 import { useIncidencies } from "./useIncidencies";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-toastify";

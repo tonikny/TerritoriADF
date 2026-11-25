@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
 
-import type { IncidenciaFeature } from "@/types";
+import type { IncidenciaFeature } from "@territoriadf/contracts/incidencies";
 
 /**
  * Deep links `?node=` i `?incidencia=`: s'obren un sol cop, quan les dades de

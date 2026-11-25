@@ -1,5 +1,6 @@
 // Funcions pures de la feature de tracking OwnTracks. El stream SSE
 // (`EventSource`) no passa per aquí: no és una petició `fetch`.
+import type { TrackingSharingResult } from "@territoriadf/contracts/adfs";
 import type { OtrcConfig, Position, TrackingStatus } from "@territoriadf/contracts/tracking";
 
 import { request } from "@/shared/api/client";
@@ -28,4 +29,19 @@ export async function getTrackingPositions(
     cache: "no-store",
   });
   return data.positions ?? {};
+}
+
+/**
+ * Comparteix o revoca el tracking de l'ADF (opt-in per a la resta d'ADFs).
+ * La ruta penja de `/api/adfs`, però és una acció de tracking i només la fa
+ * servir aquesta feature.
+ */
+export function setAdfTrackingSharing(
+  adfId: number,
+  shared: boolean,
+): Promise<TrackingSharingResult> {
+  return request<TrackingSharingResult>(`/api/adfs/${adfId}/tracking-sharing`, {
+    method: "PUT",
+    body: { shared },
+  });
 }

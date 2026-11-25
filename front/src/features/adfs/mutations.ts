@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Adf, AdfInput } from "@territoriadf/contracts/adfs";
 
-import { createAdf, deleteAdf, recalculateAdfBoundaries, updateAdf } from "@/shared/api/adfs";
+import { createAdf, deleteAdf, recalculateAdfBoundaries, updateAdf } from "./api";
 import { queryKeys } from "@/shared/query/keys";
 
 /**

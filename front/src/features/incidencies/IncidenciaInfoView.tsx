@@ -1,4 +1,4 @@
-import type { Incidencia, IncidenciaEvent } from "@/types";
+import type { Incidencia, IncidenciaEvent } from "@territoriadf/contracts/incidencies";
 import { Timeline } from "./Timeline";
 import { NodeActions } from "@/shared/ui/NodeActions";
 import { getIncidenciaShareUrl } from "@/utils/urlParams";

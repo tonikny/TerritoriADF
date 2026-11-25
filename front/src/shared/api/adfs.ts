@@ -1,11 +1,9 @@
-// Funcions pures de la feature d'ADFs: llista i frontera geogràfica.
-import type {
-  Adf,
-  AdfBoundariesResult,
-  AdfBoundaryFeature,
-  AdfInput,
-  TrackingSharingResult,
-} from "@territoriadf/contracts/adfs";
+// Lectures del catàleg d'ADFs que fa la closca (`AdfContext`): la llista per al
+// selector i la frontera per al mapa. No viuen a `features/adfs/api.ts` perquè
+// `contexts/` no pot dependre de cap feature (fronteres d'ESLint) i les
+// escriptures d'ADF, en canvi, només les fa la seva feature.
+import type { Adf, AdfBoundaryFeature } from "@territoriadf/contracts/adfs";
+
 import { ApiError, request } from "./client";
 
 // Sense `signal`: la llista és global i no depèn de l'ADF, així que no s'ha de
@@ -33,32 +31,4 @@ export async function getAdfBoundary(
     }
     throw err;
   }
-}
-
-/** Comparteix o revoca el tracking de l'ADF (opt-in per a la resta d'ADFs). */
-export function setAdfTrackingSharing(
-  adfId: number,
-  shared: boolean,
-): Promise<TrackingSharingResult> {
-  return request<TrackingSharingResult>(`/api/adfs/${adfId}/tracking-sharing`, {
-    method: "PUT",
-    body: { shared },
-  });
-}
-
-export function createAdf(input: AdfInput & { id: number }): Promise<Adf> {
-  return request<Adf>("/api/adfs", { method: "POST", body: input });
-}
-
-export function updateAdf(adfId: number, input: AdfInput): Promise<Adf> {
-  return request<Adf>(`/api/adfs/${adfId}`, { method: "PUT", body: input });
-}
-
-export async function deleteAdf(adfId: number): Promise<void> {
-  await request<unknown>(`/api/adfs/${adfId}`, { method: "DELETE" });
-}
-
-/** Recalcula límits, bbox i centre des de les relacions OSM (operació externa lenta). */
-export function recalculateAdfBoundaries(adfId: number): Promise<AdfBoundariesResult> {
-  return request<AdfBoundariesResult>(`/api/adfs/${adfId}/boundaries`, { method: "POST" });
 }

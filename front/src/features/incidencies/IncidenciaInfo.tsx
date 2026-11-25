@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useIncidencies } from "./useIncidencies";
-import type { Incidencia, IncidenciaEvent, IncidenciaFeature } from "@/types";
+import type {
+  Incidencia,
+  IncidenciaEvent,
+  IncidenciaFeature,
+} from "@territoriadf/contracts/incidencies";
 import { IncidenciaInfoView } from "./IncidenciaInfoView";
 import { IncidenciaEditForm } from "./IncidenciaEditForm";
 import { logError } from "@/utils/log";

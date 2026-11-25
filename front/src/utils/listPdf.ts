@@ -1,6 +1,6 @@
 import type { Adf } from "@territoriadf/contracts/adfs";
 import type { HidrantFeature } from "@territoriadf/contracts/hidrants";
-import type { IncidenciaFeature } from "@/types";
+import type { IncidenciaFeature } from "@territoriadf/contracts/incidencies";
 import type { PdfCell, PdfColumn } from "./pdfExport";
 import { adfLabel } from "./adfLabel";
 import { getIncidenciaShareUrl, getNodeShareUrl } from "./urlParams";
