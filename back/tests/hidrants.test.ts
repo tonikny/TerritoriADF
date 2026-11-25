@@ -112,8 +112,9 @@ describe("POST /api/hidrants", () => {
   it("retorna 403 si el punt cau fora del límit de l'ADF", async () => {
     db.update(adfs)
       .set({
-        boundary_geojson: JSON.stringify({
+        boundary_geojson: {
           type: "Feature",
+          properties: { adf_id: ADF_278, name: "ADF Prova 278" },
           geometry: {
             type: "Polygon",
             coordinates: [
@@ -126,7 +127,7 @@ describe("POST /api/hidrants", () => {
               ],
             ],
           },
-        }),
+        },
       })
       .where(eq(adfs.id, ADF_278))
       .run();
@@ -147,7 +148,7 @@ describe("GET /api/hidrants", () => {
   it("és públic i amaga els tags de servei sense sessió", async () => {
     createHydrant({
       id: "h-service-tags",
-      service_tags: JSON.stringify({ observacions: "Clau a la caseta" }),
+      service_tags: { observacions: "Clau a la caseta" },
     });
 
     const anonymous = await app.inject({
@@ -173,8 +174,8 @@ describe("GET /api/hidrants", () => {
     createHydrant({
       id: "h-279-service",
       adf_id: 279,
-      service_tags: JSON.stringify({ observacions: "Presa compartida" }),
-      private_tags: JSON.stringify({ nota_reservada: "pendent de política" }),
+      service_tags: { observacions: "Presa compartida" },
+      private_tags: { nota_reservada: "pendent de política" },
     });
 
     // Voluntari de l'ADF 278 consultant el mapa de l'ADF 279.
@@ -262,7 +263,7 @@ describe("PUT /api/hidrants/:id: màquina d'estats", () => {
     expect(response.json<SyncStatusBody>().sync_status).toBe("SYNCED");
 
     const row = db.select().from(hidrants).where(eq(hidrants.id, "hydrant-synced")).get();
-    expect(JSON.parse(row?.service_tags ?? "{}")).toEqual({ observacions: "actualitzada" });
+    expect(row?.service_tags).toEqual({ observacions: "actualitzada" });
   });
 
   it("limita el desplaçament a 50 metres", async () => {

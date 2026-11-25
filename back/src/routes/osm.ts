@@ -17,7 +17,6 @@ import {
   resolveAfterJOSM,
 } from "../services/osmConflictResolver.js";
 import { pushSyncToOSM } from "../services/osmPushSync.js";
-import type { HidrantSyncConflict, HidrantSyncIssue } from "@territoriadf/contracts/hidrants";
 import type {
   OsmDiff,
   OsmDiscardResult,
@@ -283,7 +282,7 @@ export function registerOsmRoutes(app: FastifyInstance): void {
         osm_id: h.osm_id,
         lat: h.lat,
         lon: h.lon,
-        sync_error: h.sync_error ? (JSON.parse(h.sync_error) as HidrantSyncIssue[]) : [],
+        sync_error: h.sync_error?.kind === "review" ? h.sync_error.issues : [],
       }));
       return reply.send({ reviews: formatted, count: formatted.length });
     },
@@ -361,7 +360,7 @@ export function registerOsmRoutes(app: FastifyInstance): void {
         osmVersion: osmNode.version,
         lat: osmNode.lat,
         lon: osmNode.lon,
-        osmTags: JSON.stringify(osmNode.tags || {}),
+        osmTags: osmNode.tags ?? {},
       });
 
       log.info({ id, osmVersion: osmNode.version }, "Conflicte resolt (baixat OSM)");
@@ -390,32 +389,25 @@ export function registerOsmRoutes(app: FastifyInstance): void {
       }
 
       // Si CONFLICT amb sync_error pre-computat, reutilitzar
-      if (hydrant.sync_status === "CONFLICT" && hydrant.sync_error) {
-        try {
-          const errData = JSON.parse(hydrant.sync_error) as HidrantSyncConflict;
-          if (errData.osmTags && errData.localTags) {
-            const diff: OsmDiff = {
-              osmTags: errData.localTags,
-              remoteOsmTags: errData.osmTags,
-              localLat: errData.localLat ?? hydrant.lat,
-              localLon: errData.localLon ?? hydrant.lon,
-              remoteLat: errData.osmLat,
-              remoteLon: errData.osmLon,
-            };
-            return reply.send({ diff });
-          }
-        } catch {
-          /* ignore parse error */
+      if (hydrant.sync_status === "CONFLICT" && hydrant.sync_error?.kind === "conflict") {
+        const errData = hydrant.sync_error;
+        if (errData.osmTags && errData.localTags) {
+          const diff: OsmDiff = {
+            osmTags: errData.localTags,
+            remoteOsmTags: errData.osmTags,
+            localLat: errData.localLat ?? hydrant.lat,
+            localLon: errData.localLon ?? hydrant.lon,
+            remoteLat: errData.osmLat,
+            remoteLon: errData.osmLon,
+          };
+          return reply.send({ diff });
         }
       }
 
       // Si tenim dades remotes guardades (PENDING_UPDATE, ERROR, REVIEW, etc.)
       if (hydrant.remote_osm_tags) {
-        const osmTags = (hydrant.osm_tags ? JSON.parse(hydrant.osm_tags) : {}) as Record<
-          string,
-          string
-        >;
-        const remoteOsmTags = JSON.parse(hydrant.remote_osm_tags) as Record<string, string>;
+        const osmTags = hydrant.osm_tags ?? {};
+        const remoteOsmTags = hydrant.remote_osm_tags;
         const diff: OsmDiff = {
           osmTags,
           remoteOsmTags,

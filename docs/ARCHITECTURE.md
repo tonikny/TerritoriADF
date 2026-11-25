@@ -82,6 +82,14 @@ La taula `hidrants` (`back/src/db/schema.ts`) separa tres tipus de dades:
 
 `sync_status` és `NOT NULL DEFAULT 'SYNCED'`: les consultes amb `NOT IN` i `!=` descarten les files `NULL` en silenci, i un hidrant sense estat desapareixeria del mapa, del panell OSM i del push alhora.
 
+### 2.2 Columnes JSON
+
+Les columnes que guarden JSON (`adfs.osm_relations`, `bbox`, `center` i `boundary_geojson`; `hidrants.osm_tags`, `service_tags`, `private_tags`, `sync_error` i `remote_osm_tags`; `incidencia_events.dades`) es declaren a `back/src/db/schema.ts` amb `text(..., { mode: "json" }).$type<...>()`. Drizzle fa `JSON.stringify` en escriure i `JSON.parse` en llegir, i el tipus és el del contracte compartit (`string[]`, `AdfBbox`, `HidrantOsmTags`, `IncidenciaEventDades`...). El tipus SQL continua sent `TEXT`: la migració `0013_json_columns` només normalitza les dades existents.
+
+La deserialització no valida la forma. Per això `back/src/utils/jsonColumns.ts` valida cada valor amb l'esquema Zod del contracte en llegir-lo i, si no encaixa, registra l'error i el descarta en lloc de retornar dades vàlides buides. `npm run db:check -w back` comprova totes aquestes columnes (JSON vàlid, forma `object`/`array` i `sync_error` amb un `kind` de la unió) i és la porta prèvia i posterior a la migració.
+
+`sync_error` és una unió discriminada per `kind`: `conflict` (detall del 409 o del pull), `review` (`issues` de la validació prèvia) o `error` (`message`). El backend l'escriu i el frontend el consumeix amb el mateix tipus, sense `JSON.parse` ni `as`.
+
 ## 3. Motors de mapa
 
 ### 3.1 Selecció del motor

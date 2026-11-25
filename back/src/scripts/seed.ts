@@ -47,7 +47,7 @@ async function run() {
         .values({
           id: adfData.id,
           nom: adfData.nom,
-          osm_relations: JSON.stringify(adfData.relations),
+          osm_relations: adfData.relations,
         })
         .onConflictDoNothing()
         .run();

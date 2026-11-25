@@ -92,6 +92,13 @@
       "when": 1795541177364,
       "tag": "0012_smiling_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1795640000000,
+      "tag": "0013_json_columns",
+      "breakpoints": true
     }
   ]
 }

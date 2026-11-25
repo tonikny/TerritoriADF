@@ -29,7 +29,7 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
     throw new Error(`ADF ${adfId} not found in database.`);
   }
 
-  const relations = JSON.parse(adf.osm_relations) as string[];
+  const relations = adf.osm_relations;
 
   log.info(
     {
@@ -130,7 +130,7 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
                 osmTags: node.tags,
                 localLat: existing.lat,
                 localLon: existing.lon,
-                localTags: existing.osm_tags ? JSON.parse(existing.osm_tags) : {},
+                localTags: existing.osm_tags ?? {},
                 diffFields: ["pull_sync_conflict"],
               });
               conflictCount++;
@@ -173,7 +173,7 @@ export async function syncAdfFromOSM(adfId: number, force = false) {
         adf_id: adfId,
         lat: node.lat,
         lon: node.lon,
-        osm_tags: JSON.stringify(node.tags || {}),
+        osm_tags: node.tags ?? {},
         synced_at: syncTimestamp,
       });
     }

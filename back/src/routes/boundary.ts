@@ -28,7 +28,7 @@ export function registerBoundaryRoutes(app: FastifyInstance): void {
         return reply.code(404).send({ error: "Boundary not found" });
       }
 
-      return reply.send(JSON.parse(boundary));
+      return reply.send(boundary);
     },
   );
 }

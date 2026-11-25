@@ -1,4 +1,4 @@
-import type { BoundaryGeometry } from "@territoriadf/contracts/adfs";
+import type { AdfBoundaryFeature, BoundaryGeometry } from "@territoriadf/contracts/adfs";
 
 // Distancia màxima que es pot arrossegar un hidrant respecte a la seva posició actual.
 // Única font de veritat: el frontend la consulta a GET /api/config (routes/appConfig.ts).
@@ -75,12 +75,12 @@ function pointInRing(lat: number, lon: number, ring: number[][]): boolean {
 export function isPointInBoundary(
   lat: number,
   lon: number,
-  boundaryGeojson: string | null,
+  boundaryGeojson: AdfBoundaryFeature | null,
 ): boolean {
   if (!boundaryGeojson) {
     return true;
   }
-  const geom = (JSON.parse(boundaryGeojson) as { geometry?: BoundaryGeometry }).geometry;
+  const geom = boundaryGeojson.geometry as BoundaryGeometry | undefined;
   if (!geom) {
     return true;
   }

@@ -7,6 +7,7 @@ import { sendToTelegram } from "@/shared/api/notifications";
 import { logError } from "@/utils/log";
 import { apiErrorMessage } from "@/shared/api/client";
 import { getOsmDiff } from "./api";
+import { syncErrorMessages } from "./syncErrorMessages";
 
 type SyncStatus = HidrantFeature["properties"]["sync_status"];
 type SyncError = HidrantFeature["properties"]["sync_error"];
@@ -49,42 +50,21 @@ function syncBadge(status: SyncStatus) {
 }
 
 function buildDiffFromConflict(syncError: SyncError): DiffData | null {
-  if (!syncError || typeof syncError !== "object") {
+  if (syncError?.kind !== "conflict") {
     return null;
   }
-  const se = syncError as Record<string, unknown>;
-  const localTags =
-    typeof se.localTags === "object" && se.localTags !== null
-      ? (se.localTags as Record<string, string>)
-      : null;
-  const osmTags =
-    typeof se.osmTags === "object" && se.osmTags !== null
-      ? (se.osmTags as Record<string, string>)
-      : null;
+  const { localTags, osmTags } = syncError;
   if (!localTags || !osmTags) {
     return null;
   }
   return {
     localTags,
     osmTags,
-    localLat: se.localLat as number | undefined,
-    localLon: se.localLon as number | undefined,
-    osmLat: se.osmLat as number | undefined,
-    osmLon: se.osmLon as number | undefined,
+    localLat: syncError.localLat,
+    localLon: syncError.localLon,
+    osmLat: syncError.osmLat,
+    osmLon: syncError.osmLon,
   };
-}
-
-function parseWarnings(syncError: SyncError): string[] {
-  if (!syncError) {
-    return [];
-  }
-  if (Array.isArray(syncError)) {
-    return syncError.map((e: { message?: string }) => e.message || JSON.stringify(e));
-  }
-  if (typeof syncError === "object" && "message" in syncError && syncError.message) {
-    return [syncError.message];
-  }
-  return [];
 }
 
 function DiffTable({ diff }: { diff: DiffData }) {
@@ -130,7 +110,7 @@ export function HidrantSyncActions({ feature }: { feature: HidrantFeature }) {
   const { id, sync_status, sync_error, osm_id, synced_at } = feature.properties;
 
   const badge = syncBadge(sync_status);
-  const warnings = parseWarnings(sync_error);
+  const warnings = syncErrorMessages(sync_error);
 
   // Per CONFLICT, utilitzem les dades de sync_error directament (computat durant render)
   const conflictDiff = sync_status === "CONFLICT" ? buildDiffFromConflict(sync_error) : null;
@@ -312,11 +292,9 @@ export function HidrantSyncActions({ feature }: { feature: HidrantFeature }) {
       )}
 
       {/* Error per ERROR */}
-      {sync_status === "ERROR" && sync_error && (
+      {sync_status === "ERROR" && sync_error?.kind === "error" && (
         <div className="text-[0.75rem] bg-red-50 border border-red-200 rounded p-2 text-red-700">
-          {typeof sync_error === "string"
-            ? sync_error
-            : (sync_error as { message?: string }).message || JSON.stringify(sync_error)}
+          {sync_error.message}
         </div>
       )}
 

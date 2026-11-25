@@ -6,7 +6,7 @@ import { AdfsRepository, type AdfInsert, type AdfRow } from "../db/repositories/
 import { BadRequestError } from "../errors.js";
 import { requireAuth, requirePermission } from "../plugins/authorize.js";
 import { adfIdParamsSchema, adfIdSchema } from "../utils/identifiers.js";
-import type { Adf, AdfBbox, AdfBoundaryFeature, AdfCenter } from "@territoriadf/contracts/adfs";
+import type { Adf } from "@territoriadf/contracts/adfs";
 
 /**
  * Camps JSON d'una ADF ja parsejats. `boundary_geojson` és pesat i només surt
@@ -17,16 +17,10 @@ export function serializeAdf(adf: AdfRow, options: { includeBoundary?: boolean }
   const { boundary_geojson, ...rest } = adf;
   return {
     ...rest,
-    osm_relations: JSON.parse(adf.osm_relations) as string[],
-    bbox: adf.bbox ? (JSON.parse(adf.bbox) as AdfBbox) : null,
-    center: adf.center ? (JSON.parse(adf.center) as AdfCenter) : null,
-    ...(options.includeBoundary
-      ? {
-          boundary_geojson: boundary_geojson
-            ? (JSON.parse(boundary_geojson) as AdfBoundaryFeature)
-            : null,
-        }
-      : {}),
+    osm_relations: adf.osm_relations,
+    bbox: adf.bbox ?? null,
+    center: adf.center ?? null,
+    ...(options.includeBoundary ? { boundary_geojson: boundary_geojson ?? null } : {}),
   };
 }
 
@@ -131,7 +125,7 @@ export function registerAdfRoutes(app: FastifyInstance): void {
       AdfsRepository.create({
         id: adfId,
         nom,
-        osm_relations: JSON.stringify(parseRelations(osm_relations)),
+        osm_relations: parseRelations(osm_relations),
       });
 
       const row = AdfsRepository.findById(adfId)!;
@@ -166,9 +160,8 @@ export function registerAdfRoutes(app: FastifyInstance): void {
 
       if (osm_relations !== undefined) {
         const relations = parseRelations(osm_relations);
-        const previous = JSON.parse(target.osm_relations) as string[];
-        if (JSON.stringify(previous) !== JSON.stringify(relations)) {
-          updates.osm_relations = JSON.stringify(relations);
+        if (JSON.stringify(target.osm_relations) !== JSON.stringify(relations)) {
+          updates.osm_relations = relations;
           // Els límits territorials deriven de les relacions: queden pendents de recalcular.
           updates.bbox = null;
           updates.center = null;

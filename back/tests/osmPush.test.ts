@@ -38,7 +38,7 @@ describe("pushSyncToOSM: creació", () => {
     createHydrant({
       id: "new-hydrant",
       sync_status: "PENDING_CREATE",
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
 
     const result = await pushSyncToOSM({ adfId: 278 });
@@ -52,7 +52,7 @@ describe("pushSyncToOSM: creació", () => {
     expect(row.osm_id).toBe(900001);
     expect(row.osm_version).toBe(1);
     expect(row.synced_at).toBeTruthy();
-    expect(JSON.parse(row.remote_osm_tags ?? "{}")).toEqual(FULL_OSM_TAGS);
+    expect(row.remote_osm_tags).toEqual(FULL_OSM_TAGS);
   });
 
   it("no obre cap changeset si no hi ha res pendent", async () => {
@@ -72,7 +72,7 @@ describe("pushSyncToOSM: creació", () => {
     createHydrant({
       id: "bad-hydrant",
       sync_status: "PENDING_CREATE",
-      osm_tags: JSON.stringify({ "fire_hydrant:type": "invalid" }),
+      osm_tags: { "fire_hydrant:type": "invalid" },
     });
 
     const result = await pushSyncToOSM({ adfId: 278 });
@@ -81,14 +81,17 @@ describe("pushSyncToOSM: creació", () => {
     expect(osmApi.createNode).not.toHaveBeenCalled();
     const row = HidrantsRepository.findByIds(["bad-hydrant"])[0]!;
     expect(row.sync_status).toBe("ERROR");
-    expect(row.sync_error).toContain("Dades invàlides");
+    expect(row.sync_error?.kind).toBe("error");
+    expect(row.sync_error?.kind === "error" ? row.sync_error.message : "").toContain(
+      "Dades invàlides",
+    );
   });
 
   it("un error de xarxa en crear deixa l'hidrant en ERROR", async () => {
     createHydrant({
       id: "network-error",
       sync_status: "PENDING_CREATE",
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
     vi.mocked(osmApi.createNode).mockRejectedValueOnce(new Error("OSM timeout"));
 
@@ -97,14 +100,15 @@ describe("pushSyncToOSM: creació", () => {
     expect(result.errors).toBe(1);
     const row = HidrantsRepository.findByIds(["network-error"])[0]!;
     expect(row.sync_status).toBe("ERROR");
-    expect(row.sync_error).toContain("OSM timeout");
+    expect(row.sync_error?.kind).toBe("error");
+    expect(row.sync_error?.kind === "error" ? row.sync_error.message : "").toContain("OSM timeout");
   });
 
   it("un warning deixa l'hidrant en REVIEW sense cridar OSM", async () => {
     createHydrant({
       id: "review-hydrant",
       sync_status: "PENDING_CREATE",
-      osm_tags: JSON.stringify({ emergency: "fire_hydrant", "addr:street": "CARRER GRAN" }),
+      osm_tags: { emergency: "fire_hydrant", "addr:street": "CARRER GRAN" },
     });
 
     const result = await pushSyncToOSM({ adfId: 278 });
@@ -123,7 +127,7 @@ describe("pushSyncToOSM: actualització", () => {
       osm_id: 700,
       osm_version: 2,
       sync_status: "PENDING_UPDATE",
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
     vi.mocked(osmApi.updateNode).mockResolvedValue({
       ok: false,
@@ -139,12 +143,9 @@ describe("pushSyncToOSM: actualització", () => {
     expect(result.conflicts).toBe(1);
     const row = HidrantsRepository.findByIds(["conflict-hydrant"])[0]!;
     expect(row.sync_status).toBe("CONFLICT");
-    const error = JSON.parse(row.sync_error ?? "{}") as {
-      osmVersion: number;
-      diffFields: string[];
-    };
-    expect(error.osmVersion).toBe(4);
-    expect(error.diffFields.join(" ")).toContain("addr:street");
+    expect(row.sync_error).toMatchObject({ kind: "conflict", osmVersion: 4 });
+    const diffFields = row.sync_error?.kind === "conflict" ? (row.sync_error.diffFields ?? []) : [];
+    expect(diffFields.join(" ")).toContain("addr:street");
   });
 
   it("un 400 d'OSM deixa l'hidrant en ERROR", async () => {
@@ -153,7 +154,7 @@ describe("pushSyncToOSM: actualització", () => {
       osm_id: 702,
       osm_version: 2,
       sync_status: "PENDING_UPDATE",
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
     vi.mocked(osmApi.updateNode).mockResolvedValue({
       ok: false,
@@ -173,7 +174,7 @@ describe("pushSyncToOSM: actualització", () => {
       osm_id: 703,
       osm_version: 2,
       sync_status: "PENDING_UPDATE",
-      osm_tags: JSON.stringify({ emergency: "fire_hydrant", "addr:street": "CARRER GRAN" }),
+      osm_tags: { emergency: "fire_hydrant", "addr:street": "CARRER GRAN" },
     });
 
     const result = await pushSyncToOSM({ adfId: 278 });
@@ -189,7 +190,7 @@ describe("pushSyncToOSM: actualització", () => {
       osm_id: 701,
       osm_version: 2,
       sync_status: "PENDING_UPDATE",
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
     vi.mocked(osmApi.updateNode).mockResolvedValue({ ok: true, status: 200, data: "3" });
 

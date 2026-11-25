@@ -7,44 +7,12 @@ import {
   ui2Osm,
   mergeUiFieldsIntoTags,
   sameOsmTags,
+  type HidrantServiceTags,
   type HidrantUiFields,
 } from "@territoriadf/contracts/hidrants";
 import { clampToMaxDistance, hasPositionChanged, MAX_HYDRANT_MOVE_METERS } from "../utils/geo.js";
+import { parseOsmTags, parseServiceTags, parseSyncError } from "../utils/jsonColumns.js";
 import { assertPointInAdf } from "./adfArea.js";
-/**
- * Parseja un camp de text que hauria de contenir un objecte JSON.
- * Retorna {} si és buit o malmès perquè una fila defectuosa no faci
- * fallar la llista sencera de l'ADF.
- */
-function parseJsonObject<T extends Record<string, unknown>>(value: string | null | undefined): T {
-  if (!value) {
-    return {} as T;
-  }
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as T;
-    }
-  } catch {
-    /* valor no JSON: ignorem el contingut */
-  }
-  return {} as T;
-}
-
-/**
- * `sync_error` pot contenir JSON (conflictes/revisions) o text pla (estat ERROR).
- * Si no és JSON vàlid el retornem tal qual perquè el frontend el pugui mostrar.
- */
-function parseSyncError(value: string | null | undefined): unknown {
-  if (!value) {
-    return null;
-  }
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
-}
 
 export const HidrantsService = {
   async forceSync(adfId: number, force = false) {
@@ -60,7 +28,7 @@ export const HidrantsService = {
     const rows = HidrantsRepository.findActiveByAdf(adfId);
 
     const features = rows.map((row) => {
-      const osm_tags = parseJsonObject<Record<string, string>>(row.osm_tags);
+      const osm_tags = parseOsmTags(row.osm_tags, row.id) ?? {};
       const ui_fields = osm2Ui(osm_tags);
 
       return {
@@ -80,12 +48,12 @@ export const HidrantsService = {
           // (ADR 0005). La resposta anònima manté la mateixa URL perquè la caché
           // offline del service worker segueixi funcionant.
           ...(options.includeServiceTags
-            ? { service_tags: parseJsonObject(row.service_tags) }
+            ? { service_tags: parseServiceTags(row.service_tags, row.id) ?? {} }
             : {}),
           sync_status: row.sync_status,
-          sync_error: parseSyncError(row.sync_error),
+          sync_error: parseSyncError(row.sync_error, row.id),
           synced_at: row.synced_at,
-          remote_osm_tags: row.remote_osm_tags ? parseJsonObject(row.remote_osm_tags) : null,
+          remote_osm_tags: parseOsmTags(row.remote_osm_tags, row.id, "remote_osm_tags"),
           remote_lat: row.remote_lat,
           remote_lon: row.remote_lon,
           updated_at: row.updated_at,
@@ -104,7 +72,7 @@ export const HidrantsService = {
     lat: number,
     lon: number,
     ui_fields?: HidrantUiFields,
-    service_tags?: Record<string, unknown>,
+    service_tags?: HidrantServiceTags,
   ) {
     if (!lat || !lon) {
       throw new BadRequestError("Missing lat or lon");
@@ -120,8 +88,8 @@ export const HidrantsService = {
       adf_id: adfId,
       lat,
       lon,
-      osm_tags: JSON.stringify(osm_tags),
-      service_tags: JSON.stringify(service_tags || {}),
+      osm_tags,
+      service_tags: service_tags ?? {},
       sync_status: "PENDING_CREATE",
     });
 
@@ -134,7 +102,7 @@ export const HidrantsService = {
     lat?: number,
     lon?: number,
     ui_fields?: HidrantUiFields,
-    service_tags?: Record<string, unknown>,
+    service_tags?: HidrantServiceTags,
   ) {
     if (!id) {
       throw new BadRequestError("Missing hydrant ID");
@@ -181,7 +149,7 @@ export const HidrantsService = {
     // Comprovar canvis en osm_tags
     let osm_tags = undefined;
     if (ui_fields) {
-      const currentOsmTags = JSON.parse(current.osm_tags || "{}") as Record<string, string>;
+      const currentOsmTags = { ...(current.osm_tags ?? {}) };
 
       if (ui_fields.estat) {
         delete currentOsmTags["emergency"];
@@ -193,7 +161,7 @@ export const HidrantsService = {
       osm_tags = mergeUiFieldsIntoTags(currentOsmTags, ui_fields);
 
       // Comparar si realment han canviat els tags
-      if (JSON.stringify(osm_tags) !== JSON.stringify(JSON.parse(current.osm_tags || "{}"))) {
+      if (JSON.stringify(osm_tags) !== JSON.stringify(current.osm_tags ?? {})) {
         hasOsmChanges = true;
       }
     }
@@ -211,12 +179,10 @@ export const HidrantsService = {
       (current.sync_status === "SYNCED" && hasOsmChanges);
 
     if (canAdjustSyncStatus) {
-      const remoteOsmTags = current.remote_osm_tags
-        ? parseJsonObject<Record<string, string>>(current.remote_osm_tags)
-        : null;
+      const remoteOsmTags = parseOsmTags(current.remote_osm_tags, current.id, "remote_osm_tags");
 
       if (remoteOsmTags) {
-        const localOsmTags = osm_tags ?? parseJsonObject<Record<string, string>>(current.osm_tags);
+        const localOsmTags = osm_tags ?? parseOsmTags(current.osm_tags, current.id) ?? {};
         const finalLat = lat ?? current.lat;
         const finalLon = lon ?? current.lon;
         const positionMatchesRemote =
@@ -236,8 +202,8 @@ export const HidrantsService = {
     HidrantsRepository.update(id, adfId, {
       lat,
       lon,
-      osm_tags: osm_tags ? JSON.stringify(osm_tags) : undefined,
-      service_tags: service_tags ? JSON.stringify(service_tags) : undefined,
+      osm_tags: osm_tags ?? undefined,
+      service_tags: service_tags ?? undefined,
       sync_status: newSyncStatus,
     });
 

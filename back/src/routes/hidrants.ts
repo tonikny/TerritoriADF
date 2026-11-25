@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { hidrantUiFieldsSchema } from "@territoriadf/contracts/hidrants";
+import { hidrantServiceTagsSchema, hidrantUiFieldsSchema } from "@territoriadf/contracts/hidrants";
 import type { OsmPullSyncResult } from "@territoriadf/contracts/osm";
 
 import { HidrantsService } from "../services/hidrantsService.js";
@@ -24,7 +24,7 @@ import {
  * sessió, de qualsevol ADF, la pot llegir (ADR 0005).
  */
 
-const serviceTagsSchema = z.record(z.string(), z.unknown());
+const serviceTagsSchema = hidrantServiceTagsSchema;
 
 const adfQuerySchema = z.object({
   adf: z.coerce.number().int().positive().optional(),

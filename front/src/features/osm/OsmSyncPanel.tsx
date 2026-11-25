@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOsmMutations } from "./mutations";
 import { apiErrorMessage } from "@/shared/api/client";
 import { getOsmPending } from "./api";
+import { syncErrorMessages } from "./syncErrorMessages";
 import { queryKeys, viewerKey } from "@/shared/query/keys";
 
 type SectionKey = PendingHidrant["sync_status"];
@@ -67,21 +68,6 @@ function hidrantLabel(h: PendingHidrant) {
     return `${h.street}${h.num ? `, ${h.num}` : ""}`;
   }
   return h.osm_id ? `OSM ${h.osm_id}` : h.id.slice(0, 8);
-}
-
-function parseSyncError(syncError?: string | null): string[] {
-  if (!syncError) {
-    return [];
-  }
-  try {
-    const parsed: unknown = JSON.parse(syncError);
-    if (Array.isArray(parsed)) {
-      return parsed.map((e: { message?: string }) => e.message || JSON.stringify(e));
-    }
-    return [syncError];
-  } catch {
-    return [syncError];
-  }
 }
 
 export function OsmSyncPanel({ onSelectHidrant }: { onSelectHidrant?: (id: string) => void }) {
@@ -431,7 +417,7 @@ export function OsmSyncPanel({ onSelectHidrant }: { onSelectHidrant?: (id: strin
                   {isOpen && (
                     <div className="bg-bg">
                       {items.map((h) => {
-                        const errors = parseSyncError(h.sync_error);
+                        const errors = syncErrorMessages(h.sync_error);
                         return (
                           <div
                             key={h.id}

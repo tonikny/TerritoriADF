@@ -50,7 +50,36 @@ export interface Incidencia {
   actualitzat_at: string;
 }
 
-/** Fila de `incidencia_events` tal com viu a la BD: `dades` encara és JSON cru. */
+/**
+ * Contingut de `incidencia_events.dades`: camps coneguts més qualsevol camp
+ * addicional que encara no s'ha formalitzat (multimèdia, assignacions...).
+ * L'esquema valida l'entrada de l'API i la columna JSON de la BD.
+ */
+export const incidenciaEventDadesSchema = z
+  .object({
+    comentari: z.string().optional(),
+    anterior: z.string().optional(),
+    nou: z.string().optional(),
+    nova: z
+      .object({
+        lat: z.number().finite(),
+        lon: z.number().finite(),
+        precisio: incidenciaPrecisioSchema,
+      })
+      .optional(),
+    observador: z.string().optional(),
+    orientacio: z.number().optional(),
+    distancia_m: z.number().optional(),
+    url: z.string().optional(),
+    titol: z.string().optional(),
+    // `CREACIO` hi desa el tipus d'incidència ("FOC", "ALTRE"...); `MULTIMEDIA`,
+    // el format del fitxer ("imatge"/"video"). Per això no és un enum tancat.
+    tipus: z.string().optional(),
+  })
+  .catchall(z.unknown());
+export type IncidenciaEventDades = z.infer<typeof incidenciaEventDadesSchema>;
+
+/** Fila de `incidencia_events`: `dades` ja ve tipat per l'esquema de la columna. */
 export interface IncidenciaEventRow {
   id: string;
   incidencia_id: string;
@@ -58,24 +87,12 @@ export interface IncidenciaEventRow {
   /** Camp virtual del join amb usuaris. */
   nom_usuari?: string;
   tipus_event: TipusEvent;
-  dades: string;
+  dades: IncidenciaEventDades;
   creat_at: string;
 }
 
-/** Forma que retorna l'API: `dades` ja ve parsejat. */
-export interface IncidenciaEvent {
-  id: string;
-  incidencia_id: string;
-  usuari_id: string | null;
-  nom_usuari?: string;
-  tipus_event: TipusEvent;
-  dades: {
-    comentari?: string;
-    anterior?: string;
-    nou?: string;
-  };
-  creat_at: string;
-}
+/** Forma que retorna l'API (la mateixa que la fila). */
+export type IncidenciaEvent = IncidenciaEventRow;
 
 // --- GeoJSON ---
 

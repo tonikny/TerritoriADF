@@ -2,6 +2,7 @@ import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { logger } from "../utils/logger.js";
 import { AppError } from "../errors.js";
 import { APP_NAME } from "../utils/appInfo.js";
+import type { AdfBbox, AdfBoundaryFeature, AdfCenter } from "@territoriadf/contracts/adfs";
 
 const log = logger.child({ module: "adf", operation: "boundaries" });
 
@@ -61,12 +62,12 @@ async function computeAndSave(adfId: number): Promise<void> {
     throw new BoundaryUpdateError("ADF no trobada", 404);
   }
 
-  const relations = JSON.parse(adf.osm_relations) as string[];
+  const relations = adf.osm_relations;
   if (relations.length === 0) {
     throw new BoundaryUpdateError("L'ADF no té cap relació OSM", 400);
   }
 
-  let combinedGeoJson: unknown = null;
+  let combinedGeoJson: AdfBoundaryFeature | null = null;
   let minLat = 90;
   let minLon = 180;
   let maxLat = -90;
@@ -84,7 +85,7 @@ async function computeAndSave(adfId: number): Promise<void> {
         combinedGeoJson = {
           type: "Feature",
           properties: { adf_id: adf.id, name: adf.nom },
-          geometry: place.geojson,
+          geometry: place.geojson as AdfBoundaryFeature["geometry"],
         };
       }
 
@@ -112,14 +113,10 @@ async function computeAndSave(adfId: number): Promise<void> {
     );
   }
 
-  const bbox = [minLat, minLon, maxLat, maxLon];
-  const center = [(minLat + maxLat) / 2, (minLon + maxLon) / 2];
+  const bbox: AdfBbox = [minLat, minLon, maxLat, maxLon];
+  const center: AdfCenter = [(minLat + maxLat) / 2, (minLon + maxLon) / 2];
 
-  AdfsRepository.saveBoundaries(adf.id, {
-    bbox: JSON.stringify(bbox),
-    center: JSON.stringify(center),
-    boundary_geojson: JSON.stringify(combinedGeoJson),
-  });
+  AdfsRepository.saveBoundaries(adf.id, { bbox, center, boundary_geojson: combinedGeoJson });
 }
 
 // Evita que dos clics simultanis facin la mateixa ronda de peticions a Nominatim.

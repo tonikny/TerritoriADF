@@ -100,7 +100,7 @@ describe("GET /api/osm/pending", () => {
     createHydrant({
       id: "p-create",
       sync_status: "PENDING_CREATE",
-      osm_tags: JSON.stringify({ "addr:street": "Carrer A", "addr:housenumber": "1" }),
+      osm_tags: { "addr:street": "Carrer A", "addr:housenumber": "1" },
     });
     createHydrant({ id: "p-update", sync_status: "PENDING_UPDATE", osm_id: 1, osm_version: 1 });
     createHydrant({ id: "p-delete", sync_status: "PENDING_DELETE", osm_id: 2, osm_version: 1 });
@@ -175,8 +175,8 @@ describe("POST /api/osm/discard-selected", () => {
       sync_status: "PENDING_UPDATE",
       osm_id: 700,
       osm_version: 2,
-      osm_tags: JSON.stringify({ "addr:street": "Carrer Local" }),
-      remote_osm_tags: JSON.stringify({ "addr:street": "Carrer OSM" }),
+      osm_tags: { "addr:street": "Carrer Local" },
+      remote_osm_tags: { "addr:street": "Carrer OSM" },
     });
 
     const response = await app.inject({
@@ -303,7 +303,7 @@ describe("POST /api/osm/push-selected", () => {
       sync_status: "PENDING_CREATE",
       lat: 41.61,
       lon: 1.61,
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
     createHydrant({ id: "not-selected", sync_status: "PENDING_CREATE" });
 
@@ -346,7 +346,7 @@ describe("POST /api/osm/push-selected", () => {
       sync_status: "ERROR",
       osm_id: 700,
       osm_version: 2,
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
     vi.mocked(osmApi.updateNode).mockResolvedValue({ ok: true, status: 200, data: "3" });
 
@@ -391,7 +391,7 @@ describe("POST /api/osm/push-sync", () => {
       sync_status: "PENDING_CREATE",
       lat: 41.61,
       lon: 1.61,
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
     createHydrant({
       id: "push-279",
@@ -399,7 +399,7 @@ describe("POST /api/osm/push-sync", () => {
       sync_status: "PENDING_CREATE",
       lat: 41.62,
       lon: 1.62,
-      osm_tags: JSON.stringify(FULL_OSM_TAGS),
+      osm_tags: FULL_OSM_TAGS,
     });
 
     const response = await app.inject({

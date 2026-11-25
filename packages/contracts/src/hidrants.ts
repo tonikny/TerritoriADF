@@ -24,8 +24,6 @@ export const hidrantUiFieldsSchema = z.object({
 
 export type HidrantUiFields = z.infer<typeof hidrantUiFieldsSchema>;
 
-export type HidrantOsmTags = Record<string, string>;
-
 function fromOsmCouplings(value: string): string {
   if (!value) {
     return "";
@@ -161,45 +159,62 @@ export function sameOsmTags(a: HidrantOsmTags, b: HidrantOsmTags): boolean {
 
 // --- Resposta de l'API: `GET /api/hidrants` (FeatureCollection GeoJSON) ---
 
+/** Tags d'OSM d'un hidrant: clau i valor sempre text. */
+export const hidrantOsmTagsSchema = z.record(z.string(), z.string());
+export type HidrantOsmTags = z.infer<typeof hidrantOsmTagsSchema>;
+
 /**
  * Detall d'un conflicte entre la versió local i la d'OSM. El guarda
  * `HidrantsRepository.markConflict()` quan el push rep un 409 o quan un pull
  * troba canvis als dos costats.
  */
-export interface HidrantSyncConflict {
-  localVersion?: number | null;
-  osmVersion?: number;
-  osmLat?: number;
-  osmLon?: number;
-  localLat?: number;
-  localLon?: number;
-  localTags?: Record<string, string>;
-  osmTags?: Record<string, string>;
-  diffFields?: string[];
-  /** Algun error desat com a JSON pot portar el missatge en aquest camp. */
-  message?: string;
-}
+export const hidrantSyncConflictSchema = z.object({
+  kind: z.literal("conflict"),
+  localVersion: z.number().nullable().optional(),
+  osmVersion: z.number().optional(),
+  osmLat: z.number().optional(),
+  osmLon: z.number().optional(),
+  localLat: z.number().optional(),
+  localLon: z.number().optional(),
+  localTags: hidrantOsmTagsSchema.optional(),
+  osmTags: hidrantOsmTagsSchema.optional(),
+  diffFields: z.array(z.string()).optional(),
+  message: z.string().optional(),
+});
+export type HidrantSyncConflict = z.infer<typeof hidrantSyncConflictSchema>;
 
 /** Un problema de la validació prèvia al push (estat `REVIEW`). */
-export interface HidrantSyncIssue {
-  tag: string;
-  level: "warning" | "error";
-  message: string;
-}
+export const hidrantSyncIssueSchema = z.object({
+  tag: z.string(),
+  level: z.enum(["warning", "error"]),
+  message: z.string(),
+});
+export type HidrantSyncIssue = z.infer<typeof hidrantSyncIssueSchema>;
 
 /**
- * `sync_error` no té una sola forma, perquè guarda coses diferents segons
- * l'estat: el JSON d'un conflicte, la llista de warnings d'una revisió, o el
- * text pla d'un error inesperat. Buit quan no hi ha res a dir.
+ * `sync_error` és una unió discriminada per `kind`, perquè guarda coses
+ * diferents segons l'estat: el detall d'un conflicte, els warnings d'una
+ * revisió o el missatge d'un error inesperat. `null` quan no hi ha res a dir.
+ *
+ * L'esquema és la frontera: el backend valida el que llegeix de la BD i el
+ * frontend rep el mateix tipus, sense `as` ni `JSON.parse`.
  */
-type HidrantSyncError = HidrantSyncConflict | HidrantSyncIssue[] | string | null;
+export const hidrantSyncErrorSchema = z.discriminatedUnion("kind", [
+  hidrantSyncConflictSchema,
+  z.object({ kind: z.literal("review"), issues: z.array(hidrantSyncIssueSchema) }),
+  z.object({ kind: z.literal("error"), message: z.string() }),
+]);
+export type HidrantSyncError = z.infer<typeof hidrantSyncErrorSchema>;
 
 /**
  * Informació de servei de l'hidrant (observacions, accessos, claus...). No és
  * d'OSM, però tampoc no és privada d'una ADF: la llegeix qualsevol sessió, de
  * qualsevol ADF (ADR 0005). Les respostes anònimes no la porten.
  */
-export type HidrantServiceTags = Record<string, unknown> & { observacions?: string };
+export const hidrantServiceTagsSchema = z
+  .object({ observacions: z.string().optional() })
+  .catchall(z.unknown());
+export type HidrantServiceTags = z.infer<typeof hidrantServiceTagsSchema>;
 
 /**
  * Un hidrant tal com el retorna `GET /api/hidrants`.
@@ -219,13 +234,13 @@ export interface HidrantFeature {
   properties: {
     id: string;
     osm_id: number | null;
-    osm_tags: Record<string, string>;
+    osm_tags: HidrantOsmTags;
     ui_fields: HidrantUiFields;
     service_tags?: HidrantServiceTags;
     sync_status: SyncStatus;
-    sync_error: HidrantSyncError;
+    sync_error: HidrantSyncError | null;
     synced_at: string | null;
-    remote_osm_tags: Record<string, string> | null;
+    remote_osm_tags: HidrantOsmTags | null;
     remote_lat: number | null;
     remote_lon: number | null;
     updated_at: string | null;

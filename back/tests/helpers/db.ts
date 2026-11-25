@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import type { AdfBoundaryFeature } from "@territoriadf/contracts/adfs";
 
 import { db } from "../../src/db/index.js";
 import {
@@ -62,12 +63,16 @@ function clearTables(): void {
   db.delete(adfs).run();
 }
 
-export function createAdf(id: number, nom = `ADF Prova ${id}`, boundary: string | null = null) {
+export function createAdf(
+  id: number,
+  nom = `ADF Prova ${id}`,
+  boundary: AdfBoundaryFeature | null = null,
+) {
   db.insert(adfs)
     .values({
       id,
       nom,
-      osm_relations: JSON.stringify([`R${id}`]),
+      osm_relations: [`R${id}`],
       boundary_geojson: boundary,
     })
     .run();
@@ -122,8 +127,8 @@ export function createHydrant(data: HydrantSeed): void {
       adf_id: ADF_278,
       lat: 41.6,
       lon: 1.6,
-      osm_tags: "{}",
-      service_tags: "{}",
+      osm_tags: {},
+      service_tags: {},
       sync_status: "SYNCED",
       ...data,
     })
@@ -163,8 +168,8 @@ export function createSyncedHydrant(id = "hydrant-synced"): void {
     id,
     osm_id: 9001,
     osm_version: 3,
-    osm_tags: JSON.stringify(FULL_OSM_TAGS),
-    remote_osm_tags: JSON.stringify(FULL_OSM_TAGS),
+    osm_tags: FULL_OSM_TAGS,
+    remote_osm_tags: FULL_OSM_TAGS,
     remote_lat: 41.6,
     remote_lon: 1.6,
     sync_status: "SYNCED",

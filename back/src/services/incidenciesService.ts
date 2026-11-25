@@ -13,6 +13,8 @@ import type {
   IncidenciaPrecisio,
   IncidenciaVisibilitat,
 } from "../types.js";
+import type { IncidenciaEventDades } from "@territoriadf/contracts/incidencies";
+import { parseEventDades } from "../utils/jsonColumns.js";
 import { ForbiddenError, NotFoundError } from "../errors.js";
 import { sendTelegramMessage } from "../utils/telegram.js";
 import { sendToAdf } from "./telegramService.js";
@@ -26,13 +28,6 @@ function escapeHtml(text: string | undefined): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-
-type EventDades = {
-  nou?: string;
-  anterior?: string;
-  nova?: { lat: number; lon: number; precisio: IncidenciaPrecisio };
-  comentari?: string;
-};
 
 export type IncidenciaRequester = {
   id: string;
@@ -120,10 +115,10 @@ export const IncidenciesService = {
     }
 
     const events = IncidenciesRepository.getEvents(id);
-    // Parsear JSON de dades per a cada event
+    // La columna ja ve deserialitzada; es valida la forma abans de retornar-la.
     const parsedEvents = events.map((e) => ({
       ...e,
-      dades: JSON.parse(e.dades || "{}") as Record<string, unknown>,
+      dades: parseEventDades(e.dades, e.id) ?? {},
     }));
 
     return {
@@ -175,7 +170,7 @@ export const IncidenciesService = {
       incidencia_id: incidenciaId,
       usuari_id: data.usuari_id,
       tipus_event: "CREACIO",
-      dades: JSON.stringify({
+      dades: {
         titol: data.titol,
         tipus: data.tipus,
         prioritat: incidencia.prioritat,
@@ -183,7 +178,7 @@ export const IncidenciesService = {
         lon: data.lon,
         precisio: incidencia.precisio,
         comentari: data.comentari,
-      }),
+      },
       creat_at: timestamp,
     };
 
@@ -215,7 +210,7 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
     incidenciaId: string,
     requester: IncidenciaRequester,
     tipusEvent: TipusEvent,
-    dades: EventDades,
+    dades: IncidenciaEventDades,
     clientBaseUrl?: string,
   ) {
     const incidencia = IncidenciesRepository.findById(incidenciaId);
@@ -234,7 +229,7 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
       incidencia_id: incidenciaId,
       usuari_id: requester.id,
       tipus_event: tipusEvent,
-      dades: JSON.stringify(dades),
+      dades,
       creat_at: timestamp,
     };
 

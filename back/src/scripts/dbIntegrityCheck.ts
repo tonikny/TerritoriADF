@@ -103,6 +103,80 @@ check(
     : [...perTable].map(([key, count]) => `${key}: ${count}`).join(", "),
 );
 
+/**
+ * Columnes JSON.
+ *
+ * Drizzle les llegeix amb `mode: "json"`, o sigui que fa `JSON.parse` de cada
+ * fila: un text trencat fa fallar la consulta sencera. Aquesta comprovació és
+ * la porta que ha de quedar neta ABANS i DESPRÉS de la migració que va canviar
+ * el mode de lectura: primer es reporta el que no encaixa, després es corregeix
+ * (migració `0013_json_columns`) i al final no n'ha de quedar res.
+ *
+ * La forma també importa: `{}` és JSON vàlid però no és una llista.
+ */
+const jsonColumns: Array<{
+  table: string;
+  column: string;
+  expected?: "object" | "array";
+}> = [
+  { table: "adfs", column: "osm_relations", expected: "array" },
+  { table: "adfs", column: "bbox", expected: "array" },
+  { table: "adfs", column: "center", expected: "array" },
+  { table: "adfs", column: "boundary_geojson", expected: "object" },
+  { table: "hidrants", column: "osm_tags", expected: "object" },
+  { table: "hidrants", column: "service_tags", expected: "object" },
+  { table: "hidrants", column: "private_tags", expected: "object" },
+  { table: "hidrants", column: "sync_error" },
+  { table: "hidrants", column: "remote_osm_tags", expected: "object" },
+  { table: "incidencia_events", column: "dades", expected: "object" },
+];
+
+for (const { table, column, expected } of jsonColumns) {
+  const broken = sqlite
+    .prepare(`SELECT count(*) AS c FROM "${table}" WHERE "${column}" IS NOT NULL AND NOT json_valid("${column}")`)
+    .get() as { c: number };
+  check(
+    `JSON vàlid a ${table}.${column}`,
+    broken.c === 0,
+    broken.c === 0 ? "json_valid net" : `${broken.c} files amb JSON trencat`,
+  );
+
+  if (expected) {
+    const wrongShape = sqlite
+      .prepare(
+        `SELECT count(*) AS c FROM "${table}" WHERE "${column}" IS NOT NULL AND json_valid("${column}") AND json_type("${column}") <> ?`,
+      )
+      .get(expected) as { c: number };
+    check(
+      `Forma ${expected} a ${table}.${column}`,
+      wrongShape.c === 0,
+      wrongShape.c === 0 ? "cap fila amb una altra forma" : `${wrongShape.c} files amb una altra forma`,
+    );
+  }
+}
+
+const badSyncError = sqlite
+  .prepare(
+    `SELECT count(*) AS c FROM hidrants
+     WHERE sync_error IS NOT NULL AND json_valid(sync_error)
+       AND (
+         json_type(sync_error) <> 'object'
+         OR json_extract(sync_error, '$.kind') IS NULL
+         OR json_extract(sync_error, '$.kind') NOT IN ('conflict', 'review', 'error')
+         -- Forma de cada variant: review porta issues i error un message.
+         OR (json_extract(sync_error, '$.kind') = 'review'
+             AND json_type(json_extract(sync_error, '$.issues')) IS NOT 'array')
+         OR (json_extract(sync_error, '$.kind') = 'error'
+             AND json_type(json_extract(sync_error, '$.message')) IS NOT 'text')
+       )`,
+  )
+  .get() as { c: number };
+check(
+  "sync_error amb `kind` vàlid",
+  badSyncError.c === 0,
+  badSyncError.c === 0 ? "unió discriminada correcta" : `${badSyncError.c} files fora de la unió`,
+);
+
 let failed = 0;
 for (const result of checks) {
   if (result.ok) {

@@ -2,9 +2,10 @@
  * Formes de resposta de les rutes OSM (`back/src/routes/osm.ts` i el pull de
  * `POST /api/hidrants/sync`).
  */
+import type { HidrantSyncError } from "./hidrants.js";
 import type { SyncStatus } from "./sync.js";
 
-/** Fila de `GET /api/osm/pending`: el backend no parseja `sync_error`. */
+/** Fila de `GET /api/osm/pending`: `sync_error` viatja ja tipat (unió per `kind`). */
 export interface PendingHidrant {
   id: string;
   osm_id?: number | null;
@@ -12,7 +13,7 @@ export interface PendingHidrant {
   lon: number;
   /** El filtre SQL de `GET /api/osm/pending` exclou `SYNCED`. */
   sync_status: Exclude<SyncStatus, "SYNCED">;
-  sync_error?: string | null;
+  sync_error?: HidrantSyncError | null;
   street: string;
   num: string;
 }

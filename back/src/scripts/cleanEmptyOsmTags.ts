@@ -34,7 +34,7 @@ async function cleanEmptyOsmTags() {
     let emptyTagsFound = 0;
 
     for (const hidrant of allHidrants) {
-      const osmTags = JSON.parse(hidrant.osm_tags || '{}') as Record<string, unknown>;
+      const osmTags: Record<string, unknown> = hidrant.osm_tags ?? {};
       const originalKeys = Object.keys(osmTags);
 
       // Filtrar tags amb valor buit
@@ -67,7 +67,7 @@ async function cleanEmptyOsmTags() {
         );
 
         db.update(hidrants)
-          .set({ osm_tags: JSON.stringify(cleanedTags) })
+          .set({ osm_tags: cleanedTags })
           .where(eq(hidrants.id, hidrant.id))
           .run();
 

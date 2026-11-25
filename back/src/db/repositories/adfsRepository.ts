@@ -1,4 +1,5 @@
 import { count, eq, inArray } from "drizzle-orm";
+import type { AdfBbox, AdfBoundaryFeature, AdfCenter } from "@territoriadf/contracts/adfs";
 import { db } from "../index.js";
 import { adfs, hidrants, incidencies, telegramBots, users } from "../schema.js";
 
@@ -40,7 +41,7 @@ export const AdfsRepository = {
   },
 
   /** Només el GeoJSON de la frontera: la resta de camps de l'ADF és pesada. */
-  findBoundary(id: number): string | null {
+  findBoundary(id: number): AdfBoundaryFeature | null {
     return (
       db.select({ boundary_geojson: adfs.boundary_geojson }).from(adfs).where(eq(adfs.id, id)).get()
         ?.boundary_geojson ?? null
@@ -70,7 +71,7 @@ export const AdfsRepository = {
 
   saveBoundaries(
     id: number,
-    data: { bbox: string; center: string; boundary_geojson: string },
+    data: { bbox: AdfBbox; center: AdfCenter; boundary_geojson: AdfBoundaryFeature },
   ): void {
     db.update(adfs).set(data).where(eq(adfs.id, id)).run();
   },

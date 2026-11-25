@@ -29,8 +29,9 @@ function seedConflict(id = "conflict-1"): void {
     osm_id: 7001,
     osm_version: 3,
     sync_status: "CONFLICT",
-    osm_tags: JSON.stringify(LOCAL_TAGS),
-    sync_error: JSON.stringify({
+    osm_tags: LOCAL_TAGS,
+    sync_error: {
+      kind: "conflict",
       localVersion: 3,
       osmVersion: 4,
       osmLat: 41.6005,
@@ -40,7 +41,7 @@ function seedConflict(id = "conflict-1"): void {
       localLon: 1.6,
       localTags: LOCAL_TAGS,
       diffFields: ["addr:street"],
-    }),
+    },
   });
 }
 
@@ -88,7 +89,7 @@ describe("tryAutoResolve", () => {
       osm_id: 7002,
       osm_version: 3,
       sync_status: "CONFLICT",
-      osm_tags: JSON.stringify(REMOTE_TAGS),
+      osm_tags: REMOTE_TAGS,
     });
     vi.mocked(osmApi.getNode).mockResolvedValue({
       version: 4,
@@ -127,9 +128,7 @@ describe("tryAutoResolve", () => {
     const row = HidrantsRepository.findByIds(["conflict-1"])[0]!;
     expect(row.sync_status).toBe("SYNCED");
     expect(row.osm_version).toBe(5);
-    expect((JSON.parse(row.osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
-      "Carrer Local",
-    );
+    expect(row.osm_tags?.["addr:street"]).toBe("Carrer Local");
   });
 
   it("retorna false i no toca l'estat si OSM rebutja el merge", async () => {
@@ -200,8 +199,6 @@ describe("resolveAfterJOSM", () => {
     const row = HidrantsRepository.findByIds(["conflict-1"])[0]!;
     expect(row.sync_status).toBe("SYNCED");
     expect(row.osm_version).toBe(8);
-    expect((JSON.parse(row.osm_tags ?? "{}") as Record<string, string>)["addr:street"]).toBe(
-      "Carrer OSM",
-    );
+    expect(row.osm_tags?.["addr:street"]).toBe("Carrer OSM");
   });
 });

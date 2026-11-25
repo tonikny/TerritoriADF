@@ -25,6 +25,7 @@ const LOCAL_TAGS = { ...FULL_OSM_TAGS, "addr:street": "Carrer Local" };
 const REMOTE_TAGS = { ...FULL_OSM_TAGS, "addr:street": "Carrer OSM" };
 
 const CONFLICT_ERROR = {
+  kind: "conflict" as const,
   localVersion: 3,
   osmVersion: 4,
   osmLat: 41.6005,
@@ -46,8 +47,8 @@ function seedConflict(id = "conflict-1"): void {
     osm_id: 7001,
     osm_version: 3,
     sync_status: "CONFLICT",
-    osm_tags: JSON.stringify(LOCAL_TAGS),
-    sync_error: JSON.stringify(CONFLICT_ERROR),
+    osm_tags: LOCAL_TAGS,
+    sync_error: CONFLICT_ERROR,
   });
 }
 
@@ -198,9 +199,10 @@ describe("GET /api/osm/reviews", () => {
     createHydrant({
       id: "review-1",
       sync_status: "REVIEW",
-      sync_error: JSON.stringify([
-        { tag: "addr:street", level: "warning", message: "text en majúscules" },
-      ]),
+      sync_error: {
+        kind: "review",
+        issues: [{ tag: "addr:street", level: "warning", message: "text en majúscules" }],
+      },
     });
 
     const response = await app.inject({
@@ -242,8 +244,8 @@ describe("GET /api/osm/diff/:id", () => {
       id: "remote-only",
       osm_id: 7100,
       sync_status: "PENDING_UPDATE",
-      osm_tags: JSON.stringify(LOCAL_TAGS),
-      remote_osm_tags: JSON.stringify(REMOTE_TAGS),
+      osm_tags: LOCAL_TAGS,
+      remote_osm_tags: REMOTE_TAGS,
     });
 
     const response = await app.inject({

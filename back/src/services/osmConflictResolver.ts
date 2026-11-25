@@ -1,10 +1,9 @@
 import { HidrantsRepository, type HidrantData } from "../db/repositories/hidrantsRepository.js";
 import * as osmApi from "./osmApi.js";
 import { buildOscXml } from "./osmXml.js";
-import { parseOsmTags } from "./osmPushSync.js";
 import { computeDiffStrings } from "./osmDiff.js";
 import { APP_NAME } from "../utils/appInfo.js";
-import type { HidrantSyncConflict } from "@territoriadf/contracts/hidrants";
+import type { HidrantOsmTags, HidrantSyncError } from "@territoriadf/contracts/hidrants";
 
 export type ConflictDetail = {
   hidrant: HidrantData;
@@ -22,7 +21,7 @@ export function getConflicts(): ConflictDetail[] {
   const rows = HidrantsRepository.findConflicts();
   return rows.map((h) => {
     const errorData = parseConflictError(h.sync_error);
-    const localTags = parseOsmTags(h.osm_tags);
+    const localTags = h.osm_tags ?? {};
     const diffFields = computeDiffStrings(
       h.lat,
       h.lon,
@@ -64,7 +63,7 @@ export async function tryAutoResolve(h: HidrantData): Promise<boolean> {
     return false;
   }
 
-  const localTags = parseOsmTags(h.osm_tags);
+  const localTags = h.osm_tags ?? {};
   const posChanged =
     Math.abs(h.lat - current.lat) > 0.000001 || Math.abs(h.lon - current.lon) > 0.000001;
 
@@ -92,7 +91,7 @@ export async function tryAutoResolve(h: HidrantData): Promise<boolean> {
       osmVersion: current.version,
       lat: current.lat,
       lon: current.lon,
-      osmTags: JSON.stringify(mergedTags),
+      osmTags: mergedTags,
     });
     return true;
   }
@@ -119,7 +118,7 @@ export async function tryAutoResolve(h: HidrantData): Promise<boolean> {
       osmVersion: newVersion,
       lat: current.lat,
       lon: current.lon,
-      osmTags: JSON.stringify(mergedTags),
+      osmTags: mergedTags,
     });
     return true;
   }
@@ -146,7 +145,7 @@ export async function resolveAfterJOSM(id: string): Promise<boolean> {
     osmVersion: current.version,
     lat: current.lat,
     lon: current.lon,
-    osmTags: JSON.stringify(current.tags),
+    osmTags: current.tags,
   });
 
   return true;
@@ -170,7 +169,7 @@ export function generateOscFile(): string | null {
       version: errorData.osmVersion,
       lat: h.lat,
       lon: h.lon,
-      tags: parseOsmTags(h.osm_tags),
+      tags: h.osm_tags ?? {},
       changesetId: 0, // Placeholder — JOSM assignarà el seu propi changeset
     };
   });
@@ -180,21 +179,19 @@ export function generateOscFile(): string | null {
 
 // --- Helpers ---
 
-function parseConflictError(syncError: string | null | undefined): {
+function parseConflictError(syncError: HidrantSyncError | null | undefined): {
   osmVersion: number;
   osmLat: number;
   osmLon: number;
-  osmTags: Record<string, string>;
+  osmTags: HidrantOsmTags;
 } {
-  try {
-    const data = JSON.parse(syncError || "{}") as HidrantSyncConflict;
-    return {
-      osmVersion: data.osmVersion || 0,
-      osmLat: data.osmLat || 0,
-      osmLon: data.osmLon || 0,
-      osmTags: data.osmTags || {},
-    };
-  } catch {
+  if (!syncError || syncError.kind !== "conflict") {
     return { osmVersion: 0, osmLat: 0, osmLon: 0, osmTags: {} };
   }
+  return {
+    osmVersion: syncError.osmVersion ?? 0,
+    osmLat: syncError.osmLat ?? 0,
+    osmLon: syncError.osmLon ?? 0,
+    osmTags: syncError.osmTags ?? {},
+  };
 }

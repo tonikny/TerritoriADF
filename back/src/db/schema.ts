@@ -1,14 +1,29 @@
 import { sqliteTable, text, integer, real, unique, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { SYNC_STATUSES } from "@territoriadf/contracts/sync";
+import type { AdfBbox, AdfBoundaryFeature, AdfCenter } from "@territoriadf/contracts/adfs";
+import type {
+  HidrantOsmTags,
+  HidrantServiceTags,
+  HidrantSyncError,
+} from "@territoriadf/contracts/hidrants";
+import type { IncidenciaEventDades } from "@territoriadf/contracts/incidencies";
+
+/**
+ * Les columnes JSON es declaren amb `mode: "json"` i `$type<...>()`: Drizzle fa
+ * `JSON.stringify`/`JSON.parse` i el tipus viatja entre capes. El tipus SQL
+ * continua sent `TEXT`, així que la migració només normalitza les dades
+ * existents (`0013_json_columns`). La forma es valida en llegir-la amb els
+ * esquemes de `@territoriadf/contracts` (vegeu `utils/jsonColumns.ts`).
+ */
 
 export const adfs = sqliteTable("adfs", {
   id: integer("id").primaryKey(), // Número d'ADF
   nom: text("nom").notNull(),
-  osm_relations: text("osm_relations").notNull(), // JSON array de strings
-  bbox: text("bbox"), // JSON array de 4 números
-  center: text("center"), // JSON array de 2 números
-  boundary_geojson: text("boundary_geojson"), // GeoJSON del límit territorial
+  osm_relations: text("osm_relations", { mode: "json" }).$type<string[]>().notNull(),
+  bbox: text("bbox", { mode: "json" }).$type<AdfBbox>(),
+  center: text("center", { mode: "json" }).$type<AdfCenter>(),
+  boundary_geojson: text("boundary_geojson", { mode: "json" }).$type<AdfBoundaryFeature>(),
   tracking_shared: integer("tracking_shared", { mode: "boolean" }).default(false),
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
@@ -24,26 +39,28 @@ export const hidrants = sqliteTable(
     municipi: text("municipi"), // Mantinguem el nom del municipi per info visual
     lat: real("lat").notNull(),
     lon: real("lon").notNull(),
-    osm_tags: text("osm_tags").default("{}"),
+    osm_tags: text("osm_tags", { mode: "json" }).$type<HidrantOsmTags>().default({}),
     // Informació de servei de l'hidrant (observacions, accessos, claus...). No és
     // d'OSM, però tampoc no és privada d'una ADF: qualsevol usuari autenticat de
     // qualsevol ADF la pot llegir (ADR 0005). Les respostes anònimes no la porten.
-    service_tags: text("service_tags").default("{}"),
+    service_tags: text("service_tags", { mode: "json" }).$type<HidrantServiceTags>().default({}),
     // Reservat per a dades que només ha de veure l'ADF propietària (ADR 0005).
     // Avui l'API no l'exposa ni l'escriu: la migració 0012 va buidar-lo després
     // de copiar el contingut antic a `service_tags`.
-    private_tags: text("private_tags").default("{}"),
+    private_tags: text("private_tags", { mode: "json" })
+      .$type<Record<string, unknown>>()
+      .default({}),
     // `NOT NULL` perquè `null` no és un estat vàlid: les consultes amb `NOT IN`
     // i `!=` descarten les files NULL en silenci i l'hidrant desapareixeria del
     // mapa, del panell OSM i del push sense cap manera d'arreglar-lo.
     sync_status: text("sync_status", { enum: [...SYNC_STATUSES] })
       .notNull()
       .default("SYNCED"),
-    sync_error: text("sync_error"), // JSON: detalls de l'error o del conflicte
+    sync_error: text("sync_error", { mode: "json" }).$type<HidrantSyncError>(),
     synced_at: text("synced_at"), // ISO: timestamp de l'última pujada exitosa a OSM
     remote_lat: real("remote_lat"), // Latitud de la versió remota d'OSM (per al diff)
     remote_lon: real("remote_lon"), // Longitud de la versió remota d'OSM (per al diff)
-    remote_osm_tags: text("remote_osm_tags"), // Tags de la versió remota d'OSM (JSON)
+    remote_osm_tags: text("remote_osm_tags", { mode: "json" }).$type<HidrantOsmTags>(),
     created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
     updated_at: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
   },
@@ -151,7 +168,7 @@ export const incidencia_events = sqliteTable(
       .references(() => incidencies.id, { onDelete: "cascade" }),
     usuari_id: text("usuari_id").references(() => users.id, { onDelete: "set null" }),
     tipus_event: text("tipus_event").notNull(),
-    dades: text("dades").default("{}"), // JSON
+    dades: text("dades", { mode: "json" }).$type<IncidenciaEventDades>().default({}),
     creat_at: text("creat_at").default(sql`CURRENT_TIMESTAMP`),
   },
   (t) => ({

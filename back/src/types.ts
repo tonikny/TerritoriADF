@@ -4,7 +4,7 @@
 export type {
   Incidencia,
   IncidenciaEstat,
-  // Fila de `incidencia_events`: `dades` encara és el JSON cru de la BD.
+  // Fila de `incidencia_events`: `dades` ja ve tipat per l'esquema de la columna.
   IncidenciaEventRow as IncidenciaEvent,
   IncidenciaPrecisio,
   IncidenciaPrioritat,

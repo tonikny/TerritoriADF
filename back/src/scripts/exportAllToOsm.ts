@@ -129,8 +129,8 @@ async function run() {
     // Per a PENDING_CREATE no cal action si l'id és negatiu, JOSM ja ho interpreta com a nou.
 
     // Combinar tags
-    const osmTags = JSON.parse(h.osm_tags || '{}') as Record<string, string>;
-    const serviceTags = JSON.parse(h.service_tags || '{}') as {
+    const osmTags = h.osm_tags ?? {};
+    const serviceTags = (h.service_tags ?? {}) as {
       description?: string | { value?: string };
     };
     const parsed = parsePrivateDescription(serviceTags.description);

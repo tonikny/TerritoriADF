@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import {
+  incidenciaEventDadesSchema,
   incidenciaPrecisioSchema,
   incidenciaPrioritatSchema,
   incidenciaVisibilitatSchema,
@@ -45,30 +46,11 @@ const createBodySchema = z.object({
   comentari: z.string().optional(),
 });
 
-const locationSchema = z.object({
-  lat: z.number().finite(),
-  lon: z.number().finite(),
-  precisio: incidenciaPrecisioSchema,
-});
-
 const eventBodySchema = z.object({
   tipus_event: tipusEventSchema,
-  // `catchall`: els camps que el servei encara no formalitza (multimèdia,
-  // assignacions) no es poden perdre, però el cos ha de ser un objecte.
-  dades: z
-    .object({
-      nou: z.string().optional(),
-      anterior: z.string().optional(),
-      nova: locationSchema.optional(),
-      comentari: z.string().optional(),
-      observador: z.string().optional(),
-      orientacio: z.number().optional(),
-      distancia_m: z.number().optional(),
-      url: z.string().optional(),
-      titol: z.string().optional(),
-      tipus: z.enum(["imatge", "video"]).optional(),
-    })
-    .catchall(z.unknown()),
+  // L'esquema compartit valida el cos i és el mateix tipus que la columna
+  // `incidencia_events.dades` (`catchall` per als camps encara no formalitzats).
+  dades: incidenciaEventDadesSchema,
 });
 
 export function registerIncidenciaRoutes(app: FastifyInstance): void {

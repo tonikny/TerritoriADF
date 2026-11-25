@@ -212,12 +212,12 @@ describe("POST /api/incidencies/:id/events", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    const body = response.json<{ tipus_event: string; dades: string }>();
+    const body = response.json<{
+      tipus_event: string;
+      dades: { observador?: string; comentari?: string };
+    }>();
     expect(body.tipus_event).toBe("OBSERVACIO");
-    expect(JSON.parse(body.dades)).toEqual({
-      observador: "278/002",
-      comentari: "Hi ha una mànega",
-    });
+    expect(body.dades).toEqual({ observador: "278/002", comentari: "Hi ha una mànega" });
   });
 
   it("retorna 404 si no pot veure la incidència", async () => {

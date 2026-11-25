@@ -2,6 +2,15 @@ import { db } from "../index.js";
 import { hidrants } from "../schema.js";
 import { count, eq, and, ne, inArray, notInArray } from "drizzle-orm";
 import type { SyncStatus } from "@territoriadf/contracts/sync";
+import type {
+  HidrantOsmTags,
+  HidrantServiceTags,
+  HidrantSyncConflict,
+  HidrantSyncError,
+  HidrantSyncIssue,
+} from "@territoriadf/contracts/hidrants";
+
+type ConflictDetails = Omit<HidrantSyncConflict, "kind">;
 
 function nowISO(): string {
   return new Date().toISOString();
@@ -14,18 +23,18 @@ export interface HidrantData {
   adf_id: number | null;
   lat: number;
   lon: number;
-  osm_tags?: string | null;
+  osm_tags?: HidrantOsmTags | null;
   /** Informació de servei: la llegeix qualsevol ADF (ADR 0005). */
-  service_tags?: string | null;
+  service_tags?: HidrantServiceTags | null;
   /** Reservat: només l'ADF propietària (ADR 0005). Avui sempre `{}`. */
-  private_tags?: string | null;
+  private_tags?: Record<string, unknown> | null;
   /** La columna és `NOT NULL DEFAULT 'SYNCED'`: mai no pot ser `null`. */
   sync_status: SyncStatus;
-  sync_error?: string | null;
+  sync_error?: HidrantSyncError | null;
   synced_at?: string | null;
   remote_lat?: number | null;
   remote_lon?: number | null;
-  remote_osm_tags?: string | null;
+  remote_osm_tags?: HidrantOsmTags | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -110,8 +119,8 @@ export const HidrantsRepository = {
         adf_id: data.adf_id,
         lat: data.lat,
         lon: data.lon,
-        osm_tags: data.osm_tags || "{}",
-        service_tags: data.service_tags || "{}",
+        osm_tags: data.osm_tags ?? {},
+        service_tags: data.service_tags ?? {},
         sync_status: data.sync_status,
       })
       .run();
@@ -171,11 +180,11 @@ export const HidrantsRepository = {
    * { localVersion, osmVersion, osmLat, osmLon, osmTags, diffFields }
    * NO canvia osm_version perquè la necessitem pel .osc.
    */
-  markConflict(id: string, errorDetails: Record<string, unknown>): void {
+  markConflict(id: string, errorDetails: ConflictDetails): void {
     db.update(hidrants)
       .set({
         sync_status: "CONFLICT",
-        sync_error: JSON.stringify(errorDetails),
+        sync_error: { kind: "conflict", ...errorDetails },
         updated_at: nowISO(),
       })
       .where(eq(hidrants.id, id))
@@ -189,7 +198,7 @@ export const HidrantsRepository = {
     db.update(hidrants)
       .set({
         sync_status: "ERROR",
-        sync_error: errorMessage,
+        sync_error: { kind: "error", message: errorMessage },
         updated_at: nowISO(),
       })
       .where(eq(hidrants.id, id))
@@ -205,7 +214,7 @@ export const HidrantsRepository = {
       .set({
         remote_lat: lat,
         remote_lon: lon,
-        remote_osm_tags: JSON.stringify(osmTags),
+        remote_osm_tags: osmTags,
       })
       .where(eq(hidrants.id, id))
       .run();
@@ -230,7 +239,7 @@ export const HidrantsRepository = {
    */
   resolveConflict(
     id: string,
-    data: { osmVersion: number; lat: number; lon: number; osmTags: string },
+    data: { osmVersion: number; lat: number; lon: number; osmTags: HidrantOsmTags },
   ): void {
     const now = nowISO();
     db.update(hidrants)
@@ -310,11 +319,11 @@ export const HidrantsRepository = {
       .run().changes;
   },
 
-  markReview(id: string, issues: Array<{ tag: string; level: string; message: string }>) {
+  markReview(id: string, issues: HidrantSyncIssue[]) {
     db.update(hidrants)
       .set({
         sync_status: "REVIEW",
-        sync_error: JSON.stringify(issues),
+        sync_error: { kind: "review", issues },
         updated_at: nowISO(),
       })
       .where(eq(hidrants.id, id))
@@ -345,7 +354,7 @@ export const HidrantsRepository = {
       .all() as HidrantData[];
 
     return rows.map((h) => {
-      const tags = parseTags(h.osm_tags);
+      const tags = h.osm_tags ?? {};
       return {
         ...h,
         // El WHERE d'aquesta consulta garanteix que no hi ha cap fila SYNCED.
@@ -360,7 +369,7 @@ export const HidrantsRepository = {
    * Descartar els canvis locals: recupera les etiquetes remotes d'OSM del
    * darrer pull i el marca com a sincronitzat.
    */
-  restoreRemoteTags(id: string, osmTags: string, syncedAt: string): void {
+  restoreRemoteTags(id: string, osmTags: HidrantOsmTags, syncedAt: string): void {
     db.update(hidrants)
       .set({
         osm_tags: osmTags,
@@ -380,7 +389,7 @@ export const HidrantsRepository = {
     adf_id: number;
     lat: number;
     lon: number;
-    osm_tags: string;
+    osm_tags: HidrantOsmTags;
     synced_at: string;
   }): void {
     db.insert(hidrants)
@@ -465,11 +474,3 @@ export const HidrantsRepository = {
     db.delete(hidrants).where(inArray(hidrants.id, ids)).run();
   },
 };
-
-function parseTags(osmTags: string | null | undefined): Record<string, string> {
-  try {
-    return JSON.parse(osmTags || "{}") as Record<string, string>;
-  } catch {
-    return {};
-  }
-}

@@ -1,3 +1,4 @@
+import type { HidrantOsmTags } from "@territoriadf/contracts/hidrants";
 import type { OsmPushResult } from "@territoriadf/contracts/sync";
 
 import { HidrantsRepository, type HidrantData } from "../db/repositories/hidrantsRepository.js";
@@ -10,14 +11,6 @@ import { logger } from "../utils/logger.js";
 import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 
 const log = logger.child({ module: "osm", operation: "push" });
-
-export function parseOsmTags(osmTags: string | null | undefined): Record<string, string> {
-  try {
-    return JSON.parse(osmTags || "{}") as Record<string, string>;
-  } catch {
-    return {};
-  }
-}
 
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
@@ -203,8 +196,32 @@ export async function pushSyncToOSM(options?: {
 
 // --- Processament individual ---
 
+/**
+ * `osm_tags` ha de ser un objecte: publicar un node sense tags seria pitjor que
+ * deixar-lo en ERROR. Retorna `null` (i anota el detall) si la columna no és
+ * vàlida, perquè el cridador només hagi de sortir.
+ */
+function requireOsmTags(h: HidrantData, result: OsmPushResult): HidrantOsmTags | null {
+  if (h.osm_tags) {
+    return h.osm_tags;
+  }
+  log.error({ hydrantId: h.id }, "Push fallit: osm_tags no és un objecte JSON vàlid");
+  HidrantsRepository.markError(h.id, "Les etiquetes OSM de l'hidrant no són vàlides");
+  result.errors++;
+  result.details.push({
+    id: h.id,
+    osmId: h.osm_id ?? null,
+    status: "error",
+    message: "Tags OSM invàlids",
+  });
+  return null;
+}
+
 async function processCreate(h: HidrantData, changesetId: number, result: OsmPushResult) {
-  const tags = parseOsmTags(h.osm_tags);
+  const tags = requireOsmTags(h, result);
+  if (!tags) {
+    return;
+  }
   log.info(
     { hydrantId: h.id, tagsCount: Object.keys(tags).length, changesetId },
     "Processant creació",
@@ -286,7 +303,10 @@ async function processUpdate(
     return;
   }
 
-  const tags = parseOsmTags(h.osm_tags);
+  const tags = requireOsmTags(h, result);
+  if (!tags) {
+    return;
+  }
 
   // Validar dades abans de pujar
   const validation = validateHydrantTags(tags);
@@ -417,14 +437,8 @@ async function processDelete(
     result.details.push({ id: h.id, osmId, status: "synced", message: "Esborrat d'OSM" });
   } else if ("osmVersion" in r) {
     // 409 — algú ha canviat el node abans d'esborrar-lo
-    const diffFields = computeDiffStrings(
-      h.lat,
-      h.lon,
-      parseOsmTags(h.osm_tags),
-      r.osmLat,
-      r.osmLon,
-      r.osmTags,
-    );
+    const localTags = h.osm_tags ?? {};
+    const diffFields = computeDiffStrings(h.lat, h.lon, localTags, r.osmLat, r.osmLon, r.osmTags);
 
     // Guardar les dades remotes per al diff
     HidrantsRepository.saveRemoteData(h.id, r.osmLat, r.osmLon, r.osmTags);
@@ -437,7 +451,7 @@ async function processDelete(
       osmTags: r.osmTags,
       localLat: h.lat,
       localLon: h.lon,
-      localTags: parseOsmTags(h.osm_tags),
+      localTags,
       diffFields,
     });
     conflictDetails.push({
