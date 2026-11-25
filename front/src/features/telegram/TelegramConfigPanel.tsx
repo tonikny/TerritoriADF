@@ -1,7 +1,6 @@
 import { CollapsibleSection } from "@/shared/ui/CollapsibleSection";
 import { TelegramConfiguredPanel } from "./TelegramConfiguredPanel";
-import { TelegramIntroSteps } from "./TelegramIntroSteps";
-import { TelegramLinkStep } from "./TelegramLinkStep";
+import { TelegramSteps } from "./TelegramSteps";
 import { TelegramTokenInvalidPanel } from "./TelegramTokenInvalidPanel";
 import { useTelegramSetup } from "./useTelegramSetup";
 import { VisibleObserver } from "./VisibleObserver";
@@ -59,7 +58,7 @@ export function TelegramConfigPanel() {
               botUsername={s.botUsername}
               groupName={s.groupName}
               tokenInput={s.tokenInput}
-              registerPending={s.actions.register.isPending}
+              registerPending={s.pending.register}
               onTokenChange={s.setTokenInput}
               onRegister={() => {
                 void s.register();
@@ -67,28 +66,22 @@ export function TelegramConfigPanel() {
             />
           )}
 
-          {/* Configuració en marxa: passos per al coordinador */}
-          {s.canManage && !s.botReady && !s.configured && s.status !== "TOKEN_INVALID" && (
-            <TelegramIntroSteps
+          {/* Passos per al coordinador: l'1–3 mentre falta el bot, el 4 quan ja hi és */}
+          {s.canManage && !s.configured && s.status !== "TOKEN_INVALID" && (
+            <TelegramSteps
+              stage={s.botReady ? "before-link" : "before-bot"}
               groupAdf={s.groupAdf}
               adf={s.activeAdf}
+              botName={s.botName}
+              botUsername={s.botUsername}
               tokenInput={s.tokenInput}
-              registerPending={s.actions.register.isPending}
+              registerPending={s.pending.register}
+              linkUrl={s.linkUrl}
+              linkPending={s.pending.link}
               onTokenChange={s.setTokenInput}
               onRegister={() => {
                 void s.register();
               }}
-            />
-          )}
-
-          {/* Bot validat: falta vincular el grup */}
-          {s.canManage && s.botReady && (
-            <TelegramLinkStep
-              groupAdf={s.groupAdf}
-              botName={s.botName}
-              botUsername={s.botUsername}
-              linkUrl={s.linkUrl}
-              linkPending={s.actions.link.isPending}
               onLink={() => {
                 void s.link();
               }}
@@ -101,9 +94,9 @@ export function TelegramConfigPanel() {
               groupName={s.groupName}
               botUsername={s.botUsername}
               customMsg={s.customMsg}
-              sendPending={s.actions.sendTest.isPending}
-              linkPending={s.actions.link.isPending}
-              removePending={s.actions.remove.isPending}
+              sendPending={s.pending.send}
+              linkPending={s.pending.link}
+              removePending={s.pending.remove}
               onMessageChange={s.setCustomMsg}
               onSend={() => {
                 void s.send();

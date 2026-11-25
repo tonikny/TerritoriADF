@@ -2,7 +2,7 @@ import { can } from "@territoriadf/contracts/permissions";
 import { useState, type FormEvent } from "react";
 import { toast } from "react-toastify";
 
-import { useAdf } from "@/contexts/AdfContext";
+import { useAdf, type Adf } from "@/contexts/AdfContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { adfLabel } from "@/utils/adfLabel";
 import { logError } from "@/utils/log";
@@ -47,7 +47,7 @@ export function useAdfDraft() {
     setDraftMode("create");
   }
 
-  function startEdit(adf: Parameters<typeof draftFrom>[0]) {
+  function startEdit(adf: Adf) {
     setDraft(draftFrom(adf));
     setDraftMode("edit");
   }

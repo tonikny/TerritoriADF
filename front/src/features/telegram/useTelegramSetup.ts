@@ -127,7 +127,12 @@ export function useTelegramSetup() {
     linkUrl,
     telegramOpen,
     toggleOpen: () => setTelegramOpen((open) => !open),
-    actions,
+    pending: {
+      register: actions.register.isPending,
+      link: actions.link.isPending,
+      send: actions.sendTest.isPending,
+      remove: actions.remove.isPending,
+    },
     register,
     link,
     send,

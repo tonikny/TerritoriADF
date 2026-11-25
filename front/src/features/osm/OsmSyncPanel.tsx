@@ -26,8 +26,7 @@ export function OsmSyncPanel({ onSelectHidrant }: { onSelectHidrant?: (id: strin
     return null;
   }
 
-  const actions = osm.actions;
-  const loading = isFetching || actions.pullSync.isPending;
+  const loading = isFetching || osm.pullSyncPending;
   const hasItems = pending.length > 0;
   const hasSelected = selection.selectedIds.length > 0;
   const grouped = groupPending(pending);
@@ -39,7 +38,7 @@ export function OsmSyncPanel({ onSelectHidrant }: { onSelectHidrant?: (id: strin
   };
 
   const rowActions: OsmRowActions = {
-    disabled: actions.isPending,
+    disabled: osm.isPending,
     onSelectHidrant: (id) => onSelectHidrant?.(id),
     onPush: (id) => {
       void osm.pushOne(id);
@@ -88,7 +87,7 @@ export function OsmSyncPanel({ onSelectHidrant }: { onSelectHidrant?: (id: strin
           {hasSelected && (
             <OsmActionsBar
               count={selection.selectedIds.length}
-              disabled={actions.isPending}
+              disabled={osm.isPending}
               onPush={() => {
                 void osm.pushSelected(selection.selectedIds, selection.clear);
               }}

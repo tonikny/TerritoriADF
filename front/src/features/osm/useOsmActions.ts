@@ -166,7 +166,8 @@ export function useOsmActions() {
   };
 
   return {
-    actions,
+    isPending: actions.isPending,
+    pullSyncPending: actions.pullSync.isPending,
     pushSelected,
     discardSelected,
     pullSync,
