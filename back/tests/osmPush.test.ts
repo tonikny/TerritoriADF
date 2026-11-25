@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HidrantsRepository } from "../src/db/repositories/hidrantsRepository.js";
 import * as osmApi from "../src/services/osmApi.js";
 import { buildChangesetComment, pushSyncToOSM } from "../src/services/osmPushSync.js";
-import { createHydrant, FULL_OSM_TAGS, resetDatabase, seedStandardWorld } from "./helpers/db.js";
+import { createHydrant, FULL_OSM_TAGS, resetWorld } from "./helpers/db.js";
 
 /**
  * La capa HTTP d'OSM es substitueix sencera: la suite no ha de sortir a la
@@ -21,8 +21,7 @@ vi.mock("../src/services/osmApi.js", () => ({
 }));
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   vi.clearAllMocks();
 
   vi.mocked(osmApi.isConfigured).mockReturnValue(true);

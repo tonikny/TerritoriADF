@@ -20,8 +20,9 @@ Requisits:
 - **Node 26.13.0** (`.nvmrc`; `engines` i `engine-strict` fan fallar `npm install`
   amb una altra versió). Amb nvm: `nvm use`.
 - **No cal `back/.env`** ni la BD de desenvolupament. La suite fixa les seves
-  pròpies variables (`tests/env.ts`) i fa servir una BD SQLite temporal a
-  `os.tmpdir()`. `config.ts` no llegeix `.env` quan `NODE_ENV=test`.
+  pròpies variables (`tests/env.ts`) i fa servir una BD SQLite temporal **única
+  per execució** a `os.tmpdir()`. `config.ts` no llegeix `.env` quan
+  `NODE_ENV=test`.
 
 La suite és a `back/tests/` i **no** s'inclou al build (`tsconfig.json` només
 compila `src/`). El `typecheck` sí que la revisa gràcies a
@@ -29,43 +30,48 @@ compila `src/`). El `typecheck` sí que la revisa gràcies a
 
 ## Com està muntada
 
-| Peça       | Fitxer                  | Funció                                                                                 |
-| ---------- | ----------------------- | -------------------------------------------------------------------------------------- |
-| Entorn     | `tests/env.ts`          | Variables dummy i camí de la BD temporal.                                              |
-| Migracions | `tests/globalSetup.ts`  | Crea la BD i aplica `drizzle/` abans de cap test.                                      |
-| Seguretat  | `tests/helpers/db.ts`   | `resetDatabase()` falla si `DB_PATH` no apunta a una BD `territoriadf-vitest-*`.       |
-| Dades      | `tests/helpers/db.ts`   | Dues ADFs (278/279), admin, coordinador i voluntari; hidrants i incidències de mostra. |
-| Sessió     | `tests/helpers/app.ts`  | `buildApp()`, `app.inject()`, login i cookie.                                          |
-| Config     | `vitest.config.ts`      | Un sol worker, fitxers en sèrie, BD compartida.                                        |
-| Fixtures   | `tests/fixtures/*.json` | Respostes d'Overpass amb la forma real (nodes, versions i tags).                       |
+| Peça       | Fitxer                      | Funció                                                                                                         |
+| ---------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Entorn     | `tests/env.ts`              | Variables dummy i camí de la BD temporal fixat per `tests/dbPath.ts`.                                          |
+| Migracions | `tests/globalSetup.ts`      | Crea la BD de l'execució i aplica `drizzle/`; amb un `TEST_DB_PATH` compartit, pren un pany.                   |
+| Seguretat  | `tests/helpers/db.ts`       | La suite falla si `DB_PATH` no apunta a una BD `territoriadf-vitest-*`.                                        |
+| Dades      | `tests/helpers/db.ts`       | Dues ADFs (278/279), admin, coordinador i voluntari; `resetWorld()` deixa el món de partida en una transacció. |
+| Sessió     | `tests/helpers/app.ts`      | `buildApp()`, `app.inject()`, login i cookie.                                                                  |
+| Config     | `vitest.config.ts`          | Un sol worker i fitxers en sèrie; cada execució té la seva BD temporal.                                        |
+| Fixtures   | `tests/fixtures/*.json`     | Respostes d'Overpass amb la forma real (nodes, versions i tags).                                               |
+| Telegram   | `tests/helpers/telegram.ts` | Stub de `fetch`, `createTelegramBot()` i `bodyOf()`: cap test surt a la xarxa.                                 |
+| MQTT       | `tests/helpers/mqtt.ts`     | Client fals (`createFakeMqttClient()`, `asMqttClient()`) per a DynSec i el servei.                             |
 
-Cada fitxer fa `resetDatabase()` + `seedStandardWorld()` al `beforeEach`. Els IDs
-d'usuari són estables, així que les cookies obtingudes al `beforeAll` continuen
-sent vàlides després de cada reset (el JWT només porta `id` i `token_version`).
+Cada fitxer deixa les dades de partida al `beforeEach` amb `resetWorld()` (reset i
+seed en una sola transacció). Els IDs d'usuari són estables, així que les cookies
+obtingudes al `beforeAll` continuen sent vàlides després de cada reset (el JWT
+només porta `id` i `token_version`).
 
 No s'obre cap port: tot passa per `app.inject()`, i `buildApp()` ja existia
 (F-03) i munta plugins, guards i rutes sense `listen()`.
 
 ## Cobertura actual
 
-La suite completa passa en menys de deu segons. Aquí no se'n fixa el nombre de
-fitxers ni de tests: els diu `npm test -w back`, i qualsevol xifra escrita a mà
-caduca.
+La suite completa no obre cap port ni surt a la xarxa. Aquí no se'n fixa el
+nombre de fitxers ni de tests: els diu `npm test -w back`, i qualsevol xifra
+escrita a mà caduca.
 
 Cobertura (`npm run test:coverage -w back`): es mesura sobre `src/**`, exclosos
 `src/scripts/**`, `src/server.ts` i `src/types.ts`. El CI aplica un llindar del
-55 % de línies i sentències, 60 % de funcions i 45 % de branques per evitar
-regressions; és un ratchet per sobre de l'objectiu del 50 % del domini, no
+80 % de línies i sentències, 83 % de funcions i 68 % de branques per evitar
+regressions; és un ratchet per sota de la mesura real (~82 % línies), no
 l'objectiu final. El percentatge exacte és el que dona la comanda, no aquesta
 pàgina.
 
 Les zones amb més cobertura són el nucli OSM (`osmSync.ts`, `osmXml.ts`,
 `overpass.ts`, `osmApi.ts`, `osmConflictResolver.ts`, `osmPushSync.ts`,
 `osmDataValidator.ts`), les rutes `routes/osm.ts`, `auth.ts`, `authorize.ts`,
-`hidrantsService.ts` i `incidenciesService.ts`. Les que en tenen menys són
-`utils/crypto.ts`, `services/mqtt.ts`, `services/dynsec.ts`, les rutes de
-Telegram i `routes/tracking.ts`: són el forat que la fase 1 del pla ha de tapar
-abans de confiar-hi.
+`hidrantsService.ts`, `incidenciesService.ts` i `utils/crypto.ts` (xifrat i
+format del payload). Les zones que abans eren el forat —`services/dynsec.ts`,
+`services/mqtt.ts`, les rutes de Telegram, `routes/overpass.ts`, `routes/route.ts`
+i `routes/tracking.ts`— ara es proven amb el broker MQTT, l'API de Telegram i
+GraphHopper mockejats a la frontera. L'única part de `routes/tracking.ts` sense
+xarxa és el stream SSE, que necessita un socket real.
 
 | Fitxer                        | Què prova                                                                                                                                                                                                                                                                                                   |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -82,6 +88,17 @@ abans de confiar-hi.
 | `osmConflictResolver.test.ts` | `tryAutoResolve` (sense osm_id, posició canviada, merge net, merge publicat, rebuig), `getConflicts`, `generateOscFile` i `resolveAfterJOSM`.                                                                                                                                                               |
 | `osmApi.test.ts`              | Client HTTP d'OSM amb `fetch` stub: changeset, create/update/delete/get de nodes i parseig del 409.                                                                                                                                                                                                         |
 | `osmXml.test.ts`              | Constructors XML: changeset, create/update/delete de node i `.osc`.                                                                                                                                                                                                                                         |
+| `crypto.test.ts`              | `encrypt`/`decrypt`: anada i tornada, IV diferent a cada xifrat, text buit i no ASCII, clau diferent, payload manipulat i format invàlid.                                                                                                                                                                   |
+| `dynsec.test.ts`              | Comandaments DynSec: correlació per nom de comandament, JSON malformat, timeout, connexió, `ensureRole` idempotent/substitució/fallback i `ensureClient`.                                                                                                                                                   |
+| `mqttService.test.ts`         | Identitat plana, connexió i subscripció, posicions OwnTracks (vives, antigues, malformades), cicle de vida i alta/baixa d'usuaris MQTT.                                                                                                                                                                     |
+| `telegramService.test.ts`     | Client de Telegram: `getMe`, `setWebhook`, `deleteWebhook`, `sendMessage`, bot global i `sendToAdf` (sense bot, token indesxifrable, errors empassats).                                                                                                                                                     |
+| `telegramThrottle.test.ts`    | Fre anti-spam: 15 per usuari, 60 per IP només amb `TRUST_PROXY`, finestra de 5 minuts i aïllament entre IPs.                                                                                                                                                                                                |
+| `telegramRoutes.test.ts`      | Configuració per ADF: abast, permisos, estats `TOKEN_INVALID`/`GRUP_PENDENT`, registre del bot, enllaç `startgroup`, prova, desvinculació i el 400 de Fastify per cos buit o `__proto__`.                                                                                                                   |
+| `telegramWebhook.test.ts`     | Webhook públic: secret de capçalera, extracció del codi, vinculació de grup, codi usat/caducat/desconegut, xat privat i `my_chat_member`.                                                                                                                                                                   |
+| `sendToTelegram.test.ts`      | Permís calculat del cos, abast ADF, comentari lliure prohibit, límit de mida, fre anti-spam (429 + `Retry-After`) i errors d'enviament.                                                                                                                                                                     |
+| `overpassRoute.test.ts`       | Proxy d'Overpass: sessió, `Content-Type`, consulta absent/curta/no JSON, normalització, 429/502/500.                                                                                                                                                                                                        |
+| `routing.test.ts`             | GraphHopper: coordenades vàlides, 503 sense clau, URL/punts, 502 amb error o resposta no JSON i 500 si la crida falla.                                                                                                                                                                                      |
+| `tracking.test.ts`            | Estat, visibilitat per rol i ADF compartida, activació amb credencials xifrades, `.otrc`, auto-curat de la identitat plana i token indesxifrable.                                                                                                                                                           |
 | `overpass.test.ts`            | Client d'Overpass: POST, User-Agent, cos de la consulta i resposta d'error.                                                                                                                                                                                                                                 |
 
 La matriu de casos que proposava F-08 queda coberta:
@@ -115,9 +132,12 @@ resposta. Queden dos punts, que són decisions de producte/API:
 
 - **Overpass real**: el pull es prova amb fixtures i el client HTTP amb `fetch`
   stub; no es fa cap consulta real durant la suite.
-- **MQTT/DynSec** real i l'stream SSE de `/api/tracking/stream`.
-- L'API de **Telegram** i el webhook per ADF.
-- **GraphHopper** i les rutes que només fan de proxy.
+- **MQTT/DynSec** real: el servei i DynSec es proven amb el mòdul `mqtt`
+  mockejat; el broker de debò no s'aixeca. L'stream SSE de
+  `/api/tracking/stream` tampoc no es prova: necessita un socket real.
+- L'API real de **Telegram**: el client i les rutes es proven amb `fetch` i el
+  servei mockejats, però no hi ha cap crida de debò.
+- **GraphHopper** real: el proxy es prova amb `fetch` stub.
 - Migració de la BD antiga (`hidrants.db`).
 - Concurrència real (dues escriptures simultànies, `SQLITE_BUSY`).
 
@@ -135,8 +155,16 @@ a través dels repositoris). Conseqüències:
 - No es pot injectar una BD per test ni fer rollback per test.
 - Tots els fitxers comparteixen una BD i cal **un sol worker** (`fileParallelism: false`).
 - Els tests depenen d'un `DB_PATH` global, no d'una funció.
+- Dues execucions simultànies al mateix checkout es trepitjaven: una migrava o
+  esborrava la BD mentre l'altra hi treballava.
 
-**Mitigació feta:** `DB_PATH` permet apuntar a una altra BD i el renombratge de
+**Mitigació feta:** cada execució fixa la seva pròpia BD temporal
+(`territoriadf-vitest-run-<uuid>.db`, vegeu `tests/dbPath.ts`), així que la CLI,
+el watcher de l'editor i qualsevol altra execució no comparteixen fitxer. Si es
+força un `TEST_DB_PATH` compartit, `globalSetup` pren un pany exclusiu
+(`<BD>.lock` amb el PID) i la segona execució falla amb un missatge clar en lloc
+de corrompre la BD; un pany orfe d'un procés que ja no existeix es reclama sol.
+A més, `resetWorld()` fa reset i seed en una sola transacció. El renombratge de
 la BD antiga només s'executa amb la BD per defecte. **Millora real:**
 `createDatabase(path)` que retorni `{ db, sqlite }`, i repositoris construïts amb
 aquella instància (`createHidrantsRepository(db)`), no amb un import global.
@@ -252,10 +280,10 @@ de `back/src/db/` i fer-lo servir tant al script com al setup dels tests.
 3. **Extreure el push d'OSM a un job** (F-09, 3–5 dies). La màquina d'estats es
    prova com a funció pura i el handler només encua.
 4. **Codis d'error estables** (1 dia) i assercions per codi.
-5. **Pujar el llindar de cobertura** (mig dia per esglaó): ara és 45/45/50/35
-   (línies/sentències/funcions/branques); l'objectiu del full de ruta és 50 % al
-   domini del back, sense exigir 100 %. `test:coverage` i el proveïdor v8 ja
-   estan configurats i el CI els executa.
+5. **Pujar el llindar de cobertura** (mig dia per esglaó): ara és 80 % de línies
+   i sentències, 83 % de funcions i 68 % de branques, per sota de la mesura real.
+   Cada àrea nova que es cobreixi ha de pujar el ratchet; no cal exigir 100 %.
+   `test:coverage` i el proveïdor v8 ja estan configurats i el CI els executa.
 6. **Més fixtures d'Overpass** (mig dia): nodes sense tags, respostes grans o
    malformades; el circuit bàsic (importació, conflicte, MISSING, fallades
    parcials) ja està cobert.
@@ -267,7 +295,7 @@ zones on l'auditoria deia que no n'hi havia cap.
 ## Convencions per afegir tests
 
 - Fitxer a `back/tests/<àrea>.test.ts`; helpers a `back/tests/helpers/`.
-- `resetDatabase()` + `seedStandardWorld()` al `beforeEach`.
+- `resetWorld()` al `beforeEach` (reset i seed en una sola transacció).
 - Login al `beforeAll` amb els IDs estables; no repetir logins a cada test.
 - Cap crida de xarxa, cap `sleep` i cap dependència de l'ordre dels fitxers.
 - Afirma estat HTTP **i** l'estat a la BD quan el test tracta una transició.

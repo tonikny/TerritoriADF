@@ -6,14 +6,7 @@ import { HidrantsRepository } from "../src/db/repositories/hidrantsRepository.js
 import { adfs, hidrants } from "../src/db/schema.js";
 import { syncAdfFromOSM } from "../src/services/osmSync.js";
 import { queryOverpass } from "../src/services/overpass.js";
-import {
-  ADF_278,
-  ADF_279,
-  createAdf,
-  createHydrant,
-  resetDatabase,
-  seedStandardWorld,
-} from "./helpers/db.js";
+import { ADF_278, ADF_279, createAdf, createHydrant, resetWorld } from "./helpers/db.js";
 import { overpassResult } from "./helpers/osm.js";
 
 vi.mock("../src/services/overpass.js", () => ({
@@ -31,8 +24,7 @@ function setRelations(relations: string[]): void {
 }
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   vi.mocked(queryOverpass).mockReset();
   vi.mocked(queryOverpass).mockResolvedValue(HYDRANTS);
 });

@@ -1,19 +1,20 @@
-import { createHash } from "node:crypto";
-import os from "node:os";
-import path from "node:path";
-
 /**
  * Entorn de la suite de tests del backend.
  *
- * La BD és un fitxer temporal i el nom és determinista a partir del directori
- * del projecte: `vitest.config.ts` i `globalSetup.ts` poden executar-se en
- * processos diferents i han de calcular exactament el mateix camí. Cada clon
- * del repositori obté un fitxer diferent.
+ * `tests/dbPath.ts` (primer import de `vitest.config.ts`) fixa un
+ * `TEST_DB_PATH` únic per execució abans que aquest mòdul es carregui. Així
+ * `vitest.config.ts` i `globalSetup.ts` calculen el mateix camí encara que
+ * s'executin en processos diferents, i dues execucions concurrents no
+ * comparteixen fitxer.
  */
-const projectHash = createHash("sha256").update(process.cwd()).digest("hex").slice(0, 8);
+const configuredDbPath = process.env.TEST_DB_PATH;
+if (!configuredDbPath) {
+  throw new Error(
+    "TEST_DB_PATH no definit: `tests/dbPath.ts` ha de ser el primer import de vitest.config.ts",
+  );
+}
 
-export const TEST_DB_PATH =
-  process.env.TEST_DB_PATH ?? path.join(os.tmpdir(), `territoriadf-vitest-${projectHash}.db`);
+export const TEST_DB_PATH = configuredDbPath;
 
 /**
  * Variables que `config.ts` exigeix (o que canvien el comportament) i que la

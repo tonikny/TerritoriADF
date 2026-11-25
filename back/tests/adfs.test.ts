@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestApp, loginCookie } from "./helpers/app.js";
 import type { ErrorBody } from "./helpers/types.js";
-import { ADF_278, resetDatabase, seedStandardWorld } from "./helpers/db.js";
+import { ADF_278, resetWorld } from "./helpers/db.js";
 
 /** Camps d'una ADF que mira aquesta suite a `GET /api/adfs` i al detall. */
 type AdfSummary = { id: number; osm_relations: string[] };
@@ -14,8 +14,7 @@ let coord278Cookie: string;
 
 beforeAll(async () => {
   app = await createTestApp();
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   adminCookie = await loginCookie(app, "admin");
   coord278Cookie = await loginCookie(app, "278/001");
 });
@@ -25,8 +24,7 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
 });
 
 describe("CRUD d'ADFs", () => {

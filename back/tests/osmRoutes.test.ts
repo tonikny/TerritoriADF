@@ -5,14 +5,7 @@ import { HidrantsRepository } from "../src/db/repositories/hidrantsRepository.js
 import * as osmApi from "../src/services/osmApi.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
 import type { HidrantFeatures } from "./helpers/types.js";
-import {
-  ADF_278,
-  ADF_279,
-  createHydrant,
-  FULL_OSM_TAGS,
-  resetDatabase,
-  seedStandardWorld,
-} from "./helpers/db.js";
+import { ADF_278, ADF_279, createHydrant, FULL_OSM_TAGS, resetWorld } from "./helpers/db.js";
 
 vi.mock("../src/services/osmApi.js", () => ({
   isConfigured: vi.fn(() => true),
@@ -30,8 +23,7 @@ let coord278Cookie: string;
 
 beforeAll(async () => {
   app = await createTestApp();
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   adminCookie = await loginCookie(app, "admin");
   coord278Cookie = await loginCookie(app, "278/001");
 });
@@ -41,8 +33,7 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   vi.clearAllMocks();
 
   vi.mocked(osmApi.isConfigured).mockReturnValue(true);

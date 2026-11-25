@@ -5,7 +5,7 @@ import * as osmApi from "../src/services/osmApi.js";
 import { queryOverpass } from "../src/services/overpass.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
 import type { HidrantFeatures } from "./helpers/types.js";
-import { createHydrant, FULL_OSM_TAGS, resetDatabase, seedStandardWorld } from "./helpers/db.js";
+import { createHydrant, FULL_OSM_TAGS, resetWorld } from "./helpers/db.js";
 
 vi.mock("../src/services/osmApi.js", () => ({
   isConfigured: vi.fn(() => true),
@@ -53,8 +53,7 @@ function seedConflict(id = "conflict-1"): void {
 
 beforeAll(async () => {
   app = await createTestApp();
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   adminCookie = await loginCookie(app, "admin");
   coord278Cookie = await loginCookie(app, "278/001");
 });
@@ -64,8 +63,7 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   vi.clearAllMocks();
   vi.mocked(osmApi.getNode).mockReset();
   vi.mocked(queryOverpass).mockReset();

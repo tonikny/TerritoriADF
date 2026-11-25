@@ -7,7 +7,7 @@ import { incidencies } from "../src/db/schema.js";
 import type { IncidenciaEstat, IncidenciaVisibilitat } from "../src/types.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
 import type { ErrorBody, HidrantFeatures } from "./helpers/types.js";
-import { ADF_278, ADF_279, resetDatabase, seedStandardWorld } from "./helpers/db.js";
+import { ADF_278, ADF_279, resetWorld } from "./helpers/db.js";
 
 let app: FastifyInstance;
 let adminCookie: string;
@@ -46,8 +46,7 @@ function featureIds(responseBody: { features: Array<{ id: string }> }): string[]
 
 beforeAll(async () => {
   app = await createTestApp();
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   adminCookie = await loginCookie(app, "admin");
   coord278Cookie = await loginCookie(app, "278/001");
   coord279Cookie = await loginCookie(app, "279/001");
@@ -59,8 +58,7 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   seedIncidencies();
 });
 

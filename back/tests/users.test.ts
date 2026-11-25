@@ -6,13 +6,7 @@ import { db } from "../src/db/index.js";
 import { users } from "../src/db/schema.js";
 import { createTestApp, loginCookie } from "./helpers/app.js";
 import type { ErrorBody } from "./helpers/types.js";
-import {
-  ADMIN_ID,
-  COORD_278_ID,
-  resetDatabase,
-  seedStandardWorld,
-  VOL_278_ID,
-} from "./helpers/db.js";
+import { ADMIN_ID, COORD_278_ID, resetWorld, VOL_278_ID } from "./helpers/db.js";
 
 let app: FastifyInstance;
 let adminCookie: string;
@@ -24,8 +18,7 @@ beforeAll(async () => {
   app = await createTestApp();
   // Un sol login per rol: els IDs dels usuaris són estables i cada reset torna a
   // crear-los amb token_version 0, així que les cookies segueixen sent vàlides.
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   adminCookie = await loginCookie(app, "admin");
   coord278Cookie = await loginCookie(app, "278/001");
   coord279Cookie = await loginCookie(app, "279/001");
@@ -37,8 +30,7 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
 });
 
 describe("GET /api/users: abast per rol", () => {

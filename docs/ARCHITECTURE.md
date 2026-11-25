@@ -130,6 +130,7 @@ Els dos adaptadors implementen les mateixes peces: `Rasters`, `Shapes`, `Markers
 
 - El terreny i el hillshade només existeixen a MapLibre (`capabilities.terrain`). Fan servir les tessel·les Terrain-RGB de 5 m de l'ICGC (encoding Mapbox, 512 px, minzoom 6, maxzoom 14; només cobreixen Catalunya) a través de `/tiles/icgc-terrain/`, que el Nginx del host cacheja a `tiles_cache`. El toggle s'amaga a Leaflet. El control «x2» duplica l'exageració del terreny (1,3 → 2,6) i es desa a `localStorage`.
 - Sense 3D, MapLibre fixa `maxPitch = 0` i el pitch es reinicia; el drag horitzontal continua permetent la rotació.
+- El mode 3D pinta cel i fosca amb el `sky` de MapLibre (`MapEngine.tsx`), amb l'horitzó del mateix color que el fons del mapa perquè la transició no es noti. En 2D no és visible perquè el pitch és 0.
 - L'atribució de MapLibre es pinta en un overlay propi (`ui/MapAttribution`): mostra OSM o IGN, les superposicions i el terreny en una sola línia si hi caben, i les separa en línies abans de topar amb el zoom. Amb terreny, la segona línia és `© ICGC, MDT 5 m (CC BY 4.0)`.
 - Les capes vectorials de l'ADF es reordenen per sobre dels ràsters i del hillshade després de cada canvi de mapa base o de relleu; així el mask exterior no queda tapat.
 - `MapUIOverlays` agrupa capes, GPS i pantalla completa en una columna dreta alineada amb la part superior del logo. El panell de capes és desplegable, es tanca amb `Escape` o amb un clic fora i només mostra «Relleu 3D» si el motor el suporta.
@@ -159,6 +160,10 @@ Els tests viuen al costat del codi que proven i es descobreixen sols: `npm test 
 | `front/src/shared/api/client.test.ts`                    | Client d'API: query serialitzada, cos JSON amb credencials, `ApiError` amb estat i codi, resposta 204 i propagació de l'`AbortSignal`. |
 | `front/src/features/incidencies/useIncidencies.test.tsx` | Cursa en canviar d'ADF: la resposta de l'ADF anterior no trepitja la de l'ADF activa.                                                  |
 | `front/src/features/hidrants/hidrantDisplay.test.ts`     | Imatges d'hidrant: UUID de Panoramax i llista d'hosts permesos, amb rebuig de path traversal i `javascript:`.                          |
+| `front/src/features/osm/OsmSyncPanel.test.tsx`           | Selecció múltiple de pendents entre seccions, accions per lots i confirmació de descartar.                                             |
+| `front/src/features/users/UsuarisTab.test.tsx`           | Portes de rol: admin, coordinador (només la seva ADF) i voluntari sense gestió d'usuaris.                                              |
+
+La cobertura del front (`npm run test:coverage -w front`) es mesura sobre `src/**` gràcies a `coverage.include` a `front/vitest.config.ts`: sense això, el percentatge només comptava els mòduls que algun test havia carregat. El llindar és un ratchet baix (el punt de partida honest, no l'objectiu) i pot pujar-se, però no baixar sense justificar-ho.
 
 El backend té la seva pròpia suite (`npm test -w back`, detalls a [`TESTING.md`](TESTING.md)). Les comprovacions de Telegram que no necessiten xarxa es fan amb `npm run telegram:selftest -w back`.
 

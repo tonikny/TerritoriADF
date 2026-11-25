@@ -15,7 +15,7 @@ import {
 
 /**
  * Barrera de seguretat: si la config de Vitest no hagués aplicat `DB_PATH`,
- * `src/db/index.ts` apuntaria a `back/data/territoriadf.db` i el `resetDatabase`
+ * `src/db/index.ts` apuntaria a `back/data/territoriadf.db` i `resetWorld()`
  * esborraria la BD real. Millor fallar el test que tocar dades de desenvolupament.
  */
 const configuredDbPath = process.env.DB_PATH;
@@ -47,20 +47,19 @@ export const ADF_279 = 279;
 
 /**
  * Buida totes les taules en ordre fill → pare. `foreign_keys` està actiu a la
- * connexió de test, així que l'ordre importa.
+ * connexió de test, així que l'ordre importa. Només es crida dins la transacció
+ * de `resetWorld()`.
  */
-export function resetDatabase(): void {
-  db.transaction((tx) => {
-    tx.delete(incidencia_events).run();
-    tx.delete(incidencies).run();
-    tx.delete(accessTokens).run();
-    tx.delete(mqttUsers).run();
-    tx.delete(telegramLinks).run();
-    tx.delete(telegramBots).run();
-    tx.delete(hidrants).run();
-    tx.delete(users).run();
-    tx.delete(adfs).run();
-  });
+function clearTables(): void {
+  db.delete(incidencia_events).run();
+  db.delete(incidencies).run();
+  db.delete(accessTokens).run();
+  db.delete(mqttUsers).run();
+  db.delete(telegramLinks).run();
+  db.delete(telegramBots).run();
+  db.delete(hidrants).run();
+  db.delete(users).run();
+  db.delete(adfs).run();
 }
 
 export function createAdf(id: number, nom = `ADF Prova ${id}`, boundary: string | null = null) {
@@ -102,6 +101,17 @@ export function seedStandardWorld(): void {
   createUser({ id: COORD_278_ID, username: "278/001", role: "coordinador", adfId: ADF_278 });
   createUser({ id: VOL_278_ID, username: "278/002", role: "voluntari", adfId: ADF_278 });
   createUser({ id: COORD_279_ID, username: "279/001", role: "coordinador", adfId: ADF_279 });
+}
+
+/**
+ * Deixa la BD com al principi en **una sola transacció**: cap test no pot veure
+ * el món a mitges entre el reset i el seed.
+ */
+export function resetWorld(): void {
+  db.transaction(() => {
+    clearTables();
+    seedStandardWorld();
+  });
 }
 
 type HydrantSeed = Partial<typeof hidrants.$inferInsert> & { id: string };

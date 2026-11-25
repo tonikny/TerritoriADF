@@ -8,7 +8,7 @@ import {
   resolveAfterJOSM,
   tryAutoResolve,
 } from "../src/services/osmConflictResolver.js";
-import { createHydrant, FULL_OSM_TAGS, resetDatabase, seedStandardWorld } from "./helpers/db.js";
+import { createHydrant, FULL_OSM_TAGS, resetWorld } from "./helpers/db.js";
 
 vi.mock("../src/services/osmApi.js", () => ({
   isConfigured: vi.fn(() => true),
@@ -45,8 +45,7 @@ function seedConflict(id = "conflict-1"): void {
 }
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   vi.clearAllMocks();
 
   vi.mocked(osmApi.getNode).mockReset();

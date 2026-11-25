@@ -10,8 +10,11 @@ import viteConfigFactory from "./vite.config.ts";
  * resolució del build: duplicar-ho aquí faria que tests i aplicació resolguessin
  * coses diferents.
  *
- * La cobertura de V8 només compta els mòduls que els tests carreguen. El llindar
- * és un ratchet: pot pujar-se, però no ha de baixar sense justificar-ho.
+ * `coverage.include` fixa la superfície a `src/**`: sense això, el percentatge
+ * només comptaria els mòduls que algun test ha carregat i un fitxer gran sense
+ * tests no baixaria el número. Només queden fora el punt d'entrada, els tipus
+ * d'entorn i els propis tests. El llindar és un ratchet: pot pujar-se, però no
+ * ha de baixar sense justificar-ho.
  *
  * `reporter: ["text"]` com al back: el CI llegeix el resum del log i no es
  * generen artefactes (`coverage/`) al disc.
@@ -38,11 +41,15 @@ export default mergeConfig(
       coverage: {
         provider: "v8",
         reporter: ["text"],
+        include: ["src/**/*.{ts,tsx}"],
+        // El punt d'entrada només munta l'arrel i importa CSS; `vite-env.d.ts`
+        // i els tests no són codi de l'aplicació.
+        exclude: ["src/main.tsx", "src/vite-env.d.ts", "src/**/*.test.{ts,tsx}"],
         thresholds: {
-          statements: 74,
-          branches: 55,
-          functions: 75,
-          lines: 74,
+          statements: 18,
+          branches: 13,
+          functions: 17,
+          lines: 18,
         },
       },
     },

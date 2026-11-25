@@ -6,7 +6,7 @@ import { db } from "../src/db/index.js";
 import { users } from "../src/db/schema.js";
 import { createTestApp, login, loginCookie, sessionCookie } from "./helpers/app.js";
 import type { ErrorBody } from "./helpers/types.js";
-import { COORD_278_ID, resetDatabase, seedStandardWorld } from "./helpers/db.js";
+import { COORD_278_ID, resetWorld } from "./helpers/db.js";
 
 let app: FastifyInstance;
 
@@ -19,8 +19,7 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
 });
 
 describe("POST /api/auth/login", () => {

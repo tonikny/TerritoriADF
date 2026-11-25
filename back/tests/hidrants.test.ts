@@ -12,8 +12,7 @@ import {
   createSyncedHydrant,
   createHydrant,
   FULL_UI_FIELDS,
-  resetDatabase,
-  seedStandardWorld,
+  resetWorld,
 } from "./helpers/db.js";
 
 /** Resposta d'alta/edició: només l'estat que mira la màquina d'estats. */
@@ -33,8 +32,7 @@ const NEW_HYDRANT = {
 
 beforeAll(async () => {
   app = await createTestApp();
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
   adminCookie = await loginCookie(app, "admin");
   coord278Cookie = await loginCookie(app, "278/001");
   coord279Cookie = await loginCookie(app, "279/001");
@@ -46,8 +44,7 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  resetDatabase();
-  seedStandardWorld();
+  resetWorld();
 });
 
 describe("POST /api/hidrants", () => {
