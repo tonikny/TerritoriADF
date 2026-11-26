@@ -15,7 +15,7 @@ export function HidrantSyncHeader({
   return (
     <>
       <div className="flex items-center justify-between">
-        <span className={`${badge.cls} text-white text-[0.7rem] px-2 py-0.5 rounded font-semibold`}>
+        <span className={`${badge.cls} ${badge.fg} text-xs px-2 py-0.5 rounded-full font-semibold`}>
           {badge.text}
         </span>
         {osmId !== null && osmId !== undefined && osmId > 0 && (
@@ -23,7 +23,7 @@ export function HidrantSyncHeader({
             href={`https://www.openstreetmap.org/node/${osmId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[0.7rem] text-blue-600 hover:text-blue-800 hover:underline"
+            className="text-xs text-primary hover:text-primary-hover hover:underline"
             title="Veure a OpenStreetMap"
           >
             OSM {osmId}
@@ -31,7 +31,7 @@ export function HidrantSyncHeader({
         )}
       </div>
       {syncedAt && (
-        <div className="text-[0.65rem] text-gray-500">
+        <div className="text-xs text-muted">
           Última sync: {new Date(syncedAt).toLocaleString("ca")}
         </div>
       )}

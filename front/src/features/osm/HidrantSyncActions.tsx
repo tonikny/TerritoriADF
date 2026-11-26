@@ -21,7 +21,7 @@ export function HidrantSyncActions({ feature }: { feature: HidrantFeature }) {
   });
 
   return (
-    <div className="border border-border rounded p-2 flex flex-col gap-2">
+    <div className="border border-border rounded-lg p-2 flex flex-col gap-2">
       <HidrantSyncHeader status={sync_status} osmId={osm_id} syncedAt={synced_at} />
       <HidrantSyncNotices
         status={sync_status}

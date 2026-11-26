@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+import { secondaryTightClass } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
+
 import { useAdf } from "@/contexts/AdfContext";
 import { OsmActionsBar } from "./OsmActionsBar";
 import { OsmPendingSection } from "./OsmPendingSection";
@@ -55,33 +58,35 @@ export function OsmSyncPanel({ onSelectHidrant }: { onSelectHidrant?: (id: strin
   };
 
   return (
-    <div className="border border-border rounded overflow-hidden">
+    <div className="border border-border-strong rounded-lg shadow-control overflow-hidden">
       {/* Capçalera */}
-      <div className="p-3 bg-bg">
+      <div className="p-3 bg-soft">
         <div className="flex items-center justify-between">
-          <h4 className="m-0 text-[0.85rem] font-semibold">Canvis pendents</h4>
+          <h4 className="m-0 text-sm font-semibold">Canvis pendents</h4>
           <button
             onClick={() => {
               void osm.pullSync(stats);
             }}
             disabled={loading}
-            className="text-[0.75rem] px-2 py-1 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
+            aria-label="Baixar d'OSM"
+            className={`${secondaryTightClass} disabled:opacity-50`}
             title="Actualitza els hidrants sincronitzats des d'OSM. Els canvis locals es mantenen."
           >
-            {loading ? "Baixant..." : "Baixar d'OSM"}
+            <ActionGlyph name="arrowDown" />
+            OSM
           </button>
         </div>
-        <p className="m-0 mt-1 text-[0.7rem] text-muted">
+        <p className="m-0 mt-1 text-xs text-muted">
           Actualitza els hidrants SYNCED des d'OSM. Els canvis locals no es perden.
         </p>
-        {loadError && <p className="m-0 mt-1 text-[0.7rem] text-red-600">{loadError}</p>}
+        {loadError && <p className="m-0 mt-1 text-xs text-alert">{loadError}</p>}
       </div>
 
       {/* Contingut */}
       {loading && !hasItems ? (
-        <div className="p-4 text-center text-muted text-[0.8rem]">Carregant...</div>
+        <div className="p-4 text-center text-muted text-sm">Carregant...</div>
       ) : !hasItems ? (
-        <div className="p-4 text-center text-muted text-[0.8rem]">No hi ha canvis pendents</div>
+        <div className="p-4 text-center text-muted text-sm">No hi ha canvis pendents</div>
       ) : (
         <>
           {hasSelected && (

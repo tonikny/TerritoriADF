@@ -1,6 +1,8 @@
 import type { PendingHidrant } from "@territoriadf/contracts/osm";
 
 import { hidrantLabel, type SectionKey } from "./osmSections";
+import { secondaryRowClass } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
 import { syncErrorMessages } from "./syncErrorMessages";
 
 /** Accions que una fila necessita; les comparteix la secció. */
@@ -43,15 +45,18 @@ export function OsmPendingRow({
         <div className="flex items-center gap-2">
           <button
             onClick={() => actions.onSelectHidrant(item.id)}
-            className="text-[0.8rem] font-semibold text-ink hover:text-blue-600 cursor-pointer bg-transparent border-0 p-0 truncate"
+            className="text-sm font-semibold text-ink hover:text-primary cursor-pointer bg-transparent border-0 p-0 truncate"
             title="Seleccionar al mapa"
           >
             {label}
           </button>
-          {item.osm_id && <span className="text-[0.7rem] text-muted">OSM {item.osm_id}</span>}
+          {/* El número només quan la fila té adreça: si no, ja és l'etiqueta. */}
+          {item.osm_id && item.street && (
+            <span className="text-xs text-muted shrink-0">OSM {item.osm_id}</span>
+          )}
         </div>
         {errors.length > 0 && (
-          <div className="text-[0.7rem] text-muted mt-0.5">
+          <div className="text-xs text-muted mt-0.5">
             {errors.map((e, i) => (
               <div key={i}>• {e}</div>
             ))}
@@ -67,7 +72,14 @@ export function OsmPendingRow({
           <button
             onClick={() => actions.onPush(item.id)}
             disabled={disabled}
-            className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
+            aria-label={
+              section === "ERROR"
+                ? "Reintentar pujada"
+                : section === "REVIEW"
+                  ? "Pujar (ignorar avisos)"
+                  : "Pujar a OSM"
+            }
+            className={`${secondaryRowClass} disabled:opacity-50`}
             title={
               section === "ERROR"
                 ? "Reintentar pujada"
@@ -76,7 +88,8 @@ export function OsmPendingRow({
                   : "Pujar a OSM"
             }
           >
-            ↑
+            <ActionGlyph name="arrowUp" />
+            OSM
           </button>
         )}
         {/* Baixar: CONFLICT (keep OSM) */}
@@ -84,10 +97,11 @@ export function OsmPendingRow({
           <button
             onClick={() => actions.onPullFromOsm(item.id, label)}
             disabled={disabled}
-            className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
+            aria-label="Aplicar versió d'OSM"
+            className={`${secondaryRowClass} disabled:opacity-50`}
             title="Aplicar versió d'OSM"
           >
-            ↓
+            <ActionGlyph name="arrowDown" />
           </button>
         )}
         {/* Esborrar d'OSM: PENDING_DELETE */}
@@ -95,10 +109,11 @@ export function OsmPendingRow({
           <button
             onClick={() => actions.onPush(item.id)}
             disabled={disabled}
-            className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
+            aria-label="Confirmar esborrat a OSM"
+            className={`${secondaryRowClass} disabled:opacity-50`}
             title="Confirmar esborrat a OSM"
           >
-            ↑
+            <ActionGlyph name="arrowUp" />
           </button>
         )}
         {/* Ja no és a OSM → purga manual; la resta → descartar */}
@@ -106,23 +121,27 @@ export function OsmPendingRow({
           <button
             onClick={() => actions.onPurge([item.id])}
             disabled={disabled}
-            className="text-[0.7rem] px-1.5 py-0.5 bg-white text-red-600 border border-border rounded cursor-pointer disabled:opacity-50"
+            aria-label="Esborrar definitivament de la base de dades"
+            className={`${secondaryRowClass} text-alert disabled:opacity-50`}
             title="Esborrar definitivament de la base de dades"
           >
-            🗑
+            <ActionGlyph name="trash" />
           </button>
         ) : (
           <button
             onClick={() => actions.onDiscard(item.id, section, label)}
             disabled={disabled}
-            className="text-[0.7rem] px-1.5 py-0.5 bg-white border border-border rounded cursor-pointer disabled:opacity-50"
+            aria-label={
+              section === "PENDING_CREATE" ? "Esborrar de la BD" : "Revertir als valors d'OSM"
+            }
+            className={`${secondaryRowClass} disabled:opacity-50`}
             title={
               section === "PENDING_CREATE"
                 ? "Esborrar de la BD"
                 : "Revertir als valors d'OSM? Es perdràn els canvis locals."
             }
           >
-            ✕
+            <ActionGlyph name="close" />
           </button>
         )}
       </div>

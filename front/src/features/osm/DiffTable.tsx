@@ -4,12 +4,12 @@ import { diffRows, type DiffData } from "./osmDiff";
 export function DiffTable({ diff }: { diff: DiffData }) {
   const rows = diffRows(diff);
   if (rows.length === 0) {
-    return <div className="text-[0.7rem] text-muted">Sense diferències de tags</div>;
+    return <div className="text-xs text-muted">Sense diferències de tags</div>;
   }
   return (
-    <table className="w-full text-[0.7rem] border-collapse">
+    <table className="w-full text-xs border-collapse">
       <thead>
-        <tr className="text-orange-700">
+        <tr className="text-warn">
           <th className="text-left py-0.5 pr-2">Camp</th>
           <th className="text-left py-0.5 pr-2">Local</th>
           <th className="text-left py-0.5">OSM</th>
@@ -17,10 +17,10 @@ export function DiffTable({ diff }: { diff: DiffData }) {
       </thead>
       <tbody>
         {rows.map(({ key, local, osm }) => (
-          <tr key={key} className="border-t border-orange-200">
-            <td className="py-0.5 pr-2 font-mono text-orange-800">{key}</td>
-            <td className="py-0.5 pr-2 font-mono text-red-700">{local}</td>
-            <td className="py-0.5 font-mono text-green-700">{osm}</td>
+          <tr key={key} className="border-t border-warn/30">
+            <td className="py-0.5 pr-2 font-mono text-warn">{key}</td>
+            <td className="py-0.5 pr-2 font-mono text-alert">{local}</td>
+            <td className="py-0.5 font-mono text-ok">{osm}</td>
           </tr>
         ))}
       </tbody>

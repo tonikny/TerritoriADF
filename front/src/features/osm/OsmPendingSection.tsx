@@ -1,5 +1,6 @@
 import type { PendingHidrant } from "@territoriadf/contracts/osm";
 
+import { secondaryCompactClass } from "@/styles/uiStyles";
 import { OsmPendingRow } from "./OsmPendingRow";
 import type { OsmRowActions } from "./OsmPendingRow";
 import { SECTION_CONFIG, type SectionKey } from "./osmSections";
@@ -41,10 +42,15 @@ export function OsmPendingSection({
     <div>
       <button
         onClick={onToggleOpen}
-        className="w-full flex items-center justify-between px-3 py-2 text-left bg-white hover:bg-bg cursor-pointer border-0"
+        type="button"
+        aria-expanded={isOpen}
+        className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left bg-white hover:bg-soft cursor-pointer border-0"
       >
-        <span className={`text-[0.8rem] font-semibold ${config.color}`}>
-          {isOpen ? "▾" : "▸"} {config.label} ({items.length})
+        <span className={`flex items-center gap-1.5 text-sm font-semibold ${config.color}`}>
+          <span aria-hidden className={`text-xs transition-transform ${isOpen ? "rotate-90" : ""}`}>
+            ▸
+          </span>
+          {config.label} ({items.length})
         </span>
         {isOpen && section !== "MISSING_IN_OSM" && (
           <span
@@ -52,7 +58,7 @@ export function OsmPendingSection({
               e.stopPropagation();
               onToggleAll(ids);
             }}
-            className="text-[0.7rem] text-muted hover:text-ink cursor-pointer"
+            className="text-xs text-muted hover:text-ink cursor-pointer"
           >
             {allSelected(ids) ? "Desseleccionar tot" : "Sel·leccionar tot"}
           </span>
@@ -60,13 +66,13 @@ export function OsmPendingSection({
       </button>
 
       {isOpen && (
-        <div className="px-3 py-1 text-[0.7rem] text-muted bg-bg/50 border-t border-border">
+        <div className="px-3 py-1 text-xs text-muted bg-bg/50 border-t border-border">
           {config.hint}
           {section === "MISSING_IN_OSM" && (
             <button
               onClick={onPurgeAll}
               disabled={actions.disabled}
-              className="ml-2 text-[0.7rem] px-1.5 py-0.5 bg-white text-red-600 border border-border rounded cursor-pointer disabled:opacity-50"
+              className={`${secondaryCompactClass} ml-2 py-0.5 text-alert disabled:opacity-50`}
             >
               Esborrar-los tots
             </button>

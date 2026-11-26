@@ -1,4 +1,10 @@
 import type { SyncStatus } from "./syncBadge";
+import {
+  dangerButtonClass,
+  filledButtonClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "@/styles/uiStyles";
 
 /** Botons vàlids per a l'estat del hidrant; sempre hi ha «descartar/revertir». */
 export function HidrantActionButtons({
@@ -23,7 +29,7 @@ export function HidrantActionButtons({
         <button
           onClick={onPush}
           disabled={isPending}
-          className="flex-1 text-[0.75rem] px-2 py-1.5 bg-blue-600 text-white border border-blue-700 rounded cursor-pointer disabled:opacity-50 font-semibold"
+          className={`${primaryButtonClass} flex-1 disabled:opacity-50`}
         >
           {status === "ERROR"
             ? "Reintentar"
@@ -36,7 +42,7 @@ export function HidrantActionButtons({
         <button
           onClick={onPush}
           disabled={isPending}
-          className="flex-1 text-[0.75rem] px-2 py-1.5 bg-red-600 text-white border border-red-700 rounded cursor-pointer disabled:opacity-50 font-semibold"
+          className={`${dangerButtonClass} flex-1 disabled:opacity-50`}
         >
           Confirmar esborrat
         </button>
@@ -45,7 +51,7 @@ export function HidrantActionButtons({
         <button
           onClick={onPull}
           disabled={isPending}
-          className="flex-1 text-[0.75rem] px-2 py-1.5 bg-orange-600 text-white border border-orange-700 rounded cursor-pointer disabled:opacity-50 font-semibold"
+          className={`${filledButtonClass} flex-1 bg-warn disabled:opacity-50`}
         >
           Aplicar versió OSM
         </button>
@@ -53,7 +59,7 @@ export function HidrantActionButtons({
       <button
         onClick={onDiscard}
         disabled={isPending}
-        className="flex-1 text-[0.75rem] px-2 py-1.5 bg-white text-ink border border-border rounded cursor-pointer disabled:opacity-50"
+        className={`${secondaryButtonClass} flex-1 disabled:opacity-50`}
       >
         {status === "PENDING_CREATE" ? "Esborrar" : "Revertir"}
       </button>
