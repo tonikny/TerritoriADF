@@ -8,7 +8,7 @@ TerritoriADF és una SPA amb dos workspaces:
 
 - **`front/`**: React 19 + TypeScript + Vite + Tailwind CSS 4. El mapa té dos adaptadors intercanviables: **MapLibre GL JS 6** (per defecte) i **Leaflet 1.9 + React Leaflet 5** (fallback).
 - **`back/`**: Fastify 5 + TypeScript + Drizzle ORM + SQLite. Gestiona autenticació, hidrants, incidències, OSM, Telegram, tracking MQTT i backups.
-- **`docs/`**: guies d'ús, desplegament, OSM, MQTT, PWA i aquesta referència d'arquitectura.
+- **`docs/`**: guies d'ús, desplegament, OSM, MQTT, PWA, el llibre d'estil ([`STYLEGUIDE.md`](STYLEGUIDE.md)) i aquesta referència d'arquitectura.
 
 ## 2. Estructura del repositori
 
@@ -90,6 +90,17 @@ La deserialització no valida la forma. Per això `back/src/utils/jsonColumns.ts
 
 `sync_error` és una unió discriminada per `kind`: `conflict` (detall del 409 o del pull), `review` (`issues` de la validació prèvia) o `error` (`message`). El backend l'escriu i el frontend el consumeix amb el mateix tipus, sense `JSON.parse` ni `as`.
 
+### 2.3 Icones de la interfície
+
+Hi ha **dos tipus d'icones** i no es poden barrejar:
+
+- **Icones de domini**: el vocabulari visual de l'aplicació (tipus d'incidència, prioritat, precisió, visibilitat, plataformes d'OwnTracks, estat del grup de Telegram). Viuen amb el seu significat a `front/src/utils/incidenciaConstants.ts` i companyia (`icon` de cada opció) i es pinten tal qual al formulari, a la llista i al detall (`displayCategoria()`). Són emojis a propòsit: el bomber els reconeix d'un cop d'ull i han de ser **els mateixos a totes les vistes**. No es converteixen en SVG monocroms ni es canvien en un sol lloc.
+- **Icones d'acció**: les que fan alguna cosa (editar, esborrar, compartir, refrescar, capes, zoom, pantalla completa, descarregar). Totes viuen a `front/src/shared/ui/Glyphs.tsx` (24×24, traç, `currentColor`) i es fan servir només a través de `ActionGlyph` als botons (18 px, traç 2,2), `TabGlyph` a la barra de pestanyes (23 px) i `Glyph` als controls de mapa (20 px). Mai un emoji en un botó, mai un `<svg>` escrit a mà dins d'un component.
+
+Els botons que només porten icona fan servir `iconButtonClass` (`front/src/styles/uiStyles.ts`: quadrat de 32 px, blanc, vora forta i `shadow-control`), el mateix tractament per a totes les accions de fila. Com que al mòbil no hi ha `hover`, aquests botons han de dur sempre `aria-label` i `title`; quan l'espai ho permet, és millor icona + text visible.
+
+La resta del sistema visual (paleta, escala de text, ràdios, elevació, capes i variants de botó) és a [`STYLEGUIDE.md`](STYLEGUIDE.md).
+
 ## 3. Motors de mapa
 
 ### 3.1 Selecció del motor
@@ -143,7 +154,7 @@ Els dos adaptadors implementen les mateixes peces: `Rasters`, `Shapes`, `Markers
 - Les capes vectorials de l'ADF es reordenen per sobre dels ràsters i del hillshade després de cada canvi de mapa base o de relleu; així el mask exterior no queda tapat.
 - `MapUIOverlays` agrupa capes, GPS i pantalla completa en una columna dreta alineada amb la part superior del logo. El panell de capes és desplegable, es tanca amb `Escape` o amb un clic fora i només mostra «Relleu 3D» si el motor el suporta.
 - `MapScale` calcula una distància rodona (1, 2 o 5 × 10ⁿ) a partir del centre i el zoom i la mostra just a sobre del zoom; funciona igual amb els dos motors.
-- A mòbil, el zoom i l'atribució queden a una alçada fixa sobre la barra del bottomsheet (60 px). Quan el panell s'obre, no es desplacen: queden a sota i el bottomsheet els tapa.
+- A mòbil, el zoom i l'atribució queden sobre la barra del bottomsheet. El desplaçament és `--sheet-bar-h` (`calc(16px + 2.75rem)` d'`index.css`: el handle fix més `min-h-11`), la mateixa alçada que fa servir el full tancat; com que la barra és en rem, creix amb «Mida de text» i els controls no queden mai a sota del panell. Quan el panell s'obre, no es desplacen: queden a sota i el bottomsheet els tapa.
 
 ### 3.6 Afegir una funcionalitat de mapa
 
