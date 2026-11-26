@@ -40,10 +40,10 @@ export const Login: React.FC = () => {
         }}
         className="flex flex-col gap-3.75"
       >
-        <h2 className="text-center m-0 mb-2.5 text-[1.2rem]">Accés a {APP_NAME}</h2>
+        <h2 className="text-center m-0 mb-2.5 text-lg">Accés a {APP_NAME}</h2>
 
         <div className="flex flex-col gap-1.25">
-          <label htmlFor="username" className="text-[0.9rem] font-semibold">
+          <label htmlFor="username" className="text-sm font-semibold">
             Usuari
           </label>
           <input
@@ -57,7 +57,7 @@ export const Login: React.FC = () => {
         </div>
 
         <div className="flex flex-col gap-1.25">
-          <label htmlFor="password" className="text-[0.9rem] font-semibold">
+          <label htmlFor="password" className="text-sm font-semibold">
             Contrasenya
           </label>
           <PasswordInput

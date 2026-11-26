@@ -8,15 +8,15 @@ import { useAdf } from "@/contexts/AdfContext";
 import { exportIncidenciaListPdf } from "@/utils/listPdf";
 import { PdfExportButton } from "./PdfExportButton";
 import {
-  emojiPrioritatIncidencia,
-  emojiTipusIncidencia,
   ESTATS_INCIDENCIA,
   PRIORITATS_INCIDENCIA,
+  emojiPrioritatIncidencia,
+  emojiTipusIncidencia,
   labelDeCategoria,
 } from "@/utils/incidenciaConstants";
-import { selectClass } from "@/styles/uiStyles";
+import { compactSelectClass } from "@/styles/uiStyles";
 
-const filterSelectClass = `${selectClass} w-auto! flex-1 px-1.5 py-2 text-[0.8rem]`;
+const filterSelectClass = `${compactSelectClass} flex-1 min-w-0 max-w-none`;
 
 export function IncidenciaList({
   filters,
@@ -30,7 +30,7 @@ export function IncidenciaList({
 
   return (
     <div>
-      <div className="flex gap-2 mb-2">
+      <div className="flex items-stretch gap-2 mb-2">
         <select
           aria-label="Filtra les incidències per estat"
           value={filters.estat}
@@ -70,46 +70,59 @@ export function IncidenciaList({
         />
       </div>
       {filtered.length === 0 ? (
-        <p className="text-muted text-[0.85rem]">
+        <p className="text-muted text-sm">
           {filters.isFiltered
             ? "Cap incidència coincideix amb els filtres."
             : "No hi ha incidències obertes."}
         </p>
       ) : (
-        <div className="max-h-[35vh] overflow-y-auto border border-soft rounded">
+        <div className="max-h-[45vh] overflow-y-auto border border-soft rounded-lg">
           {filtered.map((f) => {
             const p = f.properties;
             return (
               <div
                 key={f.id}
                 onClick={() => onSelectIncidencia?.(f)}
-                className="flex items-center gap-3 px-3 py-2.5 border-b border-soft cursor-pointer transition-colors duration-100 hover:bg-[#f5f5f5]"
+                className="px-3 py-2 border-b border-soft cursor-pointer transition-colors duration-100 hover:bg-soft"
               >
-                <span className="text-[1.1rem]">{emojiTipusIncidencia(p.tipus)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-[0.95rem] whitespace-nowrap overflow-hidden text-ellipsis text-ink">
+                <div className="flex items-start gap-2.5">
+                  {/* Icona de domini: la mateixa del detall i del formulari. */}
+                  <span aria-hidden className="mt-px shrink-0 text-[1.05rem] leading-none">
+                    {emojiTipusIncidencia(p.tipus)}
+                  </span>
+                  <div className="min-w-0 flex-1 font-semibold text-base leading-tight truncate text-ink">
                     {p.titol}
                   </div>
-                  <div className="text-xs text-muted flex flex-wrap gap-1 mt-0.5">
-                    <span
-                      className={`font-medium ${
-                        p.estat === "OBERT"
-                          ? "text-[#d32f2f]"
-                          : p.estat === "RESOLT" || p.estat === "TANCAT"
-                            ? "text-[#2e7d32]"
-                            : "text-[#ed6c02]"
-                      }`}
-                    >
-                      {p.estat}
+                </div>
+                {/* Segona línia a tot l'ample, començant sota la icona. */}
+                <div className="mt-1 flex min-w-0 items-center gap-2.5 text-xs text-muted">
+                  <span
+                    className={`shrink-0 font-medium ${
+                      p.estat === "OBERT"
+                        ? "text-alert"
+                        : p.estat === "RESOLT" || p.estat === "TANCAT"
+                          ? "text-ok"
+                          : "text-warn"
+                    }`}
+                  >
+                    {p.estat}
+                  </span>
+                  {/* Prioritat amb la mateixa icona de domini que el detall. */}
+                  <span className="inline-flex min-w-0 items-center gap-1">
+                    <span aria-hidden>{emojiPrioritatIncidencia(p.prioritat)}</span>
+                    <span className="truncate">
+                      {labelDeCategoria(PRIORITATS_INCIDENCIA, p.prioritat).split(" (")[0]}
                     </span>
-                    <span>•</span>
-                    <span>
-                      {emojiPrioritatIncidencia(p.prioritat)}{" "}
-                      {labelDeCategoria(PRIORITATS_INCIDENCIA, p.prioritat)}
-                    </span>
-                    <span>•</span>
-                    <span>{new Date(p.actualitzat_at).toLocaleString("ca-ES")}</span>
-                  </div>
+                  </span>
+                  <span className="ml-auto shrink-0 tabular-nums">
+                    {new Date(p.actualitzat_at).toLocaleString("ca-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 </div>
               </div>
             );

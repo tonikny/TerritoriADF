@@ -4,7 +4,7 @@ import { HIDRANT_ESTAT_OPTIONS } from "@/hooks/useListFilters";
 import { useAdf } from "@/contexts/AdfContext";
 import { exportHidrantListPdf } from "@/utils/listPdf";
 import { getHidrantStatus, getHidrantIconUrl } from "@/utils/icons";
-import { inputClass, selectClass } from "@/styles/uiStyles";
+import { compactSelectClass, inputClass } from "@/styles/uiStyles";
 import { PdfExportButton } from "./PdfExportButton";
 
 export function HidrantList({
@@ -19,43 +19,45 @@ export function HidrantList({
 
   return (
     <div>
-      <div className="flex gap-2 mb-2">
+      <div className="flex flex-col gap-2 mb-2">
         <input
           type="text"
           placeholder="Cerca per carrer/barri..."
           aria-label="Cerca hidrants per carrer o barri"
           value={filters.search}
           onChange={(e) => filters.setSearch(e.target.value)}
-          className={`${inputClass} flex-1 min-w-0 p-2! box-border`}
+          className={`${inputClass} w-full`}
         />
-        <select
-          aria-label="Filtra els hidrants per estat"
-          value={filters.estat}
-          onChange={(e) => filters.setEstat(e.target.value as HidrantEstatFilter)}
-          className={`${selectClass} w-auto! shrink-0 px-1.5 py-2 text-[0.8rem]`}
-        >
-          <option value="">Tots els estats</option>
-          {HIDRANT_ESTAT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <PdfExportButton
-          errorLabel="Error generant el PDF dels hidrants"
-          onExport={() =>
-            exportHidrantListPdf({
-              adf: activeAdf,
-              hidrants: filtered,
-              total: filters.total,
-              filterDescription: filters.description,
-            })
-          }
-        />
+        <div className="flex items-stretch gap-2">
+          <select
+            aria-label="Filtra els hidrants per estat"
+            value={filters.estat}
+            onChange={(e) => filters.setEstat(e.target.value as HidrantEstatFilter)}
+            className={`${compactSelectClass} flex-1 min-w-0 max-w-none`}
+          >
+            <option value="">Tots els estats</option>
+            {HIDRANT_ESTAT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <PdfExportButton
+            errorLabel="Error generant el PDF dels hidrants"
+            onExport={() =>
+              exportHidrantListPdf({
+                adf: activeAdf,
+                hidrants: filtered,
+                total: filters.total,
+                filterDescription: filters.description,
+              })
+            }
+          />
+        </div>
       </div>
-      <div className="max-h-[35vh] overflow-y-auto border border-soft rounded">
+      <div className="max-h-[45vh] overflow-y-auto border border-soft rounded-lg">
         {filtered.length === 0 ? (
-          <p className="text-center text-muted p-4 text-[0.85rem]">
+          <p className="text-center text-muted p-4 text-sm">
             {filters.isFiltered
               ? "Cap hidrant coincideix amb els filtres."
               : "No s'han trobat hidrants."}
@@ -71,7 +73,7 @@ export function HidrantList({
               <div
                 key={f.id}
                 onClick={() => onSelectNode?.(f)}
-                className="flex items-center gap-3 px-3 py-2.5 border-b border-soft cursor-pointer transition-colors duration-100 hover:bg-[#f5f5f5]"
+                className="flex items-center gap-3 px-3 py-2.5 border-b border-soft cursor-pointer transition-colors duration-100 hover:bg-soft"
               >
                 <img
                   src={getHidrantIconUrl(getHidrantStatus(ui))}
@@ -80,16 +82,14 @@ export function HidrantList({
                 />
                 <div className="flex-1 min-w-0">
                   <div
-                    className="font-bold text-[0.95rem] whitespace-nowrap overflow-hidden text-ellipsis text-ink"
+                    className="font-semibold text-base whitespace-nowrap overflow-hidden text-ellipsis text-ink"
                     title={`${address} ${neighborhood}`}
                   >
                     {address || "Sense adreça"}{" "}
-                    <span className="font-normal text-muted text-[0.85rem]">{neighborhood}</span>
+                    <span className="text-muted text-sm">{neighborhood}</span>
                   </div>
                   <div className="text-xs text-muted flex flex-wrap gap-1 mt-0.5">
-                    <span
-                      className={`font-medium ${isOutOfService ? "text-[#d32f2f]" : "text-[#2e7d32]"}`}
-                    >
+                    <span className={`font-medium ${isOutOfService ? "text-alert" : "text-ok"}`}>
                       {ui.estat || "Desconegut"}
                     </span>
                     <span>•</span>

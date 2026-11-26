@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { secondaryButtonClass } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
 import { logError } from "@/utils/log";
 
 /** Botó compacte que exporta a PDF el contingut filtrat d'una llista. */
@@ -32,9 +34,10 @@ export function PdfExportButton({
       disabled={exporting}
       aria-label="Exporta la llista filtrada a PDF"
       title="Exporta la llista filtrada a PDF"
-      className="shrink-0 border border-border rounded bg-white px-2 py-1 text-[0.8rem] cursor-pointer disabled:opacity-60"
+      className={`${secondaryButtonClass} shrink-0 disabled:opacity-60`}
     >
-      {exporting ? "…" : "📄"}
+      <ActionGlyph name="report" />
+      {exporting ? "…" : "PDF"}
     </button>
   );
 }

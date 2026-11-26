@@ -1,6 +1,7 @@
 import { toast } from "react-toastify";
 import { openInNativeMaps } from "@/utils/geoMaps";
-import { ShareIcon } from "./Icons";
+import { ActionGlyph } from "./Glyphs";
+import { iconButtonClass } from "@/styles/uiStyles";
 
 interface NodeActionsProps {
   /** Enllaç que copia el botó de compartir (node o incidència segons el cas). */
@@ -44,17 +45,18 @@ export function NodeActions({
   };
 
   return (
-    <div className="flex justify-center items-center gap-6 py-2 border-t border-soft">
+    <div className="flex justify-center items-center gap-3 py-2 border-t border-soft">
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           void handleShare();
         }}
+        aria-label="Compartir ubicació"
         title="Compartir ubicació"
-        className="bg-transparent border-0 cursor-pointer p-0 flex items-center"
+        className={iconButtonClass}
       >
-        <ShareIcon />
+        <ActionGlyph name="share" />
       </button>
 
       {showRouteButton && setShowRoute && (
@@ -64,10 +66,11 @@ export function NodeActions({
             e.stopPropagation();
             handleShowRoute();
           }}
+          aria-label={showRoute ? "Tanca ruta" : "Mostra ruta"}
           title={showRoute ? "Tanca ruta" : "Mostra ruta"}
-          className={`bg-transparent border-0 cursor-pointer text-[1.4rem] p-0 ${showRoute ? "" : "grayscale opacity-50"}`}
+          className={`${iconButtonClass} ${showRoute ? "text-primary" : "text-muted"}`}
         >
-          🛣️
+          <ActionGlyph name="route" />
         </button>
       )}
 
@@ -77,10 +80,11 @@ export function NodeActions({
           e.stopPropagation();
           openInNativeMaps(lat, lon);
         }}
+        aria-label="Obrir en navegador GPS"
         title="Obrir en navegador GPS"
-        className="bg-transparent border-0 cursor-pointer text-[1.4rem] p-0"
+        className={iconButtonClass}
       >
-        🚕
+        <ActionGlyph name="navigate" />
       </button>
     </div>
   );

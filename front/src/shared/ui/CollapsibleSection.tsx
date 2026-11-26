@@ -1,8 +1,15 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { Glyph } from "./Glyphs";
 
+/**
+ * Acordió únic de l'app (Informes, Configuració, seguiment, Telegram): mateixa
+ * targeta blanca, vora forta, ombra de control i xebró que gira. Qualsevol
+ * secció plegable nova ha de fer servir aquest component per no divergir.
+ */
 export function CollapsibleSection({
   title,
+  icon,
   count,
   defaultOpen = false,
   open,
@@ -10,6 +17,8 @@ export function CollapsibleSection({
   children,
 }: {
   title: string;
+  /** Icona monocroma opcional davant del títol. */
+  icon?: ReactNode;
   count?: number;
   defaultOpen?: boolean;
   open?: boolean;
@@ -26,18 +35,30 @@ export function CollapsibleSection({
     }
   };
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <button
+        type="button"
         onClick={() => setOpen(!isOpen)}
-        className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer p-0 m-0 text-[0.95rem] font-semibold text-ink"
+        aria-expanded={isOpen}
+        className="w-full flex min-h-8 items-center justify-between gap-2 bg-white border border-border-strong rounded-lg shadow-control px-3 py-1 text-left cursor-pointer hover:bg-soft active:shadow-none"
       >
-        <span>
+        <span className="flex items-center gap-2 text-base font-semibold text-ink leading-tight">
+          {icon && <span className="shrink-0 text-primary">{icon}</span>}
           {title}
-          {count !== undefined ? ` (${count})` : ""}
+          {count !== undefined && (
+            <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold leading-tight text-ink">
+              {count}
+            </span>
+          )}
         </span>
-        <span className="text-muted text-[0.8rem]">{isOpen ? "▾" : "▸"}</span>
+        <Glyph
+          name="chevron"
+          size={15}
+          strokeWidth={2.4}
+          className={`shrink-0 text-muted transition-transform ${isOpen ? "rotate-90" : ""}`}
+        />
       </button>
-      {isOpen && <div className="mt-2">{children}</div>}
+      {isOpen && <div className="mt-1.5">{children}</div>}
     </div>
   );
 }

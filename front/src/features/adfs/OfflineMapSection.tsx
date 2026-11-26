@@ -10,6 +10,7 @@ import {
 } from "@/map/shared/offlineMap";
 import { timeAgo } from "@/utils/time";
 import { primaryButtonClass, secondaryButtonClass } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
 
 const MB_FORMAT = new Intl.NumberFormat("ca-ES", { maximumFractionDigits: 1 });
 
@@ -67,11 +68,11 @@ export function OfflineMapSection({ adfId, bbox }: { adfId: number; bbox: AdfBbo
   }
 
   return (
-    <section className="border border-border rounded mt-3 p-3 text-[0.8rem]">
+    <section className="border border-border rounded-lg mt-3 p-3 text-sm">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <h4 className="m-0 text-[0.9rem] font-semibold">Mapa offline</h4>
+        <h4 className="m-0 text-sm font-semibold">Mapa offline</h4>
         {info && !downloading && (
-          <span className="text-muted text-[0.75rem]">Desat {timeAgo(info.at)}</span>
+          <span className="text-muted text-sm">Desat {timeAgo(info.at)}</span>
         )}
       </div>
 
@@ -89,17 +90,14 @@ export function OfflineMapSection({ adfId, bbox }: { adfId: number; bbox: AdfBbo
         </p>
       ) : downloading ? (
         <>
-          <div className="h-1.5 w-full bg-soft border border-border rounded overflow-hidden mb-1">
+          <div className="h-1.5 w-full bg-soft border border-border rounded-full overflow-hidden mb-1">
             <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
           </div>
           <div className="flex items-center justify-between gap-2">
             <span className="text-muted">
               {progress.done}/{progress.total} tessel·les
             </span>
-            <button
-              onClick={() => abortRef.current?.abort()}
-              className={`${secondaryButtonClass} px-2 py-1 text-xs`}
-            >
+            <button onClick={() => abortRef.current?.abort()} className={`${secondaryButtonClass}`}>
               Cancel·la
             </button>
           </div>
@@ -110,18 +108,19 @@ export function OfflineMapSection({ adfId, bbox }: { adfId: number; bbox: AdfBbo
             onClick={() => {
               void startDownload();
             }}
-            className={`${primaryButtonClass} w-full px-2 py-2`}
+            className={`${primaryButtonClass} w-full`}
           >
-            {info ? "⬇️ Tornar a baixar el mapa" : "⬇️ Descarregar mapa"}
+            <ActionGlyph name="download" />
+            {info ? "Tornar a baixar el mapa" : "Descarregar mapa"}
           </button>
-          <p className="m-0 mt-1 text-[0.7rem] text-muted">
+          <p className="m-0 mt-1 text-xs text-muted">
             {plan.tiles} tessel·les · ~{MB_FORMAT.format(plan.bytes / 1_000_000)} MB
             {info ? ` · ${info.tiles} desades` : ""}
           </p>
         </>
       )}
 
-      <p className="m-0 mt-2 text-[0.7rem] text-muted">
+      <p className="m-0 mt-2 text-xs text-muted">
         Es desa a la caché del navegador; si falta espai, el navegador la pot esborrar.
       </p>
     </section>

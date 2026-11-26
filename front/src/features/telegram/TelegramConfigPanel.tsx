@@ -1,4 +1,5 @@
 import { CollapsibleSection } from "@/shared/ui/CollapsibleSection";
+import { Glyph } from "@/shared/ui/Glyphs";
 import { TelegramConfiguredPanel } from "./TelegramConfiguredPanel";
 import { TelegramSteps } from "./TelegramSteps";
 import { TelegramTokenInvalidPanel } from "./TelegramTokenInvalidPanel";
@@ -14,7 +15,7 @@ export function TelegramConfigPanel() {
 
   if (!s.user) {
     return (
-      <div className="text-[0.85rem] text-muted">
+      <div className="text-sm text-muted">
         Inicia sessió a la pestanya <strong>Usuaris</strong> per configurar les notificacions de
         Telegram.
       </div>
@@ -23,7 +24,7 @@ export function TelegramConfigPanel() {
 
   if (!s.activeAdf) {
     return (
-      <div className="text-[0.85rem] text-muted">
+      <div className="text-sm text-muted">
         Selecciona una ADF a la pestanya <strong>ADF</strong> per gestionar les seves notificacions
         de Telegram.
       </div>
@@ -44,12 +45,13 @@ export function TelegramConfigPanel() {
   return (
     <VisibleObserver onVisibilityChange={s.setVisible}>
       <CollapsibleSection
-        title="🔔 Notificacions de Telegram"
+        title="Notificacions de Telegram"
+        icon={<Glyph name="bell" />}
         open={s.telegramOpen}
         onToggle={s.toggleOpen}
       >
-        <div className="space-y-3 text-[0.85rem]">
-          <p className="m-0 text-[0.8rem] text-muted leading-snug">{intro}</p>
+        <div className="space-y-3 text-sm">
+          <p className="m-0 text-sm text-muted leading-snug">{intro}</p>
 
           {/* Token indesxifrable: el grup ja hi és, només cal tornar a validar el bot */}
           {s.canManage && s.status === "TOKEN_INVALID" && (

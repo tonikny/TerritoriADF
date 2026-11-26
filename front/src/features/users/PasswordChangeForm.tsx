@@ -29,8 +29,8 @@ export function PasswordChangeForm({
       }}
       className="border-t border-primary bg-soft p-3"
     >
-      <div className="text-[0.8rem] font-semibold mb-2">Canviar contrasenya · {username}</div>
-      <label className="block text-[0.8rem] italic mb-2">
+      <div className="text-sm font-semibold mb-2">Canviar contrasenya · {username}</div>
+      <label className="block text-sm text-muted mb-2">
         Contrasenya actual:
         <PasswordInput
           autoComplete="current-password"
@@ -40,7 +40,7 @@ export function PasswordChangeForm({
           required
         />
       </label>
-      <label className="block text-[0.8rem] italic mb-2">
+      <label className="block text-sm text-muted mb-2">
         Nova contrasenya:
         <PasswordInput
           autoComplete="new-password"
@@ -51,7 +51,7 @@ export function PasswordChangeForm({
           required
         />
       </label>
-      <label className="block text-[0.8rem] italic mb-2">
+      <label className="block text-sm text-muted mb-2">
         Repeteix la nova contrasenya:
         <PasswordInput
           autoComplete="new-password"
@@ -66,15 +66,11 @@ export function PasswordChangeForm({
         <button
           type="submit"
           disabled={submitting}
-          className={`${primaryButtonClass} flex-1 p-2 text-[0.8rem] disabled:opacity-70`}
+          className={`${primaryButtonClass} flex-1 disabled:opacity-70`}
         >
           {submitting ? "Guardant..." : "Guardar"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className={`${secondaryButtonClass} flex-1 p-2 text-[0.8rem]`}
-        >
+        <button type="button" onClick={onCancel} className={`${secondaryButtonClass} flex-1`}>
           Cancel·la
         </button>
       </div>

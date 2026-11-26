@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
+import { primaryButtonClass, secondaryButtonClass } from "@/styles/uiStyles";
+
 const INSTALL_TOAST_ID = "pwa-install";
 const INSTALL_DISMISSED_KEY = "territoriadf-pwa-install-dismissed";
 const UPDATED_FLAG_KEY = "territoriadf-pwa-updated";
@@ -12,10 +14,8 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const PRIMARY_BUTTON =
-  "bg-primary text-white border-0 rounded px-3 py-1.5 text-[0.8rem] cursor-pointer";
-const GHOST_BUTTON =
-  "bg-neutral-200 text-ink border-0 rounded px-3 py-1.5 text-[0.8rem] cursor-pointer";
+const PRIMARY_BUTTON = primaryButtonClass;
+const GHOST_BUTTON = secondaryButtonClass;
 
 function isStandalone(): boolean {
   const iosStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone;
@@ -25,7 +25,7 @@ function isStandalone(): boolean {
 function ToastBody({ text, children }: { text: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="m-0 text-[0.85rem] leading-snug">{text}</p>
+      <p className="m-0 text-sm leading-snug">{text}</p>
       <div className="mt-2 flex gap-2">{children}</div>
     </div>
   );

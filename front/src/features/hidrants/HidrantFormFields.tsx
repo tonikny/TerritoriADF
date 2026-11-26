@@ -33,7 +33,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
       {/* Estat i Data de revisió (Només en edició) */}
       {showSurveyDateAndStatus && (
         <div className="flex gap-2">
-          <label className="flex-1 text-xs italic">
+          <label className="flex-1 text-xs text-muted">
             Estat:
             <select
               value={data.estat}
@@ -44,7 +44,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
               <option value="Fora de servei">Fora de servei</option>
             </select>
           </label>
-          <label className="flex-1 text-xs italic">
+          <label className="flex-1 text-xs text-muted">
             Data revisió:
             <input
               type="date"
@@ -58,7 +58,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
 
       {/* Tipus - Posició */}
       <div className="flex gap-2">
-        <label className="flex-1 text-xs italic">
+        <label className="flex-1 text-xs text-muted">
           Tipus:
           <select
             value={data.type}
@@ -70,7 +70,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
             <option value="underground">Subterrani</option>
           </select>
         </label>
-        <label className="flex-1 text-xs italic">
+        <label className="flex-1 text-xs text-muted">
           Posició:
           <select
             value={data.position}
@@ -87,7 +87,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
 
       {/* Acoblaments - Pressió */}
       <div className="flex gap-2">
-        <label className="flex-1 text-xs italic">
+        <label className="flex-1 text-xs text-muted">
           Acoblaments:
           <select
             value={data.couplings}
@@ -101,7 +101,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
             <option value="4">4</option>
           </select>
         </label>
-        <label className="flex-1 text-xs italic">
+        <label className="flex-1 text-xs text-muted">
           Pressió (bar):
           <input
             type="text"
@@ -115,7 +115,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
 
       {/* Diàmetres dinàmics */}
       {numCouplings > 0 && (
-        <label className="text-xs italic">
+        <label className="text-xs text-muted">
           Diàmetre{numCouplings > 1 ? "s" : ""} (mm):
           <div className="flex flex-wrap gap-1.2 mt-0.8">
             {Array.from({ length: numCouplings }, (_, i) => (
@@ -140,7 +140,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
       )}
 
       {/* Carrer */}
-      <label className="text-xs italic">
+      <label className="text-xs text-muted">
         Carrer:
         <input
           type="text"
@@ -152,7 +152,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
 
       {/* Número i Barri/Urbanització */}
       <div className="flex gap-2">
-        <label className="flex-1 text-xs italic">
+        <label className="flex-1 text-xs text-muted">
           Núm:
           <input
             type="text"
@@ -161,7 +161,7 @@ export const HidrantFormFields: React.FC<HidrantFormFieldsProps> = ({
             className={inputClass}
           />
         </label>
-        <label className="flex-[2] text-xs italic">
+        <label className="flex-[2] text-xs text-muted">
           Barri/Urbanització:
           <input
             type="text"

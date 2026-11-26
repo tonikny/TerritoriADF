@@ -4,8 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdf } from "@/contexts/AdfContext";
 import { toast } from "react-toastify";
 import {
+  dangerButtonClass,
   inputClass,
-  primaryButtonClass,
   secondaryButtonClass,
   selectClass,
 } from "@/styles/uiStyles";
@@ -79,7 +79,7 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
       <CoordinatesLabel lat={lat} lon={lon} />
 
       {/* Títol */}
-      <label className="text-[0.8rem] italic mb-2">
+      <label className="text-sm text-muted mb-2">
         Títol de la incidència:
         <input
           type="text"
@@ -92,7 +92,7 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
       </label>
 
       {/* Tipus d'Incidència */}
-      <label className="text-[0.8rem] italic mb-2">
+      <label className="text-sm text-muted mb-2">
         Tipus d'incidència:
         <select
           value={type}
@@ -109,7 +109,7 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
       </label>
 
       {/* Prioritat */}
-      <label className="text-[0.8rem] italic mb-2">
+      <label className="text-sm text-muted mb-2">
         Prioritat:
         <select
           value={priority}
@@ -126,7 +126,7 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
       </label>
 
       {/* Precissió de l'ubicació */}
-      <label className="text-[0.8rem] italic mb-2">
+      <label className="text-sm text-muted mb-2">
         Precissió de l'ubicació:
         <select
           value={precisio}
@@ -144,7 +144,7 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
 
       {/* Visibilitat: només la tria qui pot decidir-la (coordinador/admin). */}
       {canChooseVisibility ? (
-        <label className="text-[0.8rem] italic mb-3">
+        <label className="text-sm text-muted mb-3">
           Visibilitat:
           <select
             value={visibilitat}
@@ -160,13 +160,13 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
           </select>
         </label>
       ) : (
-        <p className="text-[0.8rem] italic mb-3">
+        <p className="text-sm text-muted mb-3">
           Visibilitat: <strong>🔒 Només la pròpia ADF</strong>
         </p>
       )}
 
       {/* Comentari inicial */}
-      <label className="text-[0.8rem] italic mb-3">
+      <label className="text-sm text-muted mb-3">
         Observacions inicials:
         <textarea
           value={comentari}
@@ -181,15 +181,11 @@ export const NovaIncidenciaForm = ({ lat, lon, onClose }: NovaIncidenciaFormProp
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`${primaryButtonClass} bg-[#dc3545] flex-1 p-2 text-[0.8rem] disabled:opacity-70 disabled:cursor-not-allowed`}
+          className={`${dangerButtonClass} flex-1 disabled:opacity-70 disabled:cursor-not-allowed`}
         >
           {isSubmitting ? "Enviant..." : "Reportar Incidència"}
         </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className={`${secondaryButtonClass} flex-1 p-2 text-[0.8rem]`}
-        >
+        <button type="button" onClick={onClose} className={`${secondaryButtonClass} flex-1`}>
           Cancel·la
         </button>
       </div>

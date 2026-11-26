@@ -1,4 +1,4 @@
-import { selectClass } from "@/styles/uiStyles";
+import { compactSelectClass } from "@/styles/uiStyles";
 
 type ViewRole = "admin" | "coordinador" | "voluntari";
 
@@ -18,18 +18,18 @@ export function UserAccountCard({
 }) {
   return (
     <>
-      <h3 className="m-0 mb-2 text-[0.95rem] font-semibold">Usuari</h3>
-      <div className="border border-border rounded p-3 bg-soft">
+      <h3 className="panel-title mb-2">Usuari</h3>
+      <div className="border border-border rounded-lg p-3 bg-soft">
         <div className="font-semibold text-ink">{user.username}</div>
-        <div className="text-muted text-[0.8rem] capitalize mt-0.5">
+        <div className="text-muted text-sm capitalize mt-0.5">
           {actualRole === "admin" ? "admin" : user.role}
         </div>
         {user.adf_id !== null && (
-          <div className="text-muted text-[0.8rem] mt-0.5">{adfNom(user.adf_id)}</div>
+          <div className="text-muted text-sm mt-0.5">{adfNom(user.adf_id)}</div>
         )}
         {actualRole === "admin" && (
-          <label className="flex items-center gap-2 mt-2 text-[0.8rem]">
-            <span className="text-muted">Veure com:</span>
+          <label className="flex items-center gap-2 mt-2 text-sm">
+            <span className="text-muted whitespace-nowrap">Veure com:</span>
             <select
               id="view-role"
               value={viewRole ?? "admin"}
@@ -37,7 +37,7 @@ export function UserAccountCard({
                 const next = e.target.value as ViewRole;
                 setViewRole(next === "admin" ? null : next);
               }}
-              className={`${selectClass} max-w-36 px-1`}
+              className={compactSelectClass}
             >
               <option value="admin">Administrador</option>
               <option value="coordinador">Coordinador</option>

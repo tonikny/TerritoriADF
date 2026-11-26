@@ -15,7 +15,7 @@ function NumeroField({ value, onChange }: { value: string; onChange: (v: string)
       value={value}
       onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 3))}
       placeholder="---"
-      className="border border-border rounded text-base font-semibold w-[4ch] text-center py-0.5 bg-white"
+      className="border border-border rounded-md text-base font-semibold w-[4ch] text-center py-0.5 bg-white"
     />
   );
 }
@@ -53,8 +53,8 @@ export function UserDraftForm({
       }}
       className={className}
     >
-      <div className="text-[0.8rem] font-semibold mb-2">{title}</div>
-      <label className="block text-[0.8rem] italic mb-2">
+      <div className="text-sm font-semibold mb-2">{title}</div>
+      <label className="block text-sm text-muted mb-2">
         Número:
         <div className="flex gap-2 items-center mt-0.5">
           <span className="text-base font-semibold whitespace-nowrap">
@@ -63,7 +63,7 @@ export function UserDraftForm({
           <NumeroField value={draft.numero} onChange={(v) => onChange({ numero: v })} />
         </div>
       </label>
-      <label className="flex items-center gap-2 text-[0.8rem] mb-2 cursor-pointer">
+      <label className="flex items-center gap-2 text-sm mb-2 cursor-pointer">
         <input
           type="checkbox"
           checked={draft.gi}
@@ -71,7 +71,7 @@ export function UserDraftForm({
         />
         Grup d'Intervenció (GI)
       </label>
-      <label className="block text-[0.8rem] italic mb-2">
+      <label className="block text-sm text-muted mb-2">
         Rol:
         <select
           value={draft.role}
@@ -85,20 +85,16 @@ export function UserDraftForm({
           ))}
         </select>
       </label>
-      {footnote && <p className="m-0 mb-2 text-[0.75rem] text-muted">{footnote}</p>}
+      {footnote && <p className="m-0 mb-2 text-sm text-muted">{footnote}</p>}
       <div className="flex gap-2 mt-1">
         <button
           type="submit"
           disabled={submitting}
-          className={`${primaryButtonClass} flex-1 p-2 text-[0.8rem] disabled:opacity-70`}
+          className={`${primaryButtonClass} flex-1 disabled:opacity-70`}
         >
           {submitting ? "Guardant..." : submitLabel}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className={`${secondaryButtonClass} flex-1 p-2 text-[0.8rem]`}
-        >
+        <button type="button" onClick={onCancel} className={`${secondaryButtonClass} flex-1`}>
           Cancel·la
         </button>
       </div>

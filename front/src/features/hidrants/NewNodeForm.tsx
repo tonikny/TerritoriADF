@@ -111,7 +111,7 @@ export const NewNodeForm = ({ lat, lon, onClose, setNewNodePosition }: NewNodeFo
 
       <div className="mb-2">
         <label
-          className={`flex items-center gap-2 text-[0.85rem] cursor-pointer p-2 rounded border ${isInspected ? "bg-[#e8f5e9] border-[#2e7d32]" : "bg-[#f5f5f5] border-border"}`}
+          className={`flex items-center gap-2 text-sm cursor-pointer p-2 rounded-lg border ${isInspected ? "bg-ok/10 border-ok" : "bg-soft border-border"}`}
         >
           <input
             type="checkbox"
@@ -124,7 +124,7 @@ export const NewNodeForm = ({ lat, lon, onClose, setNewNodePosition }: NewNodeFo
 
       <HidrantFormFields data={data} onChange={setData} showSurveyDateAndStatus={isInspected} />
 
-      <label className="text-[0.8rem] w-full italic mb-4 mt-2">
+      <label className="text-sm w-full text-muted mb-4 mt-2">
         Observacions:
         <textarea
           value={observacions}
@@ -136,14 +136,10 @@ export const NewNodeForm = ({ lat, lon, onClose, setNewNodePosition }: NewNodeFo
       </label>
 
       <div className="flex justify-between gap-2 mt-2">
-        <button type="submit" className={`${primaryButtonClass} flex-1 p-1.5 text-xs`}>
+        <button type="submit" className={`${primaryButtonClass} flex-1`}>
           Enviar
         </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className={`${secondaryButtonClass} flex-1 p-1.5 text-xs`}
-        >
+        <button type="button" onClick={onClose} className={`${secondaryButtonClass} flex-1`}>
           Cancel·la
         </button>
       </div>

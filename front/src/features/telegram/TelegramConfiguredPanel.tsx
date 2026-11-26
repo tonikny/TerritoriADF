@@ -4,6 +4,7 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
 
 /** Telegram configurat: enviar un missatge, canviar de grup o desconnectar. */
 export function TelegramConfiguredPanel({
@@ -30,18 +31,18 @@ export function TelegramConfiguredPanel({
   onRemove: () => void;
 }) {
   return (
-    <div className="border border-border rounded p-3 space-y-3">
-      <p className="m-0 text-[0.85rem]">
+    <div className="border border-border rounded-lg p-3 space-y-3">
+      <p className="m-0 text-sm">
         ✅ <strong>Grup vinculat:</strong> {groupName ?? "desconegut"}
         {botUsername ? ` (bot @${botUsername})` : ""}
       </p>
       <div className="space-y-1">
-        <input
-          type="text"
+        <textarea
           value={customMsg}
           onChange={(e) => onMessageChange(e.target.value)}
           placeholder="Escriu el missatge que vols enviar al grup..."
-          className={`${inputClass} px-2`}
+          rows={2}
+          className={`${inputClass} resize-y leading-tight`}
           autoComplete="off"
         />
         <button
@@ -50,9 +51,10 @@ export function TelegramConfiguredPanel({
           className={`${primaryButtonClass} w-full`}
           title="Envia el missatge al grup a través del bot"
         >
-          {sendPending ? "⏳ Enviant..." : "📨 Enviar missatge al grup"}
+          <ActionGlyph name="send" />
+          {sendPending ? "Enviant..." : "Enviar missatge al grup"}
         </button>
-        <p className="m-0 text-[0.75rem] text-muted">
+        <p className="m-0 text-sm text-muted">
           Tot el que escriguis aquí es publicarà al grup a través del bot d'aquesta ADF.
         </p>
       </div>
@@ -63,9 +65,10 @@ export function TelegramConfiguredPanel({
           className={`${secondaryButtonClass} w-full`}
           title="Genera un enllaç nou per canviar el grup"
         >
-          {linkPending ? "⏳ Generant enllaç..." : "🔄 Canviar el grup"}
+          <ActionGlyph name="refresh" />
+          {linkPending ? "Generant enllaç..." : "Canviar el grup"}
         </button>
-        <p className="m-0 text-[0.75rem] text-muted">
+        <p className="m-0 text-sm text-muted">
           Canvia el grup de destí sense crear un bot nou: generaràs un enllaç d'un sol ús nou.
         </p>
       </div>
@@ -76,9 +79,10 @@ export function TelegramConfiguredPanel({
           className={`${dangerButtonClass}`}
           title="Desconnecta Telegram d'aquesta ADF"
         >
-          {removePending ? "⏳ Desconnectant..." : "⛔ Desconnectar Telegram"}
+          <ActionGlyph name="close" />
+          {removePending ? "Desconnectant..." : "Desconnectar Telegram"}
         </button>
-        <p className="m-0 text-[0.75rem] text-muted">
+        <p className="m-0 text-sm text-muted">
           Deixa de rebre notificacions al grup i esborra la configuració. Podràs tornar a
           configurar-ho des de zero.
         </p>
