@@ -105,17 +105,17 @@ Mai un emoji en un botó d'acció ni un `<svg>` escrit a mà dins d'un component
 
 ### Botons (`uiStyles.ts`)
 
-| Classe                  | Alçada | Ús                                      |
-| ----------------------- | ------ | --------------------------------------- |
-| `primaryButtonClass`    | 32     | acció principal                         |
-| `dangerButtonClass`     | 32     | esborrar (ple, `w-full`)                |
-| `filledButtonClass`     | 32     | ple amb fons triat (`bg-ok`, `bg-warn`) |
-| `secondaryButtonClass`  | 32     | acció secundària blanca                 |
-| `secondaryCompactClass` | 32     | secundària en capçaleres                |
-| `secondaryTightClass`   | 32     | icona + text a 2 px («↓ OSM»)           |
-| `secondaryRowClass`     | 32     | com l'anterior, text de 14 px (files)   |
-| `iconButtonClass`       | 32     | només icona, quadrat                    |
-| `floatingButtonClass`   | 34     | control flotant sobre el mapa           |
+| Classe                 | Alçada | Ús                                      |
+| ---------------------- | ------ | --------------------------------------- |
+| `primaryButtonClass`   | 32     | acció principal                         |
+| `dangerButtonClass`    | 32     | esborrar (ple, `w-full`)                |
+| `filledButtonClass`    | 32     | ple amb fons triat (`bg-ok`, `bg-warn`) |
+| `secondaryButtonClass` | 32     | acció secundària blanca                 |
+
+| `secondaryTightClass` | 32 | icona + text a 2 px («↓ OSM») |
+| `secondaryRowClass` | 32 | com l'anterior, text de 14 px (files) |
+| `iconButtonClass` | 32 | només icona, quadrat |
+| `floatingButtonClass` | 34 | control flotant sobre el mapa |
 
 - Totes comparteixen 10 px de padding horitzontal. **No** s'hi afegeixen `px-*`,
   `py-*`, `gap-*` ni `text-*` al consumidor: en un xoc guanya l'utilitat que surt

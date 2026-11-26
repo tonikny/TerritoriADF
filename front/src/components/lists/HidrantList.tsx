@@ -33,7 +33,7 @@ export function HidrantList({
             aria-label="Filtra els hidrants per estat"
             value={filters.estat}
             onChange={(e) => filters.setEstat(e.target.value as HidrantEstatFilter)}
-            className={`${compactSelectClass} flex-1 min-w-0 max-w-none`}
+            className={`${compactSelectClass} flex-1 min-w-0`}
           >
             <option value="">Tots els estats</option>
             {HIDRANT_ESTAT_OPTIONS.map((option) => (

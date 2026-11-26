@@ -1,6 +1,6 @@
 import type { PendingHidrant } from "@territoriadf/contracts/osm";
 
-import { secondaryCompactClass } from "@/styles/uiStyles";
+import { secondaryButtonClass } from "@/styles/uiStyles";
 import { OsmPendingRow } from "./OsmPendingRow";
 import type { OsmRowActions } from "./OsmPendingRow";
 import { SECTION_CONFIG, type SectionKey } from "./osmSections";
@@ -72,7 +72,7 @@ export function OsmPendingSection({
             <button
               onClick={onPurgeAll}
               disabled={actions.disabled}
-              className={`${secondaryCompactClass} ml-2 py-0.5 text-alert disabled:opacity-50`}
+              className={`${secondaryButtonClass} ml-2 text-alert disabled:opacity-50`}
             >
               Esborrar-los tots
             </button>

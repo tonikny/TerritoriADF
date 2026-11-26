@@ -16,7 +16,7 @@ import {
 } from "@/utils/incidenciaConstants";
 import { compactSelectClass } from "@/styles/uiStyles";
 
-const filterSelectClass = `${compactSelectClass} flex-1 min-w-0 max-w-none`;
+const filterSelectClass = `${compactSelectClass} flex-1 min-w-0`;
 
 export function IncidenciaList({
   filters,

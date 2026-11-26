@@ -20,12 +20,7 @@ export type GlyphName =
   | "plus"
   | "palette"
   | "engine"
-  | "alert"
-  | "flame"
-  | "smoke"
-  | "car"
   | "download"
-  | "filter"
   | "lock"
   | "chevron"
   | "key"
@@ -39,7 +34,9 @@ export type GlyphName =
   | "arrowDown"
   | "expand"
   | "collapse"
-  | "send";
+  | "send"
+  | "eye"
+  | "eyeOff";
 
 const PATHS: Record<GlyphName, ReactNode> = {
   map: (
@@ -122,38 +119,12 @@ const PATHS: Record<GlyphName, ReactNode> = {
       <circle cx="12" cy="12" r="8.4" strokeDasharray="1.6 3.4" />
     </>
   ),
-  alert: (
-    <>
-      <path d="M12 4.2 21 19.5H3L12 4.2Z" />
-      <path d="M12 9.8v4.1M12 16.6h.01" />
-    </>
-  ),
-  flame: (
-    <>
-      <path d="M12 3.2c3.2 4 5.8 6 5.8 9.6A5.8 5.8 0 0 1 6.2 12.8c0-2 .9-3.3 2.4-4.7.4 1.4 1 2.2 1.9 2.6.2-2.2.6-4.3 1.5-7.5Z" />
-    </>
-  ),
-  smoke: (
-    <>
-      <path d="M7 18.5h9.5a3.5 3.5 0 0 0 .3-7 5 5 0 0 0-9.6-1.2A3.7 3.7 0 0 0 7 18.5Z" />
-      <path d="M9.5 21h6" />
-    </>
-  ),
-  car: (
-    <>
-      <path d="M4 16.5v-3l1.8-4.2A2 2 0 0 1 7.6 8h8.8a2 2 0 0 1 1.8 1.3L20 13.5v3" />
-      <path d="M3.5 13.5h17" />
-      <circle cx="7.5" cy="17" r="1.8" />
-      <circle cx="16.5" cy="17" r="1.8" />
-    </>
-  ),
   download: (
     <>
       <path d="M12 3.5v10M8 10l4 4 4-4" />
       <path d="M4.5 17.5v2h15v-2" />
     </>
   ),
-  filter: <path d="M3.5 5.5h17l-6.5 7.6v6.4l-4 1.8v-8.2L3.5 5.5Z" />,
   lock: (
     <>
       <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
@@ -216,6 +187,20 @@ const PATHS: Record<GlyphName, ReactNode> = {
     <>
       <path d="M4 12 20.5 4.5 14 20l-2.3-6.2L4 12Z" />
       <path d="M11.7 13.8 20.5 4.5" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M17.94 17.94A10.4 10.4 0 0 1 12 19c-6.4 0-10-7-10-7a19.4 19.4 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.9 9.9 0 0 1 12 4c6.4 0 10 7 10 7a19.5 19.5 0 0 1-2.16 3.19" />
+      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+      <line x1="2" y1="2" x2="22" y2="22" />
     </>
   ),
 };

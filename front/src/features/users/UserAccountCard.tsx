@@ -37,7 +37,7 @@ export function UserAccountCard({
                 const next = e.target.value as ViewRole;
                 setViewRole(next === "admin" ? null : next);
               }}
-              className={compactSelectClass}
+              className={`${compactSelectClass} max-w-44`}
             >
               <option value="admin">Administrador</option>
               <option value="coordinador">Coordinador</option>

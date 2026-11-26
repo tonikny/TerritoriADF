@@ -115,7 +115,7 @@ export function MapaTab({ osmSyncPanel }: { osmSyncPanel?: ReactNode }) {
             </span>
             <span className="flex-1 h-px bg-border" />
           </div>
-          <h4 className="panel-title mb-2 text-base">Sincronització amb OSM</h4>
+          <h4 className="panel-title mb-2">Sincronització amb OSM</h4>
           {osmSyncPanel}
         </>
       )}

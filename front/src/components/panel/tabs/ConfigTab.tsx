@@ -74,7 +74,7 @@ export function ConfigTab({
             <select
               value={enginePreference ?? "auto"}
               onChange={(e) => onEngineChange(e.target.value as EnginePreference)}
-              className={compactSelectClass}
+              className={`${compactSelectClass} max-w-44`}
             >
               <option value="auto">Automàtic</option>
               <option value="maplibre" disabled={!webgl2}>
