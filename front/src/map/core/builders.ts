@@ -113,7 +113,7 @@ export function userMarker(
     icon: USER_ICON,
     zIndex: 20,
     circle: accuracy
-      ? { radiusMeters: accuracy, color: "#3388ff", fillOpacity: 0.2, weight: 1 }
+      ? { radiusMeters: accuracy, color: "#014a1e", fillOpacity: 0.2, weight: 1 }
       : undefined,
     onClick: onCreate,
   };
@@ -201,7 +201,7 @@ export function routePolylines(route: RouteLine | null): MapPolylineSpec[] {
     {
       id: "route-main",
       coordinates: route.coordinates,
-      style: { color: "#0077ff", weight: 6, opacity: 0.9 },
+      style: { color: "#014a1e", weight: 6, opacity: 0.9 },
       label: {
         text: `${Math.round(route.durationMin)} min – ${route.distanceKm.toFixed(1)} km`,
       },

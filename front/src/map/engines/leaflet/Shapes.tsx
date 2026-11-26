@@ -31,7 +31,7 @@ export function LeafletPolyline({ spec }: { spec: MapPolylineSpec }) {
       key={spec.id}
       positions={spec.coordinates.map(([lon, lat]) => [lat, lon])}
       pathOptions={{
-        color: spec.style.color ?? "#0077ff",
+        color: spec.style.color ?? "#014a1e",
         weight: spec.style.weight ?? 4,
         opacity: spec.style.opacity ?? 1,
         dashArray: spec.style.dashArray,

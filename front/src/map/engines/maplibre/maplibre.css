@@ -44,6 +44,6 @@ body .maplibregl-ctrl-bottom-right {
 @media (max-width: 895px) {
   body .maplibregl-ctrl-bottom-left,
   body .maplibregl-ctrl-bottom-right {
-    bottom: 60px;
+    bottom: var(--sheet-bar-h);
   }
 }

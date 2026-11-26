@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { floatingButtonClass } from "@/styles/uiStyles";
+import { Glyph } from "@/shared/ui/Glyphs";
 
 export function FullscreenButton({
   targetId,
@@ -39,7 +40,7 @@ export function FullscreenButton({
       className={className || floatingButtonClass}
       title={isFullscreen ? "Sortir de pantalla completa" : "Pantalla completa"}
     >
-      {isFullscreen ? "⧉" : "⛶"}
+      <Glyph name={isFullscreen ? "collapse" : "expand"} size={20} strokeWidth={2.1} />
     </button>
   );
 }

@@ -8,6 +8,7 @@ import { MapSurface } from "@/map/MapSurface";
 import type { LatLon, MapMarkerSpec, MapPolygonSpec, MapPolylineSpec } from "@/map/core/types";
 import { TERRAIN_ATTRIBUTION, uniqueAttributions } from "@/map/shared/attribution";
 import { LayersPanel } from "@/map/ui/LayersPanel";
+import { Glyph } from "@/shared/ui/Glyphs";
 
 type EngineState = ReturnType<typeof useMapEngine>;
 type FocusState = ReturnType<typeof useMapFocus>;
@@ -85,6 +86,7 @@ export function MapCanvas({
       <MapUIOverlays
         layers={
           <LayersPanel
+            buttonIcon={<Glyph name="layers" size={20} strokeWidth={2.1} />}
             baseLayerId={layers.baseLayer}
             onBaseLayerChange={layers.setBaseLayer}
             technicalLayers={layers.technicalLayerList}
