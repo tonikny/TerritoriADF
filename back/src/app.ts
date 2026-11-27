@@ -7,7 +7,7 @@ import { registerErrorHandler, registerNotFound } from "./plugins/errors.js";
 import { registerOpenApi } from "./plugins/openapi.js";
 import { registerRoutes } from "./routes/index.js";
 import { config } from "./utils/config.js";
-import { logger } from "./utils/logger.js";
+import { logger, maskSecretUrl } from "./utils/logger.js";
 
 /** Capçalera per on viatja l'ID de la petició, d'entrada i de sortida. */
 const REQUEST_ID_HEADER = "x-request-id";
@@ -57,7 +57,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.setSerializerCompiler(serializerCompiler);
 
   app.addHook("onRequest", (request, reply, done) => {
-    request.log = request.log.child({ module: "http", operation: request.url.split("?")[0] });
+    // `operation` acaba a cada línia de la petició: el camí del webhook de
+    // Telegram hi portaria el secret del bot.
+    request.log = request.log.child({
+      module: "http",
+      operation: maskSecretUrl(request.url.split("?")[0] ?? request.url),
+    });
     // El mateix ID torna al client a totes les respostes (també a les d'èxit),
     // perquè qualsevol incidència es pugui creuar amb el log del backend.
     reply.header(REQUEST_ID_HEADER, request.id);

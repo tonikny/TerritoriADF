@@ -19,12 +19,20 @@ export const LOG_CENSOR = "[REDACTED]";
  * d'un cos de petició o d'un objecte d'error.
  */
 export const LOG_REDACT_PATHS = [
-  // Capçaleres d'entrada i de sortida.
+  // Capçaleres d'entrada i de sortida. El secret del webhook de Telegram
+  // (`x-telegram-bot-api-secret-token`) és una credencial més: qui el tingui pot
+  // fer-se passar per Telegram davant del backend.
   "req.headers.cookie",
   "req.headers.authorization",
+  "req.headers['x-telegram-bot-api-secret-token']",
+  "req.headers['proxy-authorization']",
+  "req.headers['x-api-key']",
   "res.headers['set-cookie']",
   "headers.cookie",
   "headers.authorization",
+  "headers['x-telegram-bot-api-secret-token']",
+  "headers['proxy-authorization']",
+  "headers['x-api-key']",
   // Camps plans (arrel del registre).
   "password",
   "currentPassword",
@@ -37,6 +45,9 @@ export const LOG_REDACT_PATHS = [
   "mqtt_password",
   "mqtt_password_enc",
   "secret",
+  // Enllaç d'un sol ús per triar contrasenya (`/acces/<token>`): el token de la
+  // URL és la credencial, així que la URL sencera no ha de sortir al log.
+  "access_url",
   // Camps niats un nivell (cos de petició, usuari, bot…).
   "*.password",
   "*.currentPassword",
@@ -49,6 +60,7 @@ export const LOG_REDACT_PATHS = [
   "*.mqtt_password",
   "*.mqtt_password_enc",
   "*.secret",
+  "*.access_url",
   // Camps niats dos nivells (`{ body: { user: { password } } }`).
   "*.*.password",
   "*.*.token",
@@ -57,12 +69,57 @@ export const LOG_REDACT_PATHS = [
 ] as const;
 
 /**
+ * Camins on el secret viatja a la URL i, per tant, `redact` no hi pot arribar:
+ * substitueix camps, no trossos de text. El webhook de Telegram duu el secret
+ * del bot a `/api/telegram/webhook/:secret`.
+ */
+const SECRET_URL_PATTERNS: ReadonlyArray<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /^(\/api\/telegram\/webhook\/)[^/?#]+/, replacement: "$1" + LOG_CENSOR },
+];
+
+/** Substitueix per `[REDACTED]` els secrets que formen part del camí. */
+export function maskSecretUrl(url: string): string {
+  return SECRET_URL_PATTERNS.reduce(
+    (masked, { pattern, replacement }) => masked.replace(pattern, replacement),
+    url,
+  );
+}
+
+/** El que el serializer necessita; ho compleixen tant `FastifyRequest` com l'`req` cru. */
+interface RequestLike {
+  method: string;
+  url: string;
+  host?: string;
+  ip?: string;
+  headers?: Record<string, string | string[] | undefined>;
+  socket?: { remotePort?: number } | null;
+}
+
+/**
+ * El mateix serializer de peticions que fa servir Fastify (`method`, `url`,
+ * `host`…), amb el camí sense secrets. Sense això, cada crida al webhook de
+ * Telegram escriuria el secret del bot al log a nivell `info`; Fastify agafa
+ * aquest serializer per sobre del seu (vegeu `lib/logger-factory.js`).
+ */
+export function serializeRequest(request: RequestLike): Record<string, unknown> {
+  return {
+    method: request.method,
+    url: maskSecretUrl(request.url),
+    version: request.headers?.["accept-version"],
+    host: request.host,
+    remoteAddress: request.ip,
+    remotePort: request.socket?.remotePort,
+  };
+}
+
+/**
  * Opcions úniques del logger del procés. S'exporten perquè els tests comprovin
  * la redacció amb un stream propi, sense dependre de stdout.
  */
 export const loggerOptions: LoggerOptions = {
   level: process.env.FASTIFY_LOGLEVEL || "info",
   redact: { paths: [...LOG_REDACT_PATHS], censor: LOG_CENSOR },
+  serializers: { req: serializeRequest },
 };
 
 export const logger = pino(loggerOptions);

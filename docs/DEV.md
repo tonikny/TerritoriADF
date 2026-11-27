@@ -565,7 +565,11 @@ Totes les respostes porten la capçalera `x-request-id` amb el `reqId` del log d
 docker compose logs backend | grep 8f3c1a2b
 ```
 
-El logger de pino (`back/src/utils/logger.ts`) porta `redact` amb `censor: "[REDACTED]"` per a cookies, `authorization`, `set-cookie` i els camps de secret (`password`, `currentPassword`, `newPassword`, `token`, `token_enc`, `bot_token`, `webhook_secret`, `secret`, `mqtt_password*`), tant plans com niats. Els tests que ho fixen són `back/tests/observability.test.ts` i `front/src/shared/api/client.test.ts`.
+El logger de pino (`back/src/utils/logger.ts`) porta `redact` amb `censor: "[REDACTED]"` per a cookies, `authorization`, `proxy-authorization`, `x-api-key`, el secret del webhook de Telegram (`x-telegram-bot-api-secret-token`) i els camps de secret (`password`, `currentPassword`, `newPassword`, `token`, `token_enc`, `bot_token`, `webhook_secret`, `secret`, `access_url` —l'enllaç d'accés d'un sol ús— i `mqtt_password*`), tant plans com niats.
+
+Hi ha un secret que no viatja en cap camp sinó al **camí**: `/api/telegram/webhook/:secret`. Allà `redact` no hi pot arribar (substitueix camps, no text), així que el serializer de peticions `serializeRequest()` emmascara el camí amb `maskSecretUrl()` abans d'escriure'l, tant a la línia `incoming request` de Fastify com al camp `operation` de cada registre de la petició (`back/src/app.ts`).
+
+Els tests que ho fixen són `back/tests/observability.test.ts` i `front/src/shared/api/client.test.ts`.
 
 ---
 
