@@ -1,3 +1,5 @@
+import { ActionGlyph } from "@/shared/ui/Glyphs";
+
 /** Accions per lots: només apareixen quan hi ha selecció. */
 export function OsmActionsBar({
   count,
@@ -15,14 +17,15 @@ export function OsmActionsBar({
       <button
         onClick={onPush}
         disabled={disabled}
-        className="flex-1 text-[0.8rem] px-2 py-1.5 bg-blue-600 text-white border border-blue-700 rounded cursor-pointer disabled:opacity-50"
+        className="inline-flex flex-1 items-center justify-center gap-1 min-h-8 text-sm px-2 py-1 bg-primary text-white border border-primary-hover rounded-md cursor-pointer disabled:opacity-50"
       >
+        <ActionGlyph name="arrowUp" />
         Pujar ({count})
       </button>
       <button
         onClick={onDiscard}
         disabled={disabled}
-        className="flex-1 text-[0.8rem] px-2 py-1.5 bg-white text-ink border border-border rounded cursor-pointer disabled:opacity-50"
+        className="inline-flex flex-1 items-center justify-center gap-1.5 min-h-8 text-sm px-2 py-1 bg-white text-ink border border-border-strong rounded-md cursor-pointer disabled:opacity-50"
       >
         Descartar ({count})
       </button>

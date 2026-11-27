@@ -20,32 +20,32 @@ export const EMPTY_SYNC_STATS: OsmSyncStats = {
 export const SECTION_CONFIG: Record<SectionKey, { label: string; color: string; hint: string }> = {
   PENDING_CREATE: {
     label: "Nous locals",
-    color: "text-blue-600",
+    color: "text-primary",
     hint: "Hidrants creats localment, encara no pujats a OSM.",
   },
   PENDING_UPDATE: {
     label: "Edicions pendents",
-    color: "text-blue-600",
+    color: "text-primary",
     hint: "Hidrants modificats localment, pendent de pujar a OSM.",
   },
   PENDING_DELETE: {
     label: "Esborraments pendents",
-    color: "text-red-600",
+    color: "text-alert",
     hint: "Hidrants marcats per esborrar, pendent d'eliminar a OSM.",
   },
   CONFLICT: {
     label: "Conflictes",
-    color: "text-orange-600",
+    color: "text-warn",
     hint: "OSM té dades diferents. Tria si vols mantenir la versió local o la d'OSM.",
   },
   ERROR: {
     label: "Errors",
-    color: "text-red-600",
+    color: "text-alert",
     hint: "Error durant l'última sincronització. Pots reintentar o descartar.",
   },
   REVIEW: {
     label: "Per revisar",
-    color: "text-yellow-600",
+    color: "text-warn",
     hint: "Dades amb warnings de validació. Revisa-les abans de pujar.",
   },
   MISSING_IN_OSM: {

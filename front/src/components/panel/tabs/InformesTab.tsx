@@ -21,7 +21,7 @@ export function InformesTab({
 
   return (
     <div className="p-4">
-      <h3 className="m-0 mb-3 text-[0.95rem] font-semibold">Informes</h3>
+      <h3 className="panel-title mb-3">Informes</h3>
       <CollapsibleSection title="Hidrants" count={hidrantFilters.filtered.length}>
         <HidrantList filters={hidrantFilters} onSelectNode={onSelectNode} />
       </CollapsibleSection>

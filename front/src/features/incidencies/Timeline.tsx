@@ -78,14 +78,14 @@ export const Timeline = ({ events }: TimelineProps) => {
   };
 
   return (
-    <div className="flex flex-col gap-4 pl-2.5 border-l-2 border-[#ddd] relative">
+    <div className="flex flex-col gap-4 pl-2.5 border-l-2 border-border relative">
       {sortedEvents.map((event) => (
-        <div key={event.id} className="text-[0.8rem] relative">
+        <div key={event.id} className="text-sm relative">
           <div className="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-primary border-2 border-white" />
-          <div className="text-[#888] text-[0.7rem] mb-0.5">
+          <div className="text-faint text-xs mb-0.5">
             {formatData(event.creat_at)} - {event.nom_usuari || "Anònim"}
           </div>
-          <div className="bg-[#f8f9fa] p-[6px_10px] rounded-md border border-soft font-inherit">
+          <div className="bg-soft p-[6px_10px] rounded-lg border border-soft font-inherit">
             {renderEventContent(event)}
           </div>
         </div>

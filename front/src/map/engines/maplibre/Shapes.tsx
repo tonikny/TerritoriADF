@@ -11,7 +11,7 @@ function parseDashArray(value: string): number[] {
 
 function linePaint(style: MapPolylineSpec["style"]): LineLayerSpecification["paint"] {
   return {
-    "line-color": style.color ?? "#0077ff",
+    "line-color": style.color ?? "#014a1e",
     "line-width": style.weight ?? 4,
     "line-opacity": style.opacity ?? 1,
     ...(style.dashArray ? { "line-dasharray": parseDashArray(style.dashArray) } : {}),
@@ -87,7 +87,7 @@ export function MaplibrePolyline({ spec }: { spec: MapPolylineSpec }) {
           closeButton={false}
           closeOnClick={false}
         >
-          <span className="text-[0.75rem] font-semibold whitespace-nowrap">{spec.label.text}</span>
+          <span className="text-sm font-semibold whitespace-nowrap">{spec.label.text}</span>
         </Popup>
       )}
     </>

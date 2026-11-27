@@ -1,4 +1,12 @@
-import { ICONS_H } from "./metrics";
+import { Glyph } from "@/shared/ui/Glyphs";
+
+const buttonClass =
+  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 bg-transparent border-0 cursor-pointer text-sm font-medium text-ink/80 hover:text-ink";
+
+/** Accions de la capçalera: les mateixes icones d'acció que la resta de l'app. */
+function Icon({ kind }: { kind: "edit" | "close" }) {
+  return <Glyph name={kind} size={18} strokeWidth={2.2} />;
+}
 
 export function NodeHeader({
   onEdit,
@@ -25,47 +33,31 @@ export function NodeHeader({
     onClose();
   };
 
-  const buttonClass =
-    "bg-transparent border-0 cursor-pointer text-[0.85rem] flex items-center gap-1 px-1";
-
   return (
-    <div
-      className="flex items-center justify-between px-3 border-b border-soft"
-      style={{ height: ICONS_H }}
-    >
-      <span className="font-semibold text-[0.9rem] text-ink">{title ?? "Informació del node"}</span>
-      <div className="flex items-center gap-1">
+    <div className="flex min-h-11 items-center justify-between gap-2 px-3 py-1 bg-accent text-ink">
+      <span className="min-w-0 truncate font-semibold text-base">
+        {title ?? "Informació del node"}
+      </span>
+      <div className="flex shrink-0 items-center gap-1">
         {editing ? (
           onEdit && (
-            <button
-              type="button"
-              onClick={handleEditClick}
-              className={buttonClass}
-              style={{ color: "#c0392b" }}
-            >
-              ✖ Tancar
+            <button type="button" onClick={handleEditClick} className={buttonClass}>
+              <Icon kind="close" />
+              Tancar
             </button>
           )
         ) : (
           <>
             {onEdit && (
-              <button
-                type="button"
-                onClick={handleEditClick}
-                className={buttonClass}
-                style={{ color: "#007bff" }}
-              >
-                ✏️ Editar
+              <button type="button" onClick={handleEditClick} className={buttonClass}>
+                <Icon kind="edit" />
+                Editar
               </button>
             )}
             {onClose && (
-              <button
-                type="button"
-                onClick={handleCloseClick}
-                className={buttonClass}
-                style={{ color: "#c0392b" }}
-              >
-                ✖ Tancar
+              <button type="button" onClick={handleCloseClick} className={buttonClass}>
+                <Icon kind="close" />
+                Tancar
               </button>
             )}
           </>

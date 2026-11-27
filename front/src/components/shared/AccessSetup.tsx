@@ -71,16 +71,16 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
         onSubmit={(e) => {
           void submit(e);
         }}
-        className="w-full max-w-[340px] bg-white border border-border rounded-lg p-4 shadow-[0_4px_15px_rgba(0,0,0,0.2)]"
+        className="w-full max-w-[340px] bg-white border border-border rounded-lg p-4 shadow-panel"
       >
-        <h1 className="m-0 mb-1 text-[1.1rem] text-center">{APP_NAME}</h1>
-        <p className="m-0 mb-3 text-center text-muted text-[0.85rem]">
+        <h1 className="m-0 mb-1 text-lg text-center">{APP_NAME}</h1>
+        <p className="m-0 mb-3 text-center text-muted text-sm">
           {username ? `Tria la contrasenya per a ${username}` : "Enllaç d'accés"}
         </p>
 
         {username && (
           <>
-            <label className="block text-[0.8rem] italic mb-2">
+            <label className="block text-sm text-muted mb-2">
               Contrasenya nova:
               <PasswordInput
                 autoComplete="new-password"
@@ -91,7 +91,7 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
                 required
               />
             </label>
-            <label className="block text-[0.8rem] italic mb-2">
+            <label className="block text-sm text-muted mb-2">
               Repeteix la contrasenya:
               <PasswordInput
                 autoComplete="new-password"
@@ -109,13 +109,13 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
             >
               {saving ? "Guardant..." : "Desa i entra"}
             </button>
-            <p className="m-0 mt-3 text-muted text-[0.75rem] text-center">
+            <p className="m-0 mt-3 text-muted text-sm text-center">
               Aquest enllaç només es pot fer servir un cop.
             </p>
           </>
         )}
 
-        {error && <p className="m-0 mt-3 text-[#c0392b] text-[0.8rem]">{error}</p>}
+        {error && <p className="m-0 mt-3 text-alert text-sm">{error}</p>}
       </form>
     </div>
   );

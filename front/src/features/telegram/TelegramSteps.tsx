@@ -1,5 +1,6 @@
 import { PasswordInput } from "@/shared/ui/PasswordInput";
 import { inputClass, primaryButtonClass } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
 import { StepNumber } from "./StepNumber";
 import { botUsernameExample } from "./telegramBot";
 
@@ -56,16 +57,16 @@ export function TelegramSteps({
   const linked = stage === "before-link";
 
   return (
-    <div className="border border-border rounded p-3">
+    <div className="border border-border rounded-lg p-3">
       <ol className="m-0 p-0 list-none space-y-3 leading-relaxed">
         <li className={linked ? "text-muted" : undefined}>
           <StepHeading number="1" muted={linked}>
             Crea el grup de la teva ADF
           </StepHeading>
           {linked ? (
-            <p className="m-0 text-[0.8rem] text-muted">Fet.</p>
+            <p className="m-0 text-sm text-muted">Fet.</p>
           ) : (
-            <p className="m-0 text-[0.8rem] text-muted leading-snug">
+            <p className="m-0 text-sm text-muted leading-snug">
               És el lloc on arribaran tots els avisos de l'aplicació (incidències, hidrants,
               edicions). Crea'l a Telegram: botó <strong>Nou grup</strong> → tria un nom (per
               exemple <em>{groupAdf} Avisos</em>) i afegeix-hi els membres. Necessitaràs ser
@@ -79,9 +80,9 @@ export function TelegramSteps({
             Crea el bot de la teva ADF
           </StepHeading>
           {linked ? (
-            <p className="m-0 text-[0.8rem] text-muted">Fet.</p>
+            <p className="m-0 text-sm text-muted">Fet.</p>
           ) : (
-            <p className="m-0 text-[0.8rem] text-muted leading-snug">
+            <p className="m-0 text-sm text-muted leading-snug">
               El bot és la identitat que enviarà cada notificació de <strong>{groupAdf}</strong> al
               grup; cada ADF en té un de propi. A Telegram, escriu a <strong>@BotFather</strong> →{" "}
               <strong>/newbot</strong>. Et demanarà dos noms: el <strong>nom</strong> (com es veurà
@@ -97,13 +98,13 @@ export function TelegramSteps({
             Introdueix el token
           </StepHeading>
           {linked ? (
-            <p className="m-0 text-[0.8rem] text-muted">
+            <p className="m-0 text-sm text-muted">
               ✅ Bot configurat:
               {botName ? ` ${botName}` : ""} {botUsername ? `(@${botUsername})` : ""}.
             </p>
           ) : (
             <>
-              <p className="m-0 mb-2 text-[0.8rem] text-muted">
+              <p className="m-0 mb-2 text-sm text-muted">
                 Enganxa aquí el token de <strong>@BotFather</strong> i prem{" "}
                 <strong>Validar bot</strong>. El token és una contrasenya: es guarda xifrat i no
                 s'ha de compartir amb ningú.
@@ -112,7 +113,7 @@ export function TelegramSteps({
                 value={tokenInput}
                 onChange={(e) => onTokenChange(e.target.value)}
                 placeholder="123456789:AAF..."
-                className={`${inputClass} px-2`}
+                className={inputClass}
                 autoComplete="off"
               />
               <button
@@ -121,7 +122,8 @@ export function TelegramSteps({
                 className={`${primaryButtonClass} w-full mt-2`}
                 title="Valida el token contra Telegram i activa el bot"
               >
-                {registerPending ? "⏳ Validant..." : "🆔 Validar bot"}
+                <ActionGlyph name="key" />
+                {registerPending ? "Validant..." : "Validar bot"}
               </button>
             </>
           )}
@@ -133,7 +135,7 @@ export function TelegramSteps({
           </StepHeading>
           {linked ? (
             <>
-              <p className="m-0 mb-2 text-[0.8rem] text-muted leading-snug">
+              <p className="m-0 mb-2 text-sm text-muted leading-snug">
                 Prem el botó i a Telegram escull el grup de <strong>{groupAdf}</strong> que has
                 creat al pas 1. Has de ser administrador per afegir-hi el bot. L'enllaç té un codi
                 d'un sol ús (caduca als 15 minuts) i la vinculació es fa tota sola. Si algun dia es
@@ -146,21 +148,22 @@ export function TelegramSteps({
                 className={`${primaryButtonClass} w-full`}
                 title="Obre Telegram per afegir el bot al grup de la teva ADF"
               >
-                {linkPending ? "⏳ Generant enllaç..." : "📎 Vincular grup de Telegram"}
+                <ActionGlyph name="share" />
+                {linkPending ? "Generant enllaç..." : "Vincular grup de Telegram"}
               </button>
               {linkUrl && (
                 <a
                   href={linkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block mt-2 text-[0.8rem] text-blue-600 underline"
+                  className="block mt-2 text-sm text-primary underline"
                 >
                   Si no s'ha obert Telegram, toca aquí
                 </a>
               )}
             </>
           ) : (
-            <p className="m-0 text-[0.8rem] text-muted">
+            <p className="m-0 text-sm text-muted">
               Un cop el bot sigui vàlid et donarem un enllaç d'un sol ús per afegir-lo al grup
               (caduca als 15 minuts). Encara no disponible: primer valida el bot.
             </p>

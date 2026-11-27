@@ -12,9 +12,9 @@ export function AccessLinkPanel({
   onClose: () => void;
 }) {
   return (
-    <div className="border border-primary rounded p-3 mb-3 bg-soft">
-      <div className="text-[0.8rem] font-semibold mb-1">Enllaç d'accés · {link.username}</div>
-      <p className="m-0 mb-2 text-[0.75rem] text-muted">
+    <div className="border border-primary rounded-lg p-3 mb-3 bg-soft">
+      <div className="text-sm font-semibold mb-1">Enllaç d'accés · {link.username}</div>
+      <p className="m-0 mb-2 text-sm text-muted">
         Envia'l per un canal privat (WhatsApp, Telegram o en mà). Caduca el{" "}
         {new Date(link.expires_at).toLocaleString()} i només es pot fer servir un cop.
       </p>
@@ -30,14 +30,14 @@ export function AccessLinkPanel({
           onClick={() => {
             void onCopy(link.url);
           }}
-          className={`${primaryButtonClass} flex-1 p-2 text-[0.8rem]`}
+          className={`${primaryButtonClass} flex-1`}
         >
           Copiar enllaç
         </button>
         <button
           type="button"
           onClick={onClose}
-          className={`${secondaryButtonClass} flex-1 p-2 text-[0.8rem]`}
+          className={`${secondaryButtonClass} flex-1`}
         >
           Tanca
         </button>

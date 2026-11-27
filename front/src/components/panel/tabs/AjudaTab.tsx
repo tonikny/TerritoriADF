@@ -13,27 +13,27 @@ export function AjudaTab() {
 
   return (
     <div className="p-4">
-      <h3 className="m-0 mb-3 text-[0.95rem] font-semibold">Llegenda</h3>
-      <h4 className="mt-0 mb-2 text-[0.85rem]">Hidrants</h4>
+      <h3 className="panel-title mb-3">Llegenda</h3>
+      <h4 className="mt-0 mb-2 text-base font-semibold text-ink">Hidrants</h4>
       <div className={itemClass}>
         <img src={hidrant_op_rev} alt="Verd" className={imgClass} />
-        <span className="text-[0.85rem]">Operatiu (revisat {currentYear})</span>
+        <span className="text-sm">Operatiu (revisat {currentYear})</span>
       </div>
       <div className={itemClass}>
         <img src={hidrant_op_nrev} alt="Verd apagat" className={imgClass} />
-        <span className="text-[0.85rem]">Operatiu (no revisat {currentYear})</span>
+        <span className="text-sm">Operatiu (no revisat {currentYear})</span>
       </div>
       <div className={itemClass}>
         <img src={hidrant_nop_rev} alt="Vermell" className={imgClass} />
-        <span className="text-[0.85rem]">Fora de servei (revisat {currentYear})</span>
+        <span className="text-sm">Fora de servei (revisat {currentYear})</span>
       </div>
       <div className={itemClass}>
         <img src={hidrant_nop_nrev} alt="Vermell apagat" className={imgClass} />
-        <span className="text-[0.85rem]">Fora de servei (no revisat {currentYear})</span>
+        <span className="text-sm">Fora de servei (no revisat {currentYear})</span>
       </div>
       <div className={itemClass}>
         <img src={hidrant_no_info} alt="Negre" className={imgClass} />
-        <span className="text-[0.85rem]">Sense data de revisió coneguda</span>
+        <span className="text-sm">Sense data de revisió coneguda</span>
       </div>
     </div>
   );

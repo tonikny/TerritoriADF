@@ -42,10 +42,16 @@ body .leaflet-control-container .leaflet-bottom {
   .leaflet-top.leaflet-left .leaflet-control-zoom {
     margin-top: 82px;
   }
+
+  /* El mapa sangra 14 px (el radi del panell lateral) sota el panell: si
+     l'atribució del motor no es mou, se li menja la cua. */
+  body .leaflet-control-container .leaflet-bottom.leaflet-right {
+    right: 14px;
+  }
 }
 
 @media (max-width: 895px) {
   body .leaflet-control-container .leaflet-bottom {
-    bottom: 60px;
+    bottom: var(--sheet-bar-h);
   }
 }

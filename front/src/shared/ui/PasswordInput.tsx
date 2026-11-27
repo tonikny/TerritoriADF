@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { EyeIcon, EyeOffIcon } from "./Icons";
+import { ActionGlyph } from "./Glyphs";
 
 type Props = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">;
 
@@ -17,7 +17,7 @@ export const PasswordInput: React.FC<Props> = ({ className = "", ...props }) => 
         title={visible ? "Amaga la contrasenya" : "Mostra la contrasenya"}
         className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center bg-transparent border-0 p-1 cursor-pointer leading-none z-10"
       >
-        {visible ? <EyeOffIcon /> : <EyeIcon />}
+        <ActionGlyph name={visible ? "eyeOff" : "eye"} />
       </button>
     </div>
   );

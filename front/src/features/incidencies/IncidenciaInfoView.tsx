@@ -15,7 +15,7 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString("ca-ES", {
     day: "2-digit",
     month: "2-digit",
-    year: "numeric",
+    year: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -50,7 +50,7 @@ export function IncidenciaInfoView({
 
   return (
     <>
-      <div className="flex gap-3 text-[0.85rem]">
+      <div className="flex gap-3 text-sm">
         <div className="flex flex-col items-end gap-y-1.5 text-muted">
           {rows.map(([label]) => (
             <span key={label}>{label}</span>
@@ -64,9 +64,9 @@ export function IncidenciaInfoView({
       </div>
 
       {loadingEvents ? (
-        <div className="text-muted text-[0.8rem]">Carregant historial...</div>
+        <div className="text-muted text-sm">Carregant historial...</div>
       ) : (
-        <div className="max-h-45 overflow-y-auto">
+        <div className="max-h-[45vh] overflow-y-auto">
           <Timeline events={events} />
         </div>
       )}

@@ -1,4 +1,5 @@
 import { secondaryButtonClass } from "@/styles/uiStyles";
+import { Glyph } from "@/shared/ui/Glyphs";
 import { AccessLinkPanel } from "./AccessLinkPanel";
 import { Login } from "./Login";
 import { UserAccountCard } from "./UserAccountCard";
@@ -32,12 +33,13 @@ export function UsuarisTab() {
         adfNom={m.adfNom}
       />
       <button onClick={m.logout} className={`${secondaryButtonClass} w-full mt-3`}>
-        🔓 Tanca sessió
+        <Glyph name="lock" size={16} />
+        Tanca sessió
       </button>
 
       {m.canManage && (
         <div className="mt-4">
-          <h4 className="m-0 mb-2 text-[0.9rem] font-semibold">Gestió d'usuaris</h4>
+          <h4 className="m-0 mb-2 text-sm font-semibold">Gestió d'usuaris</h4>
 
           {m.accessLink && (
             <AccessLinkPanel link={m.accessLink} onCopy={m.copyLink} onClose={m.closeAccessLink} />
@@ -51,7 +53,7 @@ export function UsuarisTab() {
               roles={m.roles}
               submitting={m.submitting}
               submitLabel="Crear"
-              className="border border-primary rounded p-3 mb-3 bg-soft"
+              className="border border-primary rounded-lg p-3 mb-3 bg-soft"
               footnote="En crear-lo es genera un enllaç d'accés i el voluntari hi tria la seva contrasenya: no cal escriure'n cap."
               onChange={m.updateCreateDraft}
               onSubmit={m.submitCreate}

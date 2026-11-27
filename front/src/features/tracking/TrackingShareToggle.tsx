@@ -14,11 +14,11 @@ export function TrackingShareToggle({
   onToggle: (checked: boolean) => void;
 }) {
   return (
-    <div className="mt-4 border border-border rounded p-3">
-      <h4 className="m-0 mb-1 text-[0.85rem] font-semibold">
+    <div className="mt-4 border border-border rounded-lg p-3">
+      <h4 className="m-0 mb-1 text-sm font-semibold">
         Compartir tracking ({adfLabel(adf.id, adf.nom)})
       </h4>
-      <label className="flex items-center gap-2 text-[0.85rem] cursor-pointer">
+      <label className="flex items-center gap-2 text-sm cursor-pointer">
         <input
           type="checkbox"
           checked={shared}

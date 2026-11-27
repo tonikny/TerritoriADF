@@ -65,7 +65,7 @@ export function buildTabs({
     {
       id: "config",
       icon: "⚙️",
-      label: "Configuració",
+      label: "Ajustos",
       content: (
         <ConfigTab
           engine={engine}

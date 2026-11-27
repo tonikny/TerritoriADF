@@ -6,6 +6,7 @@ import {
   secondaryButtonClass,
   dangerButtonClass,
 } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
 
 export function HidrantEditForm({
   data,
@@ -28,18 +29,18 @@ export function HidrantEditForm({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-[0.8rem] italic flex flex-col gap-1 rounded-md text-center text-yellow-300 bg-gray-400">
+      <div className="text-sm flex flex-col gap-1 rounded-lg text-center text-ink bg-accent px-2 py-1">
         Pots arrossegar el node per corregir la posició del hidrant
       </div>
       <HidrantFormFields data={data} onChange={setData} showSurveyDateAndStatus={true} />
 
-      <label className="text-[0.8rem] italic flex flex-col gap-1">
+      <label className="text-sm text-muted flex flex-col gap-1">
         Observacions:
         <textarea
           value={observacions}
           onChange={(e) => setObservacions(e.target.value)}
           rows={3}
-          className={`${inputClass} w-full resize-y text-[0.8rem] p-1.5`}
+          className={`${inputClass} w-full resize-y`}
           placeholder="Observacions de servei de l'hidrant..."
         />
       </label>
@@ -52,7 +53,7 @@ export function HidrantEditForm({
             onSave();
           }}
           disabled={busy}
-          className={`${primaryButtonClass} flex-1 py-2 text-[0.8rem] disabled:opacity-70`}
+          className={`${primaryButtonClass} flex-1 disabled:opacity-70`}
         >
           {busy ? "Guardant..." : "Guardar"}
         </button>
@@ -62,7 +63,7 @@ export function HidrantEditForm({
             e.stopPropagation();
             onCancel();
           }}
-          className={`${secondaryButtonClass} flex-1 py-2 text-[0.8rem]`}
+          className={`${secondaryButtonClass} flex-1`}
         >
           Cancel·lar
         </button>
@@ -78,7 +79,8 @@ export function HidrantEditForm({
           disabled={busy}
           className={`${dangerButtonClass} disabled:opacity-70`}
         >
-          🗑️ Esborrar hidrant
+          <ActionGlyph name="trash" />
+          Esborrar hidrant
         </button>
       )}
     </div>

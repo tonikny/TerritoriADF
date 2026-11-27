@@ -104,7 +104,7 @@ describe("OsmSyncPanel", () => {
 
     await waitFor(() => expect(actions.push.mutateAsync).toHaveBeenCalledWith(["h1", "h2"]));
     // Després d'actuar, la selecció es buida i el botó desapareix.
-    await waitFor(() => expect(screen.queryByRole("button", { name: /^Pujar/ })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("button", { name: /^Pujar \(/ })).toBeNull());
   });
 
   it("no descarta res si l'usuari cancel·la la confirmació", async () => {

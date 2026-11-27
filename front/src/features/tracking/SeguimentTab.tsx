@@ -36,7 +36,7 @@ export function SeguimentTab({
 
   if (!user) {
     return (
-      <div className="p-4 text-[0.85rem] text-muted">
+      <div className="p-4 text-sm text-muted">
         Inicia sessió a la pestanya <strong>Usuaris</strong> per activar el seguiment.
       </div>
     );
@@ -44,24 +44,37 @@ export function SeguimentTab({
 
   return (
     <div className="p-4">
-      <div className="mb-3">
-        <div className="flex items-baseline justify-between leading-none">
-          <h3 className="m-0 text-[0.95rem] font-semibold">Seguiment OwnTracks</h3>
-          <span className="flex items-center gap-1.5 text-[0.8rem] text-muted">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <h3 className="panel-title">Seguiment OwnTracks</h3>
+        {/* Estat en dues pastilles enganxades a la dreta del títol. */}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs leading-tight ${
+              own.available
+                ? "border-border bg-soft text-ink"
+                : "border-alert/40 bg-alert/10 text-alert"
+            }`}
+          >
             {own.available ? "disponible" : "no disponible"}
             <span
-              className={`w-2 h-2 rounded-full ${own.available ? "bg-[#22c55e]" : "bg-[#ef4444]"}`}
-              title={own.available ? "disponible" : "no disponible"}
+              className={`w-2 h-2 rounded-full ${own.available ? "bg-ok" : "bg-alert"}`}
+              aria-hidden
             />
           </span>
+          {own.enabled && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-soft px-2 py-0.5 text-xs leading-tight text-ink">
+              usuari activat
+              <span className="w-2 h-2 rounded-full bg-ok" aria-hidden />
+            </span>
+          )}
         </div>
-        {own.enabled && (
-          <div className="flex items-center justify-end gap-1.5 leading-none text-[0.8rem] text-muted mt-px">
-            <span>usuari activat</span>
-            <span className="w-2 h-2 rounded-full bg-[#22c55e]" title="usuari activat" />
-          </div>
-        )}
       </div>
+
+      {/* Primera cosa que es vol veure: qui comparteix posició ara mateix. */}
+      <div className="mb-4">
+        <ConnectedUsersList users={connected} onCenter={centerOnUser} />
+      </div>
+
       {!own.enabled ? (
         <SeguimentSetupSteps
           loading={own.loading}
@@ -71,12 +84,15 @@ export function SeguimentTab({
         />
       ) : (
         <div className="space-y-3">
-          <p className="m-0 text-[0.8rem] text-muted">
-            <span className="text-[0.9rem]">📡</span> Obre OwnTracks al mòbil (des de la pantalla
-            d'inici: el navegador no pot llançar-la) i deixa-la oberta, encara que sigui en segon
-            pla o amb la pantalla bloquejada. Si la tanques ("Sortir" al menú), deixaràs de
-            compartir la posició.
-          </p>
+          <div className="space-y-2 text-sm text-muted">
+            <p className="m-0">
+              Obre OwnTracks al mòbil i deixa-la oberta, encara que sigui en segon pla o amb la
+              pantalla bloquejada.
+            </p>
+            <p className="m-0">
+              Si la tanques («Sortir» al menú), deixaràs de compartir la posició.
+            </p>
+          </div>
           <TrackingConfigSection
             loading={own.loading}
             onEnable={() => {
@@ -102,8 +118,6 @@ export function SeguimentTab({
           }}
         />
       )}
-
-      <ConnectedUsersList users={connected} onCenter={centerOnUser} />
     </div>
   );
 }

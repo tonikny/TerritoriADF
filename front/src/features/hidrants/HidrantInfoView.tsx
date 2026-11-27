@@ -30,7 +30,7 @@ export function HidrantInfoView({
   return (
     <>
       <div className="flex flex-col items-center gap-3">
-        <div className="flex gap-3 text-[0.85rem]">
+        <div className="flex gap-3 text-sm">
           <div className="flex flex-col items-end gap-y-1.5 text-muted">
             {displayData.map(({ label }) => (
               <span key={label}>{label}</span>
@@ -46,9 +46,9 @@ export function HidrantInfoView({
       </div>
 
       {props.service_tags?.observacions && (
-        <div className="border border-border rounded p-2">
+        <div className="border border-border rounded-lg p-2">
           <div className="text-xs text-muted mb-1">Observacions</div>
-          <div className="text-[0.85rem] text-ink whitespace-pre-wrap">
+          <div className="text-sm text-ink whitespace-pre-wrap">
             {props.service_tags.observacions}
           </div>
         </div>

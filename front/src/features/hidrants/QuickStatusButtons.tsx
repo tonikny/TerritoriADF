@@ -1,3 +1,5 @@
+import { filledButtonClass } from "@/styles/uiStyles";
+
 export function QuickStatusButtons({
   onOperative,
   onOutOfService,
@@ -13,7 +15,7 @@ export function QuickStatusButtons({
           e.stopPropagation();
           onOperative();
         }}
-        className="bg-[#27ae60] text-white border-0 rounded py-2 text-[0.8rem] cursor-pointer font-semibold"
+        className={`${filledButtonClass} bg-ok`}
       >
         ✅ Operatiu (Avui)
       </button>
@@ -23,7 +25,7 @@ export function QuickStatusButtons({
           e.stopPropagation();
           onOutOfService();
         }}
-        className="bg-[#e74c3c] text-white border-0 rounded py-2 text-[0.8rem] cursor-pointer font-semibold"
+        className={`${filledButtonClass} bg-alert`}
       >
         ❌ Fora de servei (Avui)
       </button>

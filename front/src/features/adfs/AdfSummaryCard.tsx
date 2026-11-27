@@ -1,4 +1,6 @@
 import type { Adf } from "@/contexts/AdfContext";
+import { iconButtonClass, secondaryButtonClass } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
 import { KM2_FORMAT, osmRelationUrl } from "./adfDraft";
 
 /**
@@ -29,42 +31,36 @@ export function AdfSummaryCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="border border-border rounded mt-2">
-      <div className="flex items-start justify-between gap-2 px-3 py-2 bg-soft border-b border-border">
-        <div>
-          <div className="text-[0.9rem] font-semibold text-ink">{adf.nom}</div>
-          <div className="text-[0.75rem] text-muted">Número {adf.id}</div>
+    <div className="overflow-hidden rounded-lg border border-border-strong bg-white shadow-control mt-2">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-soft border-b border-soft">
+        <div className="min-w-0">
+          <div className="text-base font-semibold text-ink leading-tight">{adf.nom}</div>
+          <div className="text-sm text-muted">Número {adf.id}</div>
         </div>
         {isAdmin && (
-          <div className="flex gap-1 shrink-0">
-            <button
-              onClick={onRecalculate}
-              disabled={recalculating}
-              className="bg-transparent border border-border rounded px-2 py-1 cursor-pointer text-[0.8rem] disabled:opacity-50"
-              title="Recalcular els límits territorials des d'OSM"
-            >
-              {recalculating ? "⏳" : "🔄"}
-            </button>
+          <div className="flex gap-1.5 shrink-0">
             <button
               onClick={onEdit}
-              className="bg-transparent border border-border rounded px-2 py-1 cursor-pointer text-[0.8rem]"
+              aria-label="Modificar l'ADF"
               title="Modificar l'ADF"
+              className={iconButtonClass}
             >
-              ✏️
+              <ActionGlyph name="edit" />
             </button>
             <button
               onClick={onDelete}
               disabled={deleting}
-              className="bg-transparent border border-red-300 text-red-700 rounded px-2 py-1 cursor-pointer text-[0.8rem] disabled:opacity-50"
+              aria-label="Eliminar l'ADF"
               title="Eliminar l'ADF"
+              className={`${iconButtonClass} border-alert/40 text-alert`}
             >
-              🗑️
+              <ActionGlyph name="trash" />
             </button>
           </div>
         )}
       </div>
 
-      <dl className="m-0 px-3 py-2 text-[0.8rem] space-y-1">
+      <dl className="m-0 px-3 py-2 text-sm space-y-1">
         {canSeeOsmRelations && (
           <div className="flex gap-2">
             <dt className="text-muted shrink-0">Relacions OSM:</dt>
@@ -98,11 +94,25 @@ export function AdfSummaryCard({
         </div>
         {canSeeTrackingSharing && (
           <div className="flex gap-2">
-            <dt className="text-muted shrink-0">Tracking compartit:</dt>
+            <dt className="text-muted shrink-0">Seguiment compartit:</dt>
             <dd className="m-0">{adf.tracking_shared ? "Sí" : "No"}</dd>
           </div>
         )}
       </dl>
+
+      {isAdmin && (
+        <div className="px-3 pb-3">
+          <button
+            onClick={onRecalculate}
+            disabled={recalculating}
+            className={`${secondaryButtonClass} w-full`}
+            title="Recalcular els límits territorials des d'OSM"
+          >
+            <ActionGlyph name="refresh" />
+            {recalculating ? "Recalculant límits..." : "Recalcular límits"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -110,7 +110,7 @@ export function IncidenciaEditForm({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex flex-col gap-3">
-        <label className="text-[0.8rem] italic flex flex-col gap-1">
+        <label className="text-sm text-muted flex flex-col gap-1">
           Tipus d'incidència:
           <select
             value={newTipus}
@@ -126,7 +126,7 @@ export function IncidenciaEditForm({
         </label>
 
         <div className="flex gap-2">
-          <label className="flex-1 text-[0.8rem] italic flex flex-col gap-1">
+          <label className="flex-1 text-sm text-muted flex flex-col gap-1">
             Estat:
             <select
               value={newStatus}
@@ -140,7 +140,7 @@ export function IncidenciaEditForm({
               ))}
             </select>
           </label>
-          <label className="flex-1 text-[0.8rem] italic flex flex-col gap-1">
+          <label className="flex-1 text-sm text-muted flex flex-col gap-1">
             Prioritat:
             <select
               value={newPriority}
@@ -156,7 +156,7 @@ export function IncidenciaEditForm({
           </label>
         </div>
 
-        <label className="text-[0.8rem] italic flex flex-col gap-1">
+        <label className="text-sm text-muted flex flex-col gap-1">
           Precissió de l'ubicació:
           <select
             value={newPrecisio}
@@ -172,7 +172,7 @@ export function IncidenciaEditForm({
         </label>
 
         {canChangeVisibility ? (
-          <label className="text-[0.8rem] italic flex flex-col gap-1">
+          <label className="text-sm text-muted flex flex-col gap-1">
             Visibilitat:
             <select
               value={newVisibilitat}
@@ -190,7 +190,7 @@ export function IncidenciaEditForm({
           </label>
         ) : (
           <label
-            className="text-[0.8rem] italic flex flex-col gap-1"
+            className="text-sm text-muted flex flex-col gap-1"
             title="Només el coordinador de la teva ADF pot canviar la visibilitat"
           >
             Visibilitat (només lectura — la pot canviar el coordinador):
@@ -203,13 +203,13 @@ export function IncidenciaEditForm({
           </label>
         )}
 
-        <label className="text-[0.8rem] italic flex flex-col gap-1">
+        <label className="text-sm text-muted flex flex-col gap-1">
           Comentari:
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows={3}
-            className={`${inputClass} w-full resize-y text-[0.8rem] p-1.5`}
+            className={`${inputClass} w-full resize-y`}
             placeholder="Afegeix una observació..."
           />
         </label>
@@ -218,7 +218,7 @@ export function IncidenciaEditForm({
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`${primaryButtonClass} flex-1 py-2 text-[0.8rem] disabled:opacity-70`}
+            className={`${primaryButtonClass} flex-1 disabled:opacity-70`}
           >
             {isSubmitting ? "Guardant..." : "Guardar"}
           </button>
@@ -229,7 +229,7 @@ export function IncidenciaEditForm({
               e.stopPropagation();
               onCancel();
             }}
-            className={`${secondaryButtonClass} flex-1 py-2 text-[0.8rem]`}
+            className={`${secondaryButtonClass} flex-1`}
           >
             Cancel·lar
           </button>

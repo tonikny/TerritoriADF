@@ -30,7 +30,7 @@ export function Panel({ map, tabs, node, sheetRef }: PanelProps) {
         <div id="map-container" className="flex-1 relative h-full min-w-0">
           {map}
         </div>
-        <aside className="hidden tb:block w-95 shrink-0 bg-white border-l border-border">
+        <aside className="hidden tb:block relative z-10 w-95 shrink-0 bg-canvas border-l border-border rounded-l-xl overflow-hidden">
           {node ? (
             <NodeHeader
               title={node.title}
@@ -41,9 +41,7 @@ export function Panel({ map, tabs, node, sheetRef }: PanelProps) {
           ) : (
             <TabBar tabs={tabs} activeId={activeTab} onSelect={setActiveTab} showLabels />
           )}
-          <div
-            className={`h-[calc(100%-44px)] overflow-y-auto ${node ? "" : "border-t border-soft"}`}
-          >
+          <div className="h-[calc(100%-44px)] overflow-y-auto">
             {node ? node.content : activeContent}
           </div>
         </aside>

@@ -1,6 +1,7 @@
 import type { ManagedUser } from "@territoriadf/contracts/users";
 
-import { primaryButtonClass } from "@/styles/uiStyles";
+import { iconButtonClass, primaryButtonClass } from "@/styles/uiStyles";
+import { ActionGlyph } from "@/shared/ui/Glyphs";
 import { PasswordChangeForm } from "./PasswordChangeForm";
 import { UserDraftForm } from "./UserDraftForm";
 import type { UserManagement } from "./useUserManagement";
@@ -18,30 +19,32 @@ function UserRow({
   const isSelf = u.id === currentUserId;
   return (
     <div>
-      <div className="flex justify-between items-center gap-2 px-3 py-2 border-t border-soft text-[0.85rem]">
-        <div>
-          <div className="font-medium text-ink">{u.username}</div>
+      <div className="flex items-start justify-between gap-2 px-3 py-2 border-t border-soft text-sm">
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium text-ink">{u.username}</div>
           <div className="text-muted text-xs capitalize">{u.role}</div>
         </div>
-        <div className="flex gap-1 shrink-0">
+        <div className="flex shrink-0 items-center justify-end gap-1.5">
           {!isSelf && (
             <button
               onClick={() => {
                 void m.generateAccessLink(u);
               }}
-              title="Generar enllaç d'accés"
-              aria-label="Generar enllaç d'accés"
-              className="bg-transparent border border-border rounded px-2 py-1 cursor-pointer text-[0.8rem]"
+              aria-label="Generar contrasenya d'accés"
+              title="Generar contrasenya d'accés"
+              className={iconButtonClass}
             >
-              🔗
+              <ActionGlyph name="key" />
             </button>
           )}
           {(isSelf || u.adf_id !== null) && (
             <button
               onClick={() => (isSelf ? m.startSelfEdit() : m.startEdit(u))}
-              className="bg-transparent border border-border rounded px-2 py-1 cursor-pointer text-[0.8rem]"
+              aria-label="Editar l'usuari"
+              title="Editar l'usuari"
+              className={iconButtonClass}
             >
-              ✏️
+              <ActionGlyph name="edit" />
             </button>
           )}
           {!isSelf && (
@@ -49,9 +52,11 @@ function UserRow({
               onClick={() => {
                 void m.del(u);
               }}
-              className="bg-transparent border border-red-300 text-red-700 rounded px-2 py-1 cursor-pointer text-[0.8rem]"
+              aria-label="Esborrar l'usuari"
+              title="Esborrar l'usuari"
+              className={`${iconButtonClass} border-alert/40 text-alert`}
             >
-              🗑️
+              <ActionGlyph name="trash" />
             </button>
           )}
         </div>
@@ -92,14 +97,18 @@ export function UserGroups({ m, currentUserId }: { m: UserManagement; currentUse
       {m.visibleGroups.map(([adfId, users]) => {
         const isOpen = m.expanded.includes(adfId);
         return (
-          <div key={adfId} className="border border-border rounded mb-2 overflow-hidden">
+          <div
+            key={adfId}
+            className="border border-border-strong rounded-lg shadow-control mb-2 overflow-hidden"
+          >
             <div
               onClick={() => m.toggleGroup(adfId)}
-              className="flex justify-between items-center gap-2 px-3 py-2 bg-soft cursor-pointer text-[0.85rem] font-medium"
+              aria-expanded={isOpen}
+              className="flex justify-between items-center gap-2 px-3 py-2 bg-white hover:bg-soft cursor-pointer text-base font-semibold leading-tight"
             >
               <span>
                 {adfId === 0 ? "Sense ADF" : m.adfNom(adfId)}{" "}
-                <span className="text-muted font-normal">({users.length})</span>
+                <span className="text-muted">({users.length})</span>
               </span>
               <span className="flex items-center gap-2">
                 {isOpen && adfId !== 0 && (
@@ -108,12 +117,17 @@ export function UserGroups({ m, currentUserId }: { m: UserManagement; currentUse
                       e.stopPropagation();
                       m.startCreate(adfId);
                     }}
-                    className={`${primaryButtonClass} p-1 px-2 text-xs`}
+                    className={primaryButtonClass}
                   >
                     Nou
                   </button>
                 )}
-                <span className="text-muted">{isOpen ? "▾" : "▸"}</span>
+                <span
+                  aria-hidden
+                  className={`text-xs text-muted transition-transform ${isOpen ? "rotate-90" : ""}`}
+                >
+                  ▸
+                </span>
               </span>
             </div>
             {isOpen && (

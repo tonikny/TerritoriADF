@@ -139,7 +139,7 @@ export function AdfHint() {
               markerHeight="6"
               orient="auto"
             >
-              <path d="M0,0 L10,5 L0,10 z" fill="#007bff" />
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--color-primary)" />
             </marker>
           </defs>
           {/* Halo blanc perquè la línia es llegeixi sobre el mapa */}
@@ -155,7 +155,7 @@ export function AdfHint() {
             className="adf-hint-dash"
             d={path}
             fill="none"
-            stroke="#007bff"
+            stroke="var(--color-primary)"
             strokeWidth={2}
             strokeLinecap="round"
             strokeDasharray="8 7"
@@ -166,7 +166,7 @@ export function AdfHint() {
 
       <div
         ref={cardRef}
-        className={`adf-hint-fade pointer-events-none fixed z-1041 w-64 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-primary/30 bg-white px-4 py-3 text-center shadow-[0_10px_30px_rgba(0,0,0,0.22)] ${
+        className={`adf-hint-fade pointer-events-none fixed z-1050 w-64 -translate-x-1/2 -translate-y-1/2 rounded-lg border border-primary/30 bg-white px-4 py-3 text-center shadow-panel ${
           tooSmall ? "hidden" : ""
         }`}
         style={{
@@ -174,9 +174,9 @@ export function AdfHint() {
           top: layout.area.top + layout.area.height / 2,
         }}
       >
-        <p className="m-0 text-[0.9rem] font-semibold text-ink">Tria una ADF per començar</p>
-        <p className="m-0 mt-1 text-[0.78rem] leading-snug text-muted">
-          Fes clic a la 🗺️ ADF del menú per veure el mapa i les dades de la teva ADF.
+        <p className="m-0 text-sm font-semibold text-ink">Tria una ADF per començar</p>
+        <p className="m-0 mt-1 text-sm leading-snug text-muted">
+          Fes clic a la pestanya ADF del menú per veure el mapa i les dades de la teva ADF.
         </p>
       </div>
     </>

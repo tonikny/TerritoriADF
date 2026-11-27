@@ -1,13 +1,113 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #007bff;
-  --color-ink: #333;
-  --color-muted: #666;
-  --color-faint: #999;
-  --color-border: #ccc;
-  --color-soft: #eee;
+  /* Marca: el verd i el groc del logo (`front/public/images/logo-horitzontal.png`). */
+  --color-canvas: #f3f1e6;
+  --color-bg: #f3f1e6;
+  --color-surface: #ffffff;
+  --color-ink: #16241b;
+  --color-muted: #47544d;
+  --color-faint: #8a948c;
+  --color-border: #d9d6c6;
+  --color-border-strong: #8f9384;
+  --color-soft: #eae7d9;
+  --color-primary: #014a1e;
+  --color-primary-hover: #013715;
+  --color-accent: #fed401;
+  --color-alert: #b3261e;
+  --color-warn: #9a5b00;
+  --color-ok: #1f7a4d;
+
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Text secundari: res per sota de 14 px. A l'exterior el que abans anava a
+     11–13 px no es llegia; el rem manté el zoom de «Mida de text». */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.25rem;
+  /* Les lletres de 14 px (etiquetes, comptadors, dades d'estat) van en 600: el
+     500 encara s'aprima massa sobre el paper i sobre l'ortofoto. */
+  --text-xs--font-weight: 600;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.3125rem;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 18px;
+  --text-lg--line-height: 24px;
+  --text-xl: 21px;
+  --text-xl--line-height: 26px;
+  --text-2xl: 26px;
+  --text-2xl--line-height: 31px;
+
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --shadow-control: 0 1px 2px rgb(22 36 27 / 0.16), 0 1px 1px rgb(22 36 27 / 0.08);
+  --shadow-panel: 0 2px 4px rgb(22 36 27 / 0.08), 0 14px 34px rgb(22 36 27 / 0.16);
+  --shadow-chrome: 0 2px 6px rgb(22 36 27 / 0.18);
+  --shadow-sheet: 0 -2px 10px rgb(22 36 27 / 0.2);
   --breakpoint-tb: 56rem;
+}
+
+/* Base: paper càlid, cos de text obert (16 px: els inputs no fan zoom a iOS) i
+   focus visible. El halo blanc fa que l'anell es vegi també sobre el verd del
+   chrome i sobre l'ortofoto. */
+@layer base {
+  :root {
+    --focus-halo: 0 0 0 2px #fff;
+    --focus-ring: 0 0 0 4px var(--color-primary);
+    /* Barra tancada del bottom sheet: handle fix (16 px) + `min-h-11` de la
+       TabBar. És en rem perquè creixi amb «Mida de text», i la fan servir el
+       panell, els controls del mapa i els adaptadors de Leaflet i MapLibre. */
+    --sheet-bar-h: calc(16px + 2.75rem);
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    /* Barlow 400 és massa prim per a text petit sobre paper; el 500 aguanta
+       l'exterior sense arribar a semblar negreta. Els títols pugen a 600. */
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-halo), var(--focus-ring);
+  }
+}
+
+/* Títol de secció del panell: la barra groga és el senyal de marca. */
+@layer components {
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  .panel-title::before {
+    content: "";
+    flex: none;
+    width: 4px;
+    align-self: stretch;
+    min-height: 1.1em;
+    border-radius: 2px;
+    background: var(--color-accent);
+  }
 }
 
 html,
@@ -23,6 +123,22 @@ body,
 .map-surface {
   height: 100%;
   width: 100%;
+}
+
+/* El panell lateral arrodoneix les cantonades esquerres: el mapa ha de passar
+   per sota del radi (14 px) perquè la corba ensenyi mapa i no el paper de fons.
+   `min-width` guanya al `width: 100%` que posa el motor en línia, i els controls
+   pengen del contenidor (`#map-container`), no de la tela, així que es queden on
+   eren. El pare retalla l'excés (`overflow-hidden`).
+   `isolation: isolate` és imprescindible amb Leaflet: les seves panes porten
+   z-index 200–1000 i, sense un context propi, es pintaven per sobre del panell
+   i se'l menjaven els 14 px del radi. Aïllat, el panell (z-10) queda a sobre. */
+@media (min-width: 56rem) {
+  #map-container > .map-surface,
+  #map-container > .maplibregl-map {
+    min-width: calc(100% + 14px);
+    isolation: isolate;
+  }
 }
 
 .map-loading {
@@ -115,12 +231,9 @@ body,
 }
 
 @media (max-width: 895px) {
-  .map-zoom-control {
-    bottom: 60px;
-  }
-
+  .map-zoom-control,
   .map-attribution {
-    bottom: 60px;
+    bottom: var(--sheet-bar-h);
   }
 }
 
@@ -128,7 +241,7 @@ body,
 .hydrant-ring {
   width: 100%;
   height: 100%;
-  border: 2px solid #007bff;
+  border: 2px solid var(--color-primary);
   border-radius: 50%;
   opacity: 0.7;
   pointer-events: none;
@@ -139,7 +252,7 @@ body,
 .incidencia-ring {
   width: 100%;
   height: 100%;
-  border: 2px solid #e63946;
+  border: 2px solid var(--color-alert);
   border-radius: 50%;
   opacity: 0.7;
   pointer-events: none;
@@ -162,9 +275,14 @@ body,
   position: absolute;
   inset: -5px;
   border-radius: 9999px;
-  border: 2px solid #007bff;
+  border: 2px solid var(--color-primary);
   pointer-events: none;
   animation: adf-hint-ring 1.9s ease-out infinite;
+}
+
+/* La pestanya activa té fons verd: l'anell verd de l'avís hi desapareixeria. */
+button[aria-current="page"] .adf-hint-icon::after {
+  border-color: var(--color-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
