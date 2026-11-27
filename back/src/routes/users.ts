@@ -167,7 +167,7 @@ export function registerUserRoutes(app: FastifyInstance): void {
       const id = randomUUID();
       // Contrasenya aleatòria que ningú no coneix: l'usuari entra per l'enllaç d'accés i hi
       // tria la seva, així el coordinador no arriba a saber mai la contrasenya de ningú.
-      const hash = bcrypt.hashSync(randomBytes(32).toString("hex"), 10);
+      const hash = await bcrypt.hash(randomBytes(32).toString("hex"), 10);
       UsersRepository.create({ id, username, password_hash: hash, adf_id: adfId, role });
 
       const row = UsersRepository.findPublicById(id);

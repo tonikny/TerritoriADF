@@ -10,17 +10,19 @@ import { z } from "zod";
 import { AccessTokensRepository } from "../db/repositories/accessTokensRepository.js";
 import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { UsersRepository } from "../db/repositories/usersRepository.js";
+import type { ErrorCode } from "../errors.js";
 import { setSessionCookie } from "../plugins/auth.js";
 import { findAccessToken } from "../services/accessTokens.js";
 import { passwordProblem } from "../utils/password.js";
 import { toPublicUser } from "./auth.js";
 
-type AccessTarget = { userId: string; tokenId: string } | { error: string; status: number };
+type AccessTarget =
+  { userId: string; tokenId: string } | { error: string; status: number; code: ErrorCode };
 
 /** Resol el token a un usuari, o retorna l'error que s'ha de mostrar a l'usuari. */
 function resolveToken(rawToken: string | undefined): AccessTarget {
   if (!rawToken) {
-    return { error: "Enllaç no vàlid", status: 404 };
+    return { error: "Enllaç no vàlid", status: 404, code: "ACCESS_LINK_INVALID" };
   }
 
   const row = findAccessToken(rawToken);
@@ -28,24 +30,27 @@ function resolveToken(rawToken: string | undefined): AccessTarget {
     return {
       error: "Aquest enllaç no és vàlid. Demana'n un de nou al teu coordinador.",
       status: 404,
+      code: "ACCESS_LINK_INVALID",
     };
   }
   if (row.used_at) {
     return {
       error: "Aquest enllaç ja s'ha fet servir. Si no has pogut entrar, demana'n un de nou.",
       status: 410,
+      code: "ACCESS_LINK_USED",
     };
   }
   if (new Date(row.expires_at).getTime() < Date.now()) {
     return {
       error: "Aquest enllaç ha caducat. Demana'n un de nou al teu coordinador.",
       status: 410,
+      code: "ACCESS_LINK_EXPIRED",
     };
   }
 
   const user = UsersRepository.findById(row.user_id);
   if (!user) {
-    return { error: "Aquest enllaç ja no és vàlid.", status: 404 };
+    return { error: "Aquest enllaç ja no és vàlid.", status: 404, code: "ACCESS_LINK_INVALID" };
   }
   return { userId: user.id, tokenId: row.id };
 }
@@ -68,12 +73,14 @@ export function registerAccessRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const target = resolveToken(request.params.token);
       if ("error" in target) {
-        return reply.code(target.status).send({ error: target.error });
+        return reply.code(target.status).send({ error: target.error, code: target.code });
       }
 
       const user = UsersRepository.findById(target.userId);
       if (!user) {
-        return reply.code(404).send({ error: "Aquest enllaç ja no és vàlid." });
+        return reply
+          .code(404)
+          .send({ error: "Aquest enllaç ja no és vàlid.", code: "ACCESS_LINK_INVALID" });
       }
       return reply.send({ username: user.username });
     },
@@ -92,14 +99,16 @@ export function registerAccessRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const target = resolveToken(request.params.token);
       if ("error" in target) {
-        return reply.code(target.status).send({ error: target.error });
+        return reply.code(target.status).send({ error: target.error, code: target.code });
       }
 
       const { password } = request.body;
 
       const user = UsersRepository.findById(target.userId);
       if (!user) {
-        return reply.code(404).send({ error: "Aquest enllaç ja no és vàlid." });
+        return reply
+          .code(404)
+          .send({ error: "Aquest enllaç ja no és vàlid.", code: "ACCESS_LINK_INVALID" });
       }
 
       const adfNom = user.adf_id ? AdfsRepository.findName(user.adf_id) : null;
@@ -112,7 +121,7 @@ export function registerAccessRoutes(app: FastifyInstance): void {
         return reply.code(400).send({ error: problem });
       }
 
-      const hash = bcrypt.hashSync(password as string, 10);
+      const hash = await bcrypt.hash(password as string, 10);
       const usedAt = new Date().toISOString();
       // La nova contrasenya invalida qualsevol sessió anterior d'aquest usuari.
       const newVersion = (user.token_version ?? 0) + 1;

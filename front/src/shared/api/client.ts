@@ -3,7 +3,7 @@
 // `request<T>()` és el punt d'entrada per a les crides tipades: afegeix la base
 // de la URL, les capçaleres del mode "veure com", les credencials de sessió,
 // serialitza el cos com a JSON, tradueix les respostes d'error a `ApiError`
-// (amb `status` i `code`) i propaga l'`AbortSignal` que li passi qui crida.
+// (amb `status`, `code` i `requestId`) i propaga l'`AbortSignal` que li passi qui crida.
 //
 // La injecció de capçaleres del mode "veure com" viu aquí i només aquí: cap
 // component fa `fetch` a `/api/*` pel seu compte.
@@ -68,12 +68,20 @@ export class ApiError extends Error {
   readonly status: number;
   /** Codi estable si el backend en publica un; `null` si només hi ha missatge. */
   readonly code: string | null;
+  /** ID de la petició al log del backend, per creuar-ho amb una incidència. */
+  readonly requestId: string | null;
 
-  constructor(message: string, status: number, code: string | null = null) {
+  constructor(
+    message: string,
+    status: number,
+    code: string | null = null,
+    requestId: string | null = null,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.requestId = requestId;
   }
 }
 
@@ -120,6 +128,7 @@ export function buildUrl(path: string, query?: ApiQuery): string {
 interface ApiErrorBody {
   error?: unknown;
   code?: unknown;
+  requestId?: unknown;
   message?: unknown;
 }
 
@@ -137,7 +146,8 @@ async function toApiError(response: Response): Promise<ApiError> {
         ? body.message
         : `Error ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`;
   const code = typeof body.code === "string" ? body.code : null;
-  return new ApiError(message, response.status, code);
+  const requestId = typeof body.requestId === "string" ? body.requestId : null;
+  return new ApiError(message, response.status, code, requestId);
 }
 
 /**

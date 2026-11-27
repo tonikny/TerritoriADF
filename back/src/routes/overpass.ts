@@ -31,13 +31,13 @@ export function registerOverpassRoutes(app: FastifyInstance): void {
 
       const contentType = String(request.headers["content-type"] ?? "").toLowerCase();
       if (!contentType.startsWith("application/json")) {
-        return reply.code(415).send({ error: "Content-Type application/json required" });
+        return reply.code(415).send({ error: "Cal enviar el cos com a application/json" });
       }
 
       try {
         const { query } = (request.body ?? {}) as { query?: unknown };
         if (!query || typeof query !== "string") {
-          return reply.code(400).send({ error: "Missing query" });
+          return reply.code(400).send({ error: "Falta la consulta" });
         }
 
         const normalized = query.trim().replace(/\r/g, "");

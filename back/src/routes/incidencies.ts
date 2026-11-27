@@ -73,7 +73,7 @@ export function registerIncidenciaRoutes(app: FastifyInstance): void {
       const adfId = request.query.adf ?? user?.adf_id ?? undefined;
 
       if (!isAdmin && !adfId) {
-        throw new BadRequestError("ADF ID no identificada.");
+        throw new BadRequestError("No s'ha pogut identificar l'ADF", "ADF_NOT_IDENTIFIED");
       }
 
       const includeClosed = request.query.incloure_tancades === "true";
@@ -143,7 +143,7 @@ export function registerIncidenciaRoutes(app: FastifyInstance): void {
       const adfId = request.query.adf ?? request.body.adf_id ?? user.adf_id ?? undefined;
 
       if (!adfId) {
-        throw new BadRequestError("ADF ID no identificada.");
+        throw new BadRequestError("No s'ha pogut identificar l'ADF", "ADF_NOT_IDENTIFIED");
       }
 
       const result = IncidenciesService.createIncidencia({

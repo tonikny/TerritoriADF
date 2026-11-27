@@ -233,14 +233,19 @@ saber què passa sense `?adf=` cal llegir cada handler. A la suite es prova
 **Millora:** que el guard declari si l'ADF és obligatòria i respongui 400 ell
 mateix; els handlers no haurien de repetir la comprovació.
 
-### 8. Errors sense codi estable
+### 8. Errors amb codi estable
 
-`AppError` només té `statusCode` i un missatge en català. Els tests han
-d'afirmar textos ("gestionar aquest usuari", "fora del límit") i qualsevol
-reformulació els trenca.
+`AppError` ja porta `code` a més de `statusCode` i missatge, i totes les
+respostes ≥ 400 surten amb la forma `{ error, code, requestId }`
+(`back/src/errors.ts` i `back/src/plugins/errors.ts`). Els codis del domini es
+queden en català: `HIDRANT_NOT_FOUND`, `INCIDENCIA_NOT_FOUND`, `ADF_FORBIDDEN`.
 
-**Millora:** `code` estable (`HYDRANT_NOT_FOUND`, `ADF_FORBIDDEN`,
-`OSM_CONFLICT`) i missatge per a la UI; el test asserta el codi.
+Els tests afirmen el `code` i no el text: `back/tests/errors.test.ts` fixa el
+contracte (`VALIDATION_ERROR`, `SESSION_EXPIRED`, `HIDRANT_NOT_FOUND`,
+`INCIDENCIA_NOT_FOUND`, `ADF_FORBIDDEN`, 404/405…) i la resta de suites també
+comproven el codi als casos de permisos i de domini. El missatge només es
+comprova on el text és el tema de la prova: el motiu que retorna Telegram i
+l'avís accionable d'un token indesxifrable.
 
 ### 9. Accés a dades centralitzat als repositoris
 
@@ -279,7 +284,9 @@ de `back/src/db/` i fer-lo servir tant al script com al setup dels tests.
    `vi.mock` de mòduls i fa els tests llegibles.
 3. **Extreure el push d'OSM a un job** (F-09, 3–5 dies). La màquina d'estats es
    prova com a funció pura i el handler només encua.
-4. **Codis d'error estables** (1 dia) i assercions per codi.
+4. **Codis d'error propis** per als casos que avui comparteixen codi genèric
+   (`BAD_REQUEST`, `FORBIDDEN`): quan el client hagi de distingir-los, el codi
+   és el lloc on fer-ho, no el text.
 5. **Pujar el llindar de cobertura** (mig dia per esglaó): ara és 80 % de línies
    i sentències, 83 % de funcions i 68 % de branques, per sota de la mesura real.
    Cada àrea nova que es cobreixi ha de pujar el ratchet; no cal exigir 100 %.

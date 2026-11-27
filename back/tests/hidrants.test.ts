@@ -84,7 +84,7 @@ describe("POST /api/hidrants", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json<ErrorBody>().error).toContain("aquesta ADF");
+    expect(response.json<ErrorBody>().code).toBe("ADF_FORBIDDEN");
   });
 
   it("retorna 400 si no s'indica l'ADF", async () => {
@@ -140,7 +140,7 @@ describe("POST /api/hidrants", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json<ErrorBody>().error).toContain("fora del límit");
+    expect(response.json<ErrorBody>().code).toBe("ADF_OUT_OF_BOUNDS");
   });
 });
 

@@ -75,7 +75,7 @@ export const HidrantsService = {
     service_tags?: HidrantServiceTags,
   ) {
     if (!lat || !lon) {
-      throw new BadRequestError("Missing lat or lon");
+      throw new BadRequestError("Calen la latitud i la longitud", "HIDRANT_COORDS_MISSING");
     }
 
     assertPointInAdf(adfId, lat, lon);
@@ -105,12 +105,12 @@ export const HidrantsService = {
     service_tags?: HidrantServiceTags,
   ) {
     if (!id) {
-      throw new BadRequestError("Missing hydrant ID");
+      throw new BadRequestError("Falta l'ID de l'hidrant", "HIDRANT_ID_MISSING");
     }
 
     const current = HidrantsRepository.findByIdAndAdf(id, adfId);
     if (!current) {
-      throw new NotFoundError("Hydrant not found");
+      throw new NotFoundError("Hidrant no trobat", "HIDRANT_NOT_FOUND");
     }
 
     // Limitem el desplaçament respecte a la posició actual (defensa en profunditat,
@@ -212,12 +212,12 @@ export const HidrantsService = {
 
   deleteLocal(id: string, adfId: number) {
     if (!id) {
-      throw new BadRequestError("Missing hydrant ID");
+      throw new BadRequestError("Falta l'ID de l'hidrant", "HIDRANT_ID_MISSING");
     }
 
     const current = HidrantsRepository.findByIdAndAdf(id, adfId);
     if (!current) {
-      throw new NotFoundError("Hydrant not found");
+      throw new NotFoundError("Hidrant no trobat", "HIDRANT_NOT_FOUND");
     }
 
     // PENDING_CREATE: mai publicat a OSM. MISSING_IN_OSM: ja no és a OSM, així que no

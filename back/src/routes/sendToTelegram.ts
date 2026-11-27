@@ -214,7 +214,9 @@ ${contentSection}
         registerTelegramHit(user.id, request.ip);
         return reply.send({ ok: true });
       } catch (error) {
-        return reply.code(500).send({ error: (error as Error).message || "Unexpected error" });
+        return reply
+          .code(500)
+          .send({ error: (error as Error).message || "Error intern del servidor" });
       }
     },
   );

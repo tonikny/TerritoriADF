@@ -31,15 +31,20 @@ describe("POST /api/auth/login", () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json<ErrorBody>()).toEqual({ error: "Falten credencials" });
+    expect(response.json<ErrorBody>()).toMatchObject({
+      error: "Falten credencials",
+      code: "BAD_REQUEST",
+    });
+    expect(response.json<ErrorBody>().requestId).toEqual(expect.any(String));
   });
 
   it("retorna 401 amb una contrasenya incorrecta", async () => {
     const response = await login(app, "278/001", "Incorrecta123");
 
     expect(response.statusCode).toBe(401);
-    expect(response.json<ErrorBody>()).toEqual({
+    expect(response.json<ErrorBody>()).toMatchObject({
       error: "Usuari o contrasenya incorrectes",
+      code: "INVALID_CREDENTIALS",
     });
   });
 
@@ -47,8 +52,9 @@ describe("POST /api/auth/login", () => {
     const response = await login(app, "278/999", "Incorrecta123");
 
     expect(response.statusCode).toBe(401);
-    expect(response.json<ErrorBody>()).toEqual({
+    expect(response.json<ErrorBody>()).toMatchObject({
       error: "Usuari o contrasenya incorrectes",
+      code: "INVALID_CREDENTIALS",
     });
   });
 
@@ -147,7 +153,7 @@ describe("fre de força bruta al login", () => {
     const blocked = await login(app, "278/998", "Incorrecta123");
     expect(blocked.statusCode).toBe(429);
     expect(Number(blocked.headers["retry-after"])).toBeGreaterThan(0);
-    expect(blocked.json<ErrorBody>().error).toContain("Massa intents fallits");
+    expect(blocked.json<ErrorBody>().code).toBe("TOO_MANY_REQUESTS");
   });
 
   it("un login correcte neteja els comptadors de l'usuari", async () => {

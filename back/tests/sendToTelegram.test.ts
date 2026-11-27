@@ -134,7 +134,7 @@ describe("POST /api/sendToTelegram", () => {
     const response = await notify({ ...BASE, action: undefined, tags: { id: "h1" } });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json<{ error: string }>().error).toBe("Ús no permès");
+    expect(response.json<{ code: string }>().code).toBe("BAD_REQUEST");
   });
 
   it("rebutja dades estructurades massa grans", async () => {

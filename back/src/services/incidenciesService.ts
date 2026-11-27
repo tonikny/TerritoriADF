@@ -48,7 +48,7 @@ export function assertCanAddEvent(
   tipusEvent: TipusEvent,
 ): void {
   if (!canView(incidencia, requester)) {
-    throw new NotFoundError("Incidència no trobada");
+    throw new NotFoundError("Incidència no trobada", "INCIDENCIA_NOT_FOUND");
   }
 
   const isAdmin = requester.role === "admin";
@@ -58,11 +58,17 @@ export function assertCanAddEvent(
     requester.adf_id === incidencia.adf_id;
 
   if (!isAdmin && !isOwnerMember) {
-    throw new ForbiddenError("Només els membres de l'ADF de la incidència la poden modificar");
+    throw new ForbiddenError(
+      "Només els membres de l'ADF de la incidència la poden modificar",
+      "INCIDENCIA_FORBIDDEN",
+    );
   }
 
   if (tipusEvent === "CANVI_VISIBILITAT" && !isAdmin && requester.role !== "coordinador") {
-    throw new ForbiddenError("Només el coordinador de l'ADF pot canviar la visibilitat");
+    throw new ForbiddenError(
+      "Només el coordinador de l'ADF pot canviar la visibilitat",
+      "INCIDENCIA_FORBIDDEN",
+    );
   }
 }
 
@@ -108,10 +114,10 @@ export const IncidenciesService = {
   getIncidenciaById(id: string, viewer: Viewer = null) {
     const incidencia = IncidenciesRepository.findById(id);
     if (!incidencia) {
-      throw new NotFoundError("Incidència no trobada");
+      throw new NotFoundError("Incidència no trobada", "INCIDENCIA_NOT_FOUND");
     }
     if (!canView(incidencia, viewer)) {
-      throw new NotFoundError("Incidència no trobada");
+      throw new NotFoundError("Incidència no trobada", "INCIDENCIA_NOT_FOUND");
     }
 
     const events = IncidenciesRepository.getEvents(id);
@@ -215,7 +221,7 @@ ${appUrl ? `📍 <a href="${appUrl}">Veure a l'aplicació</a>` : ""}
   ) {
     const incidencia = IncidenciesRepository.findById(incidenciaId);
     if (!incidencia) {
-      throw new NotFoundError("Incidència no trobada");
+      throw new NotFoundError("Incidència no trobada", "INCIDENCIA_NOT_FOUND");
     }
 
     assertCanAddEvent(incidencia, requester, tipusEvent);

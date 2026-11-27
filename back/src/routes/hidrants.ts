@@ -60,7 +60,7 @@ const idParamsSchema = z.object({ id: z.string().min(1) });
 function adfIdFrom(adf: number | undefined, bodyAdfId?: number): number {
   const adfId = adf ?? bodyAdfId;
   if (!adfId) {
-    throw new BadRequestError("ADF ID not identified.");
+    throw new BadRequestError("No s'ha pogut identificar l'ADF", "ADF_NOT_IDENTIFIED");
   }
   return adfId;
 }
@@ -165,7 +165,7 @@ export function registerHidrantRoutes(app: FastifyInstance): void {
       const adfId = adfIdFrom(request.query.adf, request.body.adf_id);
       const id = request.params.id || request.body.id;
       if (!id) {
-        throw new BadRequestError("Missing hydrant ID");
+        throw new BadRequestError("Falta l'ID de l'hidrant", "HIDRANT_ID_MISSING");
       }
       const { lat, lon, ui_fields, service_tags } = request.body;
       const result = HidrantsService.updateLocal(id, adfId, lat, lon, ui_fields, service_tags);

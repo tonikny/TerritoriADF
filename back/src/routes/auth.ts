@@ -42,9 +42,17 @@ export function toPublicUser(user: {
 /**
  * Hash sintètic per igualar el cost de bcrypt quan l'usuari no existeix.
  * Evita enumeració d'usuaris per timing: sempre es fa una comparació bcrypt.
- * Es genera un cop a l'arrencada (cost ~100 ms, no per petició).
+ * Es calcula de manera asíncrona la primera vegada que cal i es reutilitza: no
+ * bloqueja l'event loop en importar el mòdul (com faria `hashSync`) ni a cada
+ * petició.
  */
-const DUMMY_HASH = bcrypt.hashSync("login-timing-mitigation-synthetic-password", 10);
+const DUMMY_PASSWORD = "login-timing-mitigation-synthetic-password";
+let dummyHashPromise: Promise<string> | null = null;
+
+function dummyHash(): Promise<string> {
+  dummyHashPromise ??= bcrypt.hash(DUMMY_PASSWORD, 10);
+  return dummyHashPromise;
+}
 
 const credentialsBodySchema = z.object({
   username: z.string().optional(),
@@ -93,12 +101,14 @@ export function registerAuthRoutes(app: FastifyInstance): void {
 
         // Sempre es compara amb bcrypt (hash real o sintètic) perquè un usuari
         // inexistent no respongui mesurablement més ràpid (enumeració per timing).
-        const hash = user?.password_hash ?? DUMMY_HASH;
-        const ok = bcrypt.compareSync(password, hash);
+        const hash = user?.password_hash ?? (await dummyHash());
+        const ok = await bcrypt.compare(password, hash);
 
         if (!user || !ok) {
           registerLoginFailure(username, request.ip);
-          return reply.code(401).send({ error: "Usuari o contrasenya incorrectes" });
+          return reply
+            .code(401)
+            .send({ error: "Usuari o contrasenya incorrectes", code: "INVALID_CREDENTIALS" });
         }
 
         resetLoginFailures(username, request.ip);
@@ -139,7 +149,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
     { schema: { tags: ["auth"], summary: "Usuari de la sessió" } },
     async (request, reply) => {
       if (!request.authUser) {
-        return reply.code(401).send({ error: "No autenticat" });
+        return reply.code(401).send({ error: "No autenticat", code: "SESSION_EXPIRED" });
       }
       const body: SessionResponse = { user: toPublicUser(request.authUser) };
       return reply.send(body);
@@ -165,7 +175,10 @@ export function registerAuthRoutes(app: FastifyInstance): void {
         return reply.code(400).send({ error: "Cal indicar la contrasenya actual i la nova" });
       }
       const user = UsersRepository.findById(userId);
-      if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {
+      const currentPasswordOk = user
+        ? await bcrypt.compare(currentPassword, user.password_hash)
+        : false;
+      if (!user || !currentPasswordOk) {
         return reply.code(401).send({ error: "La contrasenya actual no és correcta" });
       }
 
@@ -182,7 +195,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       // Invalida totes les altres sessions (inclosa una cookie robada): la sessió
       // actual se resigna amb la nova versió perquè l'usuari no perdi l'accés.
       const newVersion = (user.token_version ?? 0) + 1;
-      const hash = bcrypt.hashSync(newPassword, 10);
+      const hash = await bcrypt.hash(newPassword, 10);
       UsersRepository.updatePassword(userId, hash, newVersion);
 
       setSessionCookie(app, request, reply, {

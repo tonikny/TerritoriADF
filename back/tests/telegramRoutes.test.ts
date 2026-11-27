@@ -156,7 +156,7 @@ describe("POST /api/adfs/:id/telegram", () => {
       payload: {},
     });
     expect(missing.statusCode).toBe(400);
-    expect(missing.json<{ error: string }>().error).toBe("Falta el token del bot");
+    expect(missing.json<{ code: string }>().code).toBe("BAD_REQUEST");
 
     const malformed = await app.inject({
       method: "POST",
@@ -168,7 +168,7 @@ describe("POST /api/adfs/:id/telegram", () => {
     expect(callsTo(fetchMock, "getMe")).toHaveLength(0);
   });
 
-  it("deixa a Fastify el 400 clar d'un cos JSON buit", async () => {
+  it("respon 400 en català si el cos JSON és buit", async () => {
     const response = await app.inject({
       method: "POST",
       url,
@@ -177,7 +177,10 @@ describe("POST /api/adfs/:id/telegram", () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json<{ error: string }>().error).toContain("Body cannot be empty");
+    expect(response.json<{ error: string; code: string }>()).toMatchObject({
+      error: "Petició invàlida",
+      code: "BAD_REQUEST",
+    });
   });
 
   it("rebutja el JSON malformat i els intents de prototype pollution", async () => {
@@ -192,7 +195,10 @@ describe("POST /api/adfs/:id/telegram", () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json<{ error: string }>().error).toContain("not valid JSON");
+      expect(response.json<{ error: string; code: string }>()).toMatchObject({
+        error: "Petició invàlida",
+        code: "BAD_REQUEST",
+      });
     }
     expect(Object.prototype).not.toHaveProperty("contaminat");
   });
@@ -207,8 +213,11 @@ describe("POST /api/adfs/:id/telegram", () => {
       payload: { token: VALID_TOKEN },
     });
 
+    const body = response.json<{ code: string; error: string }>();
     expect(response.statusCode).toBe(400);
-    expect(response.json<{ error: string }>().error).toContain("Unauthorized");
+    expect(body.code).toBe("BAD_REQUEST");
+    // El motiu és de Telegram, no nostre: es mostra tal qual perquè és accionable.
+    expect(body.error).toContain("Unauthorized");
   });
 
   it("registra el bot, desa el token xifrat i connecta el webhook", async () => {
@@ -351,8 +360,11 @@ describe("POST /api/adfs/:id/telegram/link", () => {
       headers: { cookie: adminCookie },
     });
 
+    const body = response.json<{ code: string; error: string }>();
     expect(response.statusCode).toBe(400);
-    expect(response.json<{ error: string }>().error).toContain("no es pot desxifrar");
+    expect(body.code).toBe("BAD_REQUEST");
+    // El text accionable és el que fa que l'usuari pugui arreglar-ho.
+    expect(body.error).toContain("no es pot desxifrar");
   });
 });
 

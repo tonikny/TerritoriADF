@@ -25,7 +25,7 @@ export function registerBoundaryRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const boundary = AdfsRepository.findBoundary(request.query.adf);
       if (!boundary) {
-        return reply.code(404).send({ error: "Boundary not found" });
+        return reply.code(404).send({ error: "No s'ha trobat la frontera de l'ADF" });
       }
 
       return reply.send(boundary);

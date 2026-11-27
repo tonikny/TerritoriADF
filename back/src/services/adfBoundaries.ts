@@ -1,6 +1,6 @@
 import { AdfsRepository } from "../db/repositories/adfsRepository.js";
 import { logger } from "../utils/logger.js";
-import { AppError } from "../errors.js";
+import { AppError, type ErrorCode } from "../errors.js";
 import { APP_NAME } from "../utils/appInfo.js";
 import type { AdfBbox, AdfBoundaryFeature, AdfCenter } from "@territoriadf/contracts/adfs";
 
@@ -16,8 +16,8 @@ type NominatimPlace = {
 };
 
 export class BoundaryUpdateError extends AppError {
-  constructor(message: string, statusCode = 502) {
-    super(message, statusCode);
+  constructor(message: string, statusCode = 502, code: ErrorCode = "ADF_BOUNDARY_UPDATE_FAILED") {
+    super(message, statusCode, code);
   }
 }
 
@@ -59,12 +59,12 @@ async function fetchPlace(osmRelation: string): Promise<NominatimPlace> {
 async function computeAndSave(adfId: number): Promise<void> {
   const adf = AdfsRepository.findById(adfId);
   if (!adf) {
-    throw new BoundaryUpdateError("ADF no trobada", 404);
+    throw new BoundaryUpdateError("ADF no trobada", 404, "ADF_NOT_FOUND");
   }
 
   const relations = adf.osm_relations;
   if (relations.length === 0) {
-    throw new BoundaryUpdateError("L'ADF no té cap relació OSM", 400);
+    throw new BoundaryUpdateError("L'ADF no té cap relació OSM", 400, "ADF_NO_OSM_RELATIONS");
   }
 
   let combinedGeoJson: AdfBoundaryFeature | null = null;

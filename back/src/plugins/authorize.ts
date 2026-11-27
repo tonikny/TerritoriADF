@@ -1,6 +1,7 @@
-import type { FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyRequest } from "fastify";
 
 import { UsersRepository } from "../db/repositories/usersRepository.js";
+import { ForbiddenError, UnauthorizedError } from "../errors.js";
 import { hasPermission, permissionsFor, type Permission } from "../permissions.js";
 import { adfIdFromUsername } from "../utils/identifiers.js";
 
@@ -19,27 +20,31 @@ export const ADF_FROM_BODY: readonly AdfSource[] = [{ from: "body", key: "adf_id
 /** Les dues formes alhora, per a rutes que admeten qualsevol de les dues. */
 export const ADF_FROM_QUERY_OR_BODY: readonly AdfSource[] = [...ADF_FROM_QUERY, ...ADF_FROM_BODY];
 
-const UNAUTHENTICATED = { error: "Sessió caducada o no vàlida" } as const;
-const FORBIDDEN = { error: "No tens permisos per realitzar aquesta acció" } as const;
-const FORBIDDEN_ADF = { error: "No tens permisos per editar aquesta ADF" } as const;
-const FORBIDDEN_USER = { error: "No tens permisos per gestionar aquest usuari" } as const;
-const FORBIDDEN_ADMIN_USER = {
-  error: "Només l'administrador pot gestionar administradors",
-} as const;
-const FORBIDDEN_SELF = { error: "No et pots modificar a tu mateix" } as const;
+const SESSION_EXPIRED = "Sessió caducada o no vàlida";
+const PERMISSION_DENIED = "No tens permisos per realitzar aquesta acció";
+const ADF_FORBIDDEN = "No tens permisos per editar aquesta ADF";
+const USER_FORBIDDEN = "No tens permisos per gestionar aquest usuari";
+const ADMIN_USER_FORBIDDEN = "Només l'administrador pot gestionar administradors";
+const SELF_FORBIDDEN = "No et pots modificar a tu mateix";
+
+/**
+ * Els guards llancen `AppError` amb el codi del cas: `plugins/errors.ts` és
+ * l'únic lloc que tradueix error → resposta HTTP.
+ */
+function requireUser(request: FastifyRequest) {
+  const user = request.authUser;
+  if (!user) {
+    throw new UnauthorizedError(SESSION_EXPIRED, "SESSION_EXPIRED");
+  }
+  return user;
+}
 
 /** Capacitat que només té l'admin: abast global sobre usuaris i rols privilegiats. */
 const GLOBAL_USERS: Permission = "manage_all_users";
 
 /** preHandler: la ruta exigeix sessió. */
-export async function requireAuth(
-  request: FastifyRequest,
-  reply: FastifyReply,
-): Promise<FastifyReply | undefined> {
-  if (!request.authUser) {
-    return reply.code(401).send(UNAUTHENTICATED);
-  }
-  return undefined;
+export async function requireAuth(request: FastifyRequest): Promise<void> {
+  requireUser(request);
 }
 
 /**
@@ -49,16 +54,12 @@ export async function requireAuth(
  */
 export function requirePermission(
   permission: Permission,
-): (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined> {
-  return async (request, reply) => {
-    const user = request.authUser;
-    if (!user) {
-      return reply.code(401).send(UNAUTHENTICATED);
-    }
+): (request: FastifyRequest) => Promise<void> {
+  return async (request) => {
+    const user = requireUser(request);
     if (!permissionsFor(user.role).includes(permission)) {
-      return reply.code(403).send(FORBIDDEN);
+      throw new ForbiddenError(PERMISSION_DENIED);
     }
-    return undefined;
   };
 }
 
@@ -71,37 +72,32 @@ export function requirePermission(
  */
 export function requireTargetUserScope(
   options: { denySelf?: boolean } = {},
-): (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined> {
-  return async (request, reply) => {
-    const user = request.authUser;
-    if (!user) {
-      return reply.code(401).send(UNAUTHENTICATED);
-    }
+): (request: FastifyRequest) => Promise<void> {
+  return async (request) => {
+    const user = requireUser(request);
     if (hasPermission(user.role, GLOBAL_USERS)) {
-      return undefined;
+      return;
     }
 
     const targetId = (request.params as { id?: string } | undefined)?.id;
     if (!targetId) {
-      return undefined;
+      return;
     }
 
     const target = UsersRepository.findScopeById(targetId);
     if (!target) {
-      return undefined;
+      return;
     }
 
     if (options.denySelf && target.id === user.id) {
-      return reply.code(403).send(FORBIDDEN_SELF);
+      throw new ForbiddenError(SELF_FORBIDDEN);
     }
     if (target.role === "admin") {
-      return reply.code(403).send(FORBIDDEN_ADMIN_USER);
+      throw new ForbiddenError(ADMIN_USER_FORBIDDEN);
     }
     if (user.adf_id === null || target.adf_id !== user.adf_id) {
-      return reply.code(403).send(FORBIDDEN_USER);
+      throw new ForbiddenError(USER_FORBIDDEN);
     }
-
-    return undefined;
   };
 }
 
@@ -110,29 +106,21 @@ export function requireTargetUserScope(
  * (l'admin, amb `manage_all_users`, pot qualsevol). Un format invàlid no es
  * rebutja aquí: ho fa el handler amb 400.
  */
-export async function requireUsernameAdfScope(
-  request: FastifyRequest,
-  reply: FastifyReply,
-): Promise<FastifyReply | undefined> {
-  const user = request.authUser;
-  if (!user) {
-    return reply.code(401).send(UNAUTHENTICATED);
-  }
+export async function requireUsernameAdfScope(request: FastifyRequest): Promise<void> {
+  const user = requireUser(request);
   if (hasPermission(user.role, GLOBAL_USERS)) {
-    return undefined;
+    return;
   }
 
   // El format del username ja el valida l'esquema Zod de la ruta.
   const username = (request.body as { username?: unknown } | undefined)?.username;
   if (typeof username !== "string") {
-    return undefined;
+    return;
   }
 
   if (user.adf_id === null || adfIdFromUsername(username) !== user.adf_id) {
-    return reply.code(403).send(FORBIDDEN_USER);
+    throw new ForbiddenError(USER_FORBIDDEN);
   }
-
-  return undefined;
 }
 
 /**
@@ -142,22 +130,17 @@ export async function requireUsernameAdfScope(
 export function requireBodyRolePermission(
   permission: Permission,
   key = "role",
-): (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined> {
-  return async (request, reply) => {
-    const user = request.authUser;
-    if (!user) {
-      return reply.code(401).send(UNAUTHENTICATED);
-    }
+): (request: FastifyRequest) => Promise<void> {
+  return async (request) => {
+    const user = requireUser(request);
 
     const body = request.body as Record<string, unknown> | undefined;
     if (body?.[key] !== "admin") {
-      return undefined;
+      return;
     }
     if (!hasPermission(user.role, permission)) {
-      return reply.code(403).send(FORBIDDEN_ADMIN_USER);
+      throw new ForbiddenError(ADMIN_USER_FORBIDDEN);
     }
-
-    return undefined;
   };
 }
 
@@ -167,22 +150,17 @@ export function requireBodyRolePermission(
  */
 export function requireComputedPermission(
   resolve: (request: FastifyRequest) => Permission | null,
-): (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined> {
-  return async (request, reply) => {
+): (request: FastifyRequest) => Promise<void> {
+  return async (request) => {
     const permission = resolve(request);
     if (!permission) {
-      return undefined;
+      return;
     }
 
-    const user = request.authUser;
-    if (!user) {
-      return reply.code(401).send(UNAUTHENTICATED);
-    }
+    const user = requireUser(request);
     if (!hasPermission(user.role, permission)) {
-      return reply.code(403).send(FORBIDDEN);
+      throw new ForbiddenError(PERMISSION_DENIED);
     }
-
-    return undefined;
   };
 }
 
@@ -201,11 +179,11 @@ function readSource(request: FastifyRequest, source: AdfSource): unknown {
  */
 export function requireAdfScope(
   sources: readonly AdfSource[] = ADF_FROM_QUERY_OR_BODY,
-): (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined> {
-  return async (request, reply) => {
+): (request: FastifyRequest) => Promise<void> {
+  return async (request) => {
     const user = request.authUser;
     if (!user || user.role === "admin") {
-      return undefined;
+      return;
     }
 
     const raw = sources
@@ -213,18 +191,16 @@ export function requireAdfScope(
       .find((value) => value !== undefined && value !== null && value !== "");
 
     if (raw === undefined) {
-      return undefined;
+      return;
     }
 
     const targetAdfId = Number(raw);
     if (!Number.isFinite(targetAdfId)) {
-      return undefined;
+      return;
     }
 
     if (user.adf_id !== targetAdfId) {
-      return reply.code(403).send(FORBIDDEN_ADF);
+      throw new ForbiddenError(ADF_FORBIDDEN, "ADF_FORBIDDEN");
     }
-
-    return undefined;
   };
 }

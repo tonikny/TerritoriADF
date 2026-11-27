@@ -240,7 +240,7 @@ describe("POST /api/incidencies/:id/events", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json<ErrorBody>().error).toContain("membres de l'ADF");
+    expect(response.json<ErrorBody>().code).toBe("INCIDENCIA_FORBIDDEN");
   });
 
   it("un voluntari no pot canviar la visibilitat", async () => {
@@ -252,7 +252,7 @@ describe("POST /api/incidencies/:id/events", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json<ErrorBody>().error).toContain("coordinador");
+    expect(response.json<ErrorBody>().code).toBe("INCIDENCIA_FORBIDDEN");
   });
 
   it("el coordinador de l'ADF sí que pot canviar la visibilitat", async () => {

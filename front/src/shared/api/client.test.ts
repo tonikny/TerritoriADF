@@ -42,12 +42,16 @@ describe("client d'API", () => {
     expect(init.headers).toEqual({ "Content-Type": "application/json" });
   });
 
-  it("converteix una resposta d'error en ApiError amb estat i codi", async () => {
+  it("converteix una resposta d'error en ApiError amb estat, codi i requestId", async () => {
     stubFetch(
-      new Response(JSON.stringify({ error: "Fora de l'abast de l'ADF", code: "ADF_FORBIDDEN" }), {
-        status: 403,
-        statusText: "Forbidden",
-      }),
+      new Response(
+        JSON.stringify({
+          error: "Fora de l'abast de l'ADF",
+          code: "ADF_FORBIDDEN",
+          requestId: "req-42",
+        }),
+        { status: 403, statusText: "Forbidden" },
+      ),
     );
 
     const error = await request("/api/hidrants", { query: { adf: 1 } }).catch(
@@ -58,6 +62,7 @@ describe("client d'API", () => {
     expect(error).toMatchObject({
       status: 403,
       code: "ADF_FORBIDDEN",
+      requestId: "req-42",
       message: "Fora de l'abast de l'ADF",
     });
   });

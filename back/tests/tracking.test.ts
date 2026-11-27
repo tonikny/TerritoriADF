@@ -262,7 +262,7 @@ describe("POST /api/tracking/enable", () => {
     const response = await enable();
 
     expect(response.statusCode).toBe(503);
-    expect(response.json<{ error: string }>().error).toContain("MQTT no disponible");
+    expect(response.json<{ code: string }>().code).toBe("SERVICE_UNAVAILABLE");
     expect(MqttUsersRepository.findByUserId(VOL_278_ID)).toBeUndefined();
   });
 });

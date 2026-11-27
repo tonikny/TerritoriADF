@@ -545,6 +545,18 @@ Identitat aplanada `123/GI/007` → `123_GI_007` (`mqttNameFor()` a `back/src/se
 - El comptador és en memòria i es perd en reiniciar el procés (no s'escriu res a la BD, així no queda rastre de credencials provades).
 - Efecte col·lateral conegut: qui conegui un username pot bloquejar-lo 15 minuts fent 5 intents. Amb una ADF petita es considera acceptable; si molestés, es pot canviar a bloqueig per `usuari+IP`.
 
+### 10.10 Errors de l'API
+
+Totes les respostes amb estat ≥ 400 són JSON amb la mateixa forma:
+
+| Camp        | Contingut                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `error`     | Missatge per a la persona, en català                                                                                                                         |
+| `code`      | Codi estable per distingir el cas sense mirar el text (`HIDRANT_NOT_FOUND`, `INCIDENCIA_NOT_FOUND`, `ADF_FORBIDDEN`, `VALIDATION_ERROR`, `SESSION_EXPIRED`…) |
+| `requestId` | ID de la petició, el mateix que surt al log del backend                                                                                                      |
+
+`AppError` (`back/src/errors.ts`) porta `statusCode`, `code` i missatge; els handlers i els guards de `back/src/plugins/authorize.ts` el llancen i `back/src/plugins/errors.ts` el tradueix a HTTP. Les respostes que un handler envia directament (`reply.code(...).send({ error })`) reben el `code` que correspon a l'estat gràcies al hook `onSend`, així que la forma és la mateixa a tot arreu. Els identificadors són en anglès, però els noms del domini de l'aplicació es queden en català (`HIDRANT`, `INCIDENCIA`, `ADF`); la llista completa és `ErrorCode` a `back/src/errors.ts`. El client (`ApiError` a `front/src/shared/api/client.ts`) exposa `status`, `code` i `requestId`.
+
 ---
 
 ## 11. Qualitat de codi: ESLint, Husky i CI

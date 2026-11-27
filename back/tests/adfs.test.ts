@@ -93,7 +93,7 @@ describe("CRUD d'ADFs", () => {
     });
 
     expect(response.statusCode).toBe(409);
-    expect(response.json<ErrorBody>().error).toContain("usuaris");
+    expect(response.json<ErrorBody>().code).toBe("CONFLICT");
   });
 
   it("esborra una ADF sense dades associades", async () => {

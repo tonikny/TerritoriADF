@@ -116,7 +116,7 @@ describe("POST /api/users: alta i abast", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json<ErrorBody>().error).toContain("gestionar aquest usuari");
+    expect(response.json<ErrorBody>().code).toBe("FORBIDDEN");
   });
 
   it("un coordinador no pot crear administradors", async () => {
@@ -151,7 +151,7 @@ describe("POST /api/users: alta i abast", () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json<ErrorBody>().error).toContain("ja existeix");
+    expect(response.json<ErrorBody>().code).toBe("BAD_REQUEST");
   });
 
   it("rebutja una ADF inexistent amb 400", async () => {
@@ -163,7 +163,7 @@ describe("POST /api/users: alta i abast", () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json<ErrorBody>().error).toContain("no existeix");
+    expect(response.json<ErrorBody>().code).toBe("BAD_REQUEST");
   });
 
   it("rebutja un format d'username invàlid amb 400", async () => {
@@ -200,7 +200,7 @@ describe("PUT /api/users/:id: abast i rols", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json<ErrorBody>().error).toContain("tu mateix");
+    expect(response.json<ErrorBody>().code).toBe("FORBIDDEN");
   });
 
   it("un coordinador no pot modificar un administrador", async () => {
@@ -212,7 +212,7 @@ describe("PUT /api/users/:id: abast i rols", () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json<ErrorBody>().error).toContain("administradors");
+    expect(response.json<ErrorBody>().code).toBe("FORBIDDEN");
   });
 
   it("un coordinador no pot modificar usuaris d'una altra ADF", async () => {

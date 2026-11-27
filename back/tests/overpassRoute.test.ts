@@ -109,6 +109,6 @@ describe("POST /api/overpass", () => {
     const response = await post({ query: VALID_QUERY });
 
     expect(response.statusCode).toBe(500);
-    expect(response.json<{ error: string }>().error).toBe("Error intern del servidor");
+    expect(response.json<{ code: string }>().code).toBe("INTERNAL_ERROR");
   });
 });

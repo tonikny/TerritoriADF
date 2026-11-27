@@ -20,6 +20,6 @@ export function assertPointInAdf(adfId: number, lat: number, lon: number): void 
     return;
   }
   if (!isPointInAdf(adfId, lat, lon)) {
-    throw new ForbiddenError("Coordenades fora del límit de l'ADF");
+    throw new ForbiddenError("Coordenades fora del límit de l'ADF", "ADF_OUT_OF_BOUNDS");
   }
 }
