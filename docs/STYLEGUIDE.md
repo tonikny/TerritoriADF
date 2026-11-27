@@ -152,6 +152,24 @@ Botons blancs de 34 px amb `shadow-control` dins de `controlContainerClass`
 tancat. El menú de capes viu en un portal a `document.body` amb `z-1100` perquè
 quedi per sobre del full.
 
+### Càrrega
+
+L'únic indicador de càrrega és la flama de la marca que batega:
+`FlameSpinner` de `front/src/shared/ui/FlameSpinner.tsx` (1,25 s, escala
+0,86–1,14 i llum del 10 al 62 %). Substitueix el text «Carregant...» a tot
+arreu: el text es queda com a `aria-label` dins d'un `role="status"`, no a la
+vista. Mides: 24 px a les pestanyes i 32 px quan ocupa una àrea gran (mapa,
+càrrega inicial de l'app).
+
+- Els tons càlids de la flama (`--flame-hot`, `--flame-mid`, `--flame-deep`)
+  són propis de la il·lustració, declarats dins de `.flame-spinner` a
+  `styles/index.css`; no entren al `@theme` perquè no són colors d'interfície.
+- Només s'anima `transform` i `opacity`, i amb `prefers-reduced-motion` queda
+  quieta.
+- `map/MapSurface.tsx` no pot importar `shared/`: qui el munta ha de passar-li
+  el spinner per la prop obligatòria `loadingFallback`
+  (`features/map-view/MapCanvas.tsx`); la capa no té cap text de càrrega propi.
+
 ## 7. Capes (`z-index`)
 
 | Capa        | Valor                                       | Element |

@@ -162,8 +162,6 @@ body,
   --flame-deep: #c9551a;
   --flame-core: #fff7d6;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* En SVG, `transform-origin` amb percentatges es refereix al viewBox (24×24):

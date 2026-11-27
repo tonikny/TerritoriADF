@@ -19,23 +19,16 @@ const CORE_PATH =
 export function FlameSpinner({
   size = 24,
   label = "Carregant",
-  className,
 }: {
   size?: number;
   /** Text per a lectors de pantalla; no es veu. */
   label?: string;
-  className?: string;
 }) {
   const id = useId();
 
   return (
-    <span
-      role="status"
-      aria-label={label}
-      className={className ? `flame-spinner ${className}` : "flame-spinner"}
-      data-flame-spinner=""
-    >
-      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <span role="status" aria-label={label} className="flame-spinner">
+      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
         <defs>
           <radialGradient id={`${id}-glow`} cx="50%" cy="62%" r="50%">
             <stop offset="0%" stopColor="var(--flame-hot)" stopOpacity="0.95" />
