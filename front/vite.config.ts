@@ -227,6 +227,23 @@ export default defineConfig(({ command, mode }) => {
     },
     build: {
       sourcemap: false,
+      rolldownOptions: {
+        output: {
+          // La llibreria del motor és un bundle precompilat de ~1,1 MB que no
+          // canvia entre desplegaments; el nostre adaptador sí. Separar-los fa
+          // que una versió nova de l'app no invalidïi la caché immutable de
+          // MapLibre (i el mateix per a Leaflet).
+          advancedChunks: {
+            groups: [
+              { name: "maplibre-gl", test: /node_modules[\\/]maplibre-gl[\\/]/ },
+              {
+                name: "leaflet",
+                test: /node_modules[\\/](leaflet|react-leaflet|@react-leaflet)[\\/]/,
+              },
+            ],
+          },
+        },
+      },
     },
     server: {
       host: true, // Això fa que serveixi a la IP local
