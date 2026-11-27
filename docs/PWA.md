@@ -199,6 +199,7 @@ Detalls de la implementació a `PwaBanner.tsx`:
 - `controllerchange` també es dispara en la primera instal·lació, per això només es
   recarrega si la pàgina ja tenia controlador en muntar-se.
 - `cleanupOutdatedCaches` elimina els precaches antics.
+- Les pestanyes del panell que es carreguen amb `lazy()` (`front/src/components/panel/LazyTabs.tsx`) també entren a `globPatterns`: un cop el service worker és actiu, obrir-ne una no baixa res i el `fallback` de `Suspense` no arriba a veure's. Només es veu a la primera visita, abans que el SW s'instal·li.
 - El `<link rel="manifest">` l'injecta el plugin al build (no cal duplicar-lo a
   `index.html`), i el manifest també entra al precache perquè es versioni amb el SW.
 - Les icones del manifest s'afegeixen soles al precache; no les posem a `globPatterns`

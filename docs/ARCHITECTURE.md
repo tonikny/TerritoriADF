@@ -34,7 +34,7 @@ territoriadf/
 │   │   ├── components/             # només el shell: no carreguen dades
 │   │   │   ├── layout/             # MapPanel, Panel, BottomSheet, TabBar
 │   │   │   ├── lists/              # llistes i exportació a PDF
-│   │   │   ├── panel/              # PanelTabs i tabs/
+│   │   │   ├── panel/              # PanelTabs, LazyTabs i tabs/
 │   │   │   └── shared/             # UI compartida (accessos, avisos, selector)
 │   │   ├── contexts/               # AuthContext, AdfContext, AppConfigContext
 │   │   ├── features/               # una carpeta per domini: adfs, hidrants, incidencies,
@@ -233,6 +233,8 @@ El pipeline no publica artefactes ni desplega.
 - Mantén el contracte neutral: la UI no ha de conèixer API de tercers del mapa.
 - Dins de `front/src`, els imports creuats es fan amb l'àlies `@/...` (`tsconfig.json` i `vite.config.ts`); ESLint prohibeix els imports amb `../`. Les fronteres entre `components`, `hooks`, `contexts`, `shared`, `map` i `utils` també estan imposades a `front/eslint.config.mjs`.
 - Les crides a l'API d'un domini viuen a `features/<domini>/api.ts`. `shared/api/` queda per al que travessa dominis: el client, la identitat (`auth.ts`), les notificacions (hidrants i OSM) i les lectures del catàleg d'ADFs que fa `AdfContext`, perquè `contexts/` no pot dependre de features.
+- `front/vite.config.ts` separa les llibreries dels motors de mapa (`maplibre-gl` i `leaflet` + `react-leaflet`) en chunks propis amb `advancedChunks`. No baixa els bytes inicials —la llibreria de MapLibre és un bundle precompilat de ~1,1 MB que no es pot retallar— però sí que fa que el nostre adaptador (`MapEngine-*.js`, 5–27 kB) tingui un hash independent: una versió nova de l'app no invalida la caché immutable del motor. El motor segueix carregant-se amb `lazy()` en muntar el mapa.
+- Les pestanyes del panell que no són la per defecte es declaren amb `lazy()` a `front/src/components/panel/LazyTabs.tsx`, cadascuna amb la seva frontera `Suspense`: al bundle inicial només hi ha `MapaTab`. El service worker les precacheja igualment (`vite.config.ts`), així que segueixen funcionant sense xarxa. Una pestanya nova hi va per defecte; només se'n deixa una de fora si la mesura del build ho justifica.
 - Si una funcionalitat no es pot implementar a Leaflet, amaga-la o degrada-la amb `EngineCapabilities`; no deixis controls morts.
 - Els textos d'interfície i la documentació són en català; els identificadors de codi, en anglès.
 - Abans de tancar un canvi: `typecheck`, `lint`, tests del front i build han de passar.
