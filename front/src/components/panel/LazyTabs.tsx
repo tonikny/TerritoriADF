@@ -1,4 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
+import { FlameSpinner } from "@/shared/ui/FlameSpinner";
 
 /**
  * Pestanyes carregades sota demanda. Només `MapaTab` (la pestanya per defecte)
@@ -34,7 +35,13 @@ export const ConfigTab = lazy(() =>
  */
 export function TabBoundary({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<div className="p-4 text-center text-muted text-sm">Carregant...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-4 flex justify-center">
+          <FlameSpinner />
+        </div>
+      }
+    >
       {children}
     </Suspense>
   );

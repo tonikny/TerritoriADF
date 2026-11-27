@@ -5,6 +5,7 @@ import type { useMapEngine } from "./useMapEngine";
 import type { useMapFocus } from "./useMapFocus";
 import type { useMapLayers } from "./useMapLayers";
 import { MapSurface } from "@/map/MapSurface";
+import { FlameSpinner } from "@/shared/ui/FlameSpinner";
 import type { LatLon, MapMarkerSpec, MapPolygonSpec, MapPolylineSpec } from "@/map/core/types";
 import { TERRAIN_ATTRIBUTION, uniqueAttributions } from "@/map/shared/attribution";
 import { LayersPanel } from "@/map/ui/LayersPanel";
@@ -68,6 +69,11 @@ export function MapCanvas({
     <>
       <MapSurface
         engine={engine.engine}
+        loadingFallback={
+          <div className="map-loading">
+            <FlameSpinner size={32} label="Carregant el mapa" />
+          </div>
+        }
         initialView={focus.initialView}
         baseRaster={layers.baseRaster}
         overlayRasters={layers.overlayRasters}

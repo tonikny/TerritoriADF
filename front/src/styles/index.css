@@ -151,6 +151,72 @@ body,
   font-size: 0.9rem;
 }
 
+/* Spinner de càrrega (`shared/ui/FlameSpinner.tsx`): la flama de la marca
+   bategant. Els tons càlids són propis de la il·lustració i no entren al
+   `@theme` perquè no són colors d'interfície: cap altre element no els ha de
+   fer servir. Només s'anima `transform` i `opacity`, que el compositor pot
+   resoldre sense repintar. */
+.flame-spinner {
+  --flame-hot: var(--color-accent);
+  --flame-mid: #f08a24;
+  --flame-deep: #c9551a;
+  --flame-core: #fff7d6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* En SVG, `transform-origin` amb percentatges es refereix al viewBox (24×24):
+   la base de la flama queda ancorada i la punta és la que viatja. */
+.flame-spinner__glow {
+  transform-origin: 50% 62%;
+  animation: flame-glow 1.25s ease-in-out infinite;
+}
+
+.flame-spinner__flame {
+  transform-origin: 50% 78%;
+  animation: flame-beat 1.25s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flame-spinner__glow,
+  .flame-spinner__flame {
+    animation: none;
+  }
+}
+
+@keyframes flame-beat {
+  0%,
+  100% {
+    transform: scale(0.86, 0.9) rotate(-1.4deg);
+    opacity: 0.82;
+  }
+  45% {
+    transform: scale(1.14, 1.12) rotate(1.2deg);
+    opacity: 1;
+  }
+  62% {
+    transform: scale(1.08, 1.06) rotate(0.6deg);
+    opacity: 0.97;
+  }
+}
+
+@keyframes flame-glow {
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: scale(0.75);
+  }
+  45% {
+    opacity: 0.62;
+    transform: scale(1.35);
+  }
+  62% {
+    opacity: 0.42;
+    transform: scale(1.2);
+  }
+}
+
 /* A mobile el zoom i l'atribució queden a l'alçada de la barra tancada. Si el
    bottomsheet s'obre, no es mouen: queden a sota i el panell els tapa. */
 .map-zoom-control {

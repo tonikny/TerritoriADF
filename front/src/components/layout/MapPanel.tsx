@@ -6,6 +6,7 @@ import { MapCanvas } from "@/features/map-view/MapCanvas";
 import { Panel, type BottomSheetHandle } from "@/components/layout/Panel";
 import { TrackingPopup } from "@/features/tracking/TrackingPopup";
 import { buildNodeSheet } from "@/components/layout/buildNodeSheet";
+import { FlameSpinner } from "@/shared/ui/FlameSpinner";
 import { buildTabs } from "@/components/panel/PanelTabs";
 import { useAdf } from "@/contexts/AdfContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
@@ -30,7 +31,11 @@ export function MapPanel() {
   const { isLoading } = useAdf();
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Carregant...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <FlameSpinner size={32} label="Carregant les ADFs" />
+      </div>
+    );
   }
 
   return <MapPanelView />;
