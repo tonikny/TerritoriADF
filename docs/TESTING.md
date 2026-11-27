@@ -100,6 +100,7 @@ xarxa és el stream SSE, que necessita un socket real.
 | `routing.test.ts`             | GraphHopper: coordenades vàlides, 503 sense clau, URL/punts, 502 amb error o resposta no JSON i 500 si la crida falla.                                                                                                                                                                                      |
 | `tracking.test.ts`            | Estat, visibilitat per rol i ADF compartida, activació amb credencials xifrades, `.otrc`, auto-curat de la identitat plana i token indesxifrable.                                                                                                                                                           |
 | `overpass.test.ts`            | Client d'Overpass: POST, User-Agent, cos de la consulta i resposta d'error.                                                                                                                                                                                                                                 |
+| `observability.test.ts`       | ID de petició: mateix valor a la capçalera `x-request-id` i al cos de l'error, capçalera també en respostes correctes, ID del client respectat i ID invàlid descartat; `redact` de pino (cookies, `authorization`, `set-cookie` i secrets plans i niats) sense tocar camps normals.                         |
 
 La matriu de casos que proposava F-08 queda coberta:
 

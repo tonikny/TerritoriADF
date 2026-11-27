@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { toast } from "react-toastify";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { ApiError, request } from "@/shared/api/client";
+import { apiErrorMessage, request } from "@/shared/api/client";
 import { inputClass, primaryButtonClass } from "@/styles/uiStyles";
 import { PasswordInput } from "@/shared/ui/PasswordInput";
 import { APP_NAME } from "@/utils/appInfo";
@@ -26,7 +26,7 @@ export const Login: React.FC = () => {
       login(data.user);
       toast.success(`Benvingut, ${data.user.username}`);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "No es pot connectar amb el servidor");
+      toast.error(apiErrorMessage(err, "No es pot connectar amb el servidor"));
     } finally {
       setLoading(false);
     }

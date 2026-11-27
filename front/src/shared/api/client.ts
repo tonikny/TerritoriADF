@@ -23,6 +23,25 @@ const ACTIVE_ADF_KEY = "active_adf_id";
 // l'admin la seva identitat real mentre dura la vista prèvia).
 const PASSTHROUGH = ["/api/auth/", "/api/config"];
 
+/** Capçalera de l'ID de petició: el backend la retorna a totes les respostes. */
+const REQUEST_ID_HEADER = "x-request-id";
+
+/**
+ * ID de petició propi perquè també existeixi quan la resposta no arriba a ser
+ * un error de l'API (tall de xarxa, timeout). `crypto.randomUUID` només existeix
+ * en context segur; si no hi és, la petició surt sense ID i el backend en genera un.
+ */
+function newRequestId(): string | null {
+  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : null;
+}
+
+/** Forma curta de l'ID per ensenyar-lo al costat d'un missatge d'error. */
+export function requestIdReference(requestId: string | null | undefined): string | null {
+  return typeof requestId === "string" && requestId.length > 0 ? requestId.slice(0, 8) : null;
+}
+
 function readLS(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -87,10 +106,13 @@ export class ApiError extends Error {
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-/** Missatge presentable d'un error de la capa d'API: el del backend si n'hi ha. */
+/** Missatge presentable d'un error de la capa d'API: el del backend si n'hi ha.
+ *  Hi afegeix la referència curta de la petició (`ref. 8f3c1a2b`) perquè qui
+ *  reporti la incidència pugui trobar-la al log del backend (`grep`). */
 export function apiErrorMessage(error: unknown, fallback = "Error de connexió"): string {
   if (error instanceof ApiError && error.message) {
-    return error.message;
+    const reference = requestIdReference(error.requestId);
+    return reference ? `${error.message} (ref. ${reference})` : error.message;
   }
   return fallback;
 }
@@ -132,7 +154,7 @@ interface ApiErrorBody {
   message?: unknown;
 }
 
-async function toApiError(response: Response): Promise<ApiError> {
+async function toApiError(response: Response, sentRequestId: string | null): Promise<ApiError> {
   let body: ApiErrorBody = {};
   try {
     body = (await response.json()) as ApiErrorBody;
@@ -146,7 +168,12 @@ async function toApiError(response: Response): Promise<ApiError> {
         ? body.message
         : `Error ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`;
   const code = typeof body.code === "string" ? body.code : null;
-  const requestId = typeof body.requestId === "string" ? body.requestId : null;
+  // Prioritat: el cos de l'error, la capçalera de la resposta (també en respostes
+  // que no són de l'API, com les d'un proxy) i, finalment, el que vam enviar.
+  const requestId =
+    typeof body.requestId === "string"
+      ? body.requestId
+      : (response.headers.get(REQUEST_ID_HEADER) ?? sentRequestId);
   return new ApiError(message, response.status, code, requestId);
 }
 
@@ -160,22 +187,26 @@ async function toApiError(response: Response): Promise<ApiError> {
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", query, body, headers, ...rest } = options;
+  const requestId = newRequestId();
+  const baseHeaders: Record<string, string> = requestId
+    ? { [REQUEST_ID_HEADER]: requestId, ...headers }
+    : { ...headers };
 
   const init: ApiInit = {
     credentials: "same-origin",
     ...rest,
     method,
-    headers,
+    headers: baseHeaders,
   };
   if (body !== undefined) {
     init.body = JSON.stringify(body);
-    init.headers = { "Content-Type": "application/json", ...headers };
+    init.headers = { "Content-Type": "application/json", ...baseHeaders };
   }
 
   const url = buildUrl(path, query);
   const response = await fetch(url, withViewAsHeaders(url, init));
   if (!response.ok) {
-    throw await toApiError(response);
+    throw await toApiError(response, requestId);
   }
   if (response.status === 204) {
     return undefined as unknown as T;
@@ -188,6 +219,6 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   try {
     return JSON.parse(text) as T;
   } catch {
-    throw new ApiError("Resposta de l'API no vàlida", response.status, "INVALID_JSON");
+    throw new ApiError("Resposta de l'API no vàlida", response.status, "INVALID_JSON", requestId);
   }
 }

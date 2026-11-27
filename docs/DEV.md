@@ -75,7 +75,7 @@ Tant `front/` com `back/` requereixen `.env`. La referència canònica és `back
 | `TELEGRAM_BOT_TOKEN`    | no               | —                                                                | Bot global admin (backups/notificacions sistema)                                                                                                                                                     |
 | `TELEGRAM_CHAT_ID`      | no               | —                                                                | Chat global admin                                                                                                                                                                                    |
 | `GRAPHHOPPER_API_KEY`   | no               | —                                                                | Per `/api/route`                                                                                                                                                                                     |
-| `FASTIFY_LOGLEVEL`      | no               | `info`                                                           | `fatal`/`error`/`warn`/`info`/`debug`/`trace`                                                                                                                                                        |
+| `FASTIFY_LOGLEVEL`      | no               | `info`                                                           | `fatal`/`error`/`warn`/`info`/`debug`/`trace`. Els secrets es redacten sempre, a qualsevol nivell (vegeu §10.11)                                                                                     |
 
 ### 3.2 Frontend (`front/.env`)
 
@@ -553,9 +553,19 @@ Totes les respostes amb estat ≥ 400 són JSON amb la mateixa forma:
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `error`     | Missatge per a la persona, en català                                                                                                                         |
 | `code`      | Codi estable per distingir el cas sense mirar el text (`HIDRANT_NOT_FOUND`, `INCIDENCIA_NOT_FOUND`, `ADF_FORBIDDEN`, `VALIDATION_ERROR`, `SESSION_EXPIRED`…) |
-| `requestId` | ID de la petició, el mateix que surt al log del backend                                                                                                      |
+| `requestId` | ID de la petició, el mateix que surt al log del backend i que torna a la capçalera `x-request-id` (vegeu §10.11)                                             |
 
 `AppError` (`back/src/errors.ts`) porta `statusCode`, `code` i missatge; els handlers i els guards de `back/src/plugins/authorize.ts` el llancen i `back/src/plugins/errors.ts` el tradueix a HTTP. Les respostes que un handler envia directament (`reply.code(...).send({ error })`) reben el `code` que correspon a l'estat gràcies al hook `onSend`, així que la forma és la mateixa a tot arreu. Els identificadors són en anglès, però els noms del domini de l'aplicació es queden en català (`HIDRANT`, `INCIDENCIA`, `ADF`); la llista completa és `ErrorCode` a `back/src/errors.ts`. El client (`ApiError` a `front/src/shared/api/client.ts`) exposa `status`, `code` i `requestId`.
+
+### 10.11 Rastreig de peticions i redacció dels logs
+
+Totes les respostes porten la capçalera `x-request-id` amb el `reqId` del log del backend. El backend accepta l'ID que enviï el client (8–64 caràcters de `A-Z a-z 0-9 . _ -`); si no n'hi ha o no encaixa, en genera un UUID (`back/src/app.ts`). El client (`front/src/shared/api/client.ts`) n'envia un de propi a cada petició, el desa a `ApiError.requestId` i `apiErrorMessage()` n'afegeix la forma curta al missatge (`Fora de l'abast (ref. 8f3c1a2b)`). Per creuar una incidència amb el log:
+
+```bash
+docker compose logs backend | grep 8f3c1a2b
+```
+
+El logger de pino (`back/src/utils/logger.ts`) porta `redact` amb `censor: "[REDACTED]"` per a cookies, `authorization`, `set-cookie` i els camps de secret (`password`, `currentPassword`, `newPassword`, `token`, `token_enc`, `bot_token`, `webhook_secret`, `secret`, `mqtt_password*`), tant plans com niats. Els tests que ho fixen són `back/tests/observability.test.ts` i `front/src/shared/api/client.test.ts`.
 
 ---
 

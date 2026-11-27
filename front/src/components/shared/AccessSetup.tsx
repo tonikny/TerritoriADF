@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { ApiError, request } from "@/shared/api/client";
+import { apiErrorMessage, request } from "@/shared/api/client";
 import { inputClass, primaryButtonClass } from "@/styles/uiStyles";
 import { PasswordInput } from "@/shared/ui/PasswordInput";
 import { enterApp } from "@/utils/route";
@@ -31,7 +31,7 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : "No es pot connectar amb el servidor");
+          setError(apiErrorMessage(err, "No es pot connectar amb el servidor"));
         }
       }
     })();
@@ -59,7 +59,7 @@ export const AccessSetup: React.FC<{ token: string }> = ({ token }) => {
       });
       enterApp();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No es pot connectar amb el servidor");
+      setError(apiErrorMessage(err, "No es pot connectar amb el servidor"));
     } finally {
       setSaving(false);
     }

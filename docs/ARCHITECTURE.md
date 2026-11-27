@@ -101,6 +101,13 @@ Els botons que només porten icona fan servir `iconButtonClass` (`front/src/styl
 
 La resta del sistema visual (paleta, escala de text, ràdios, elevació, capes i variants de botó) és a [`STYLEGUIDE.md`](STYLEGUIDE.md).
 
+### 2.4 Observabilitat
+
+- **ID de petició.** `buildApp()` (`back/src/app.ts`) adopta la capçalera `x-request-id` que envia el client si encaixa amb `^[A-Za-z0-9._-]{8,64}$` i, si no, en genera un UUID. El mateix ID retorna a la resposta (totes, no només les d'error), surt com a `reqId` a cada línia de log de la petició i és el `requestId` del cos de les respostes ≥ 400. El client (`front/src/shared/api/client.ts`) n'envia un a cada crida, el conserva a `ApiError.requestId` i en mostra la forma curta (`ref. 8f3c1a2b`) al missatge d'error.
+- **Redacció.** `back/src/utils/logger.ts` configura pino amb `redact` (`censor: "[REDACTED]"`) sobre les capçaleres de sessió (`cookie`, `authorization`, `set-cookie`) i els camps de secret plans, niats un nivell i niats dos (`password`, `token`, `token_enc`, `bot_token`, `webhook_secret`, `secret`, `mqtt_password*`). El serializer de Fastify no registra capçaleres; la redacció cobreix els registres manuals (`{ req }`, `{ body }`) i els objectes d'error.
+- **Salut.** `/healthz` (liveness) i `/readyz` (BD oberta, migracions aplicades i `foreign_keys`), a `back/src/routes/health.ts`.
+- **Encara no hi ha**: mètriques, alertes d'uptime, Sentry/GlitchTip ni replicació de SQLite (Litestream); el backup actual atura el contenidor per fer el checkpoint de WAL.
+
 ## 3. Motors de mapa
 
 ### 3.1 Selecció del motor

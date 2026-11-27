@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyBaseLogger, type FastifyInstance } from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 
@@ -7,6 +8,21 @@ import { registerOpenApi } from "./plugins/openapi.js";
 import { registerRoutes } from "./routes/index.js";
 import { config } from "./utils/config.js";
 import { logger } from "./utils/logger.js";
+
+/** Capçalera per on viatja l'ID de la petició, d'entrada i de sortida. */
+const REQUEST_ID_HEADER = "x-request-id";
+
+/**
+ * Només s'accepta un ID extern si és curt i d'un alfabet innocu: el valor acaba
+ * al log, i una capçalera lliure hi podria injectar línies o inflar-lo.
+ */
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{8,64}$/;
+
+function requestIdFromHeader(header: string | string[] | undefined): string | null {
+  const raw = Array.isArray(header) ? header[0] : header;
+  const candidate = raw?.trim();
+  return candidate && REQUEST_ID_PATTERN.test(candidate) ? candidate : null;
+}
 
 /**
  * Fàbrica de l'aplicació: munta plugins, guards i rutes i retorna la instància
@@ -25,6 +41,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     // Darrere d'un proxy invers, X-Forwarded-For és la IP real (necessari per als
     // límits de login). Desactivat per defecte: només s'activa amb TRUST_PROXY=true.
     trustProxy: config.TRUST_PROXY,
+    // L'ID de petició és el fil que uneix client, resposta i log: si el client (o
+    // un proxy) n'envia un de vàlid, es respecta; si no, se'n genera un d'únic.
+    genReqId: (req) => requestIdFromHeader(req.headers[REQUEST_ID_HEADER]) ?? randomUUID(),
   });
 
   if (process.env.NODE_ENV === "production" && !config.TRUST_PROXY) {
@@ -37,8 +56,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  app.addHook("onRequest", (request, _reply, done) => {
+  app.addHook("onRequest", (request, reply, done) => {
     request.log = request.log.child({ module: "http", operation: request.url.split("?")[0] });
+    // El mateix ID torna al client a totes les respostes (també a les d'èxit),
+    // perquè qualsevol incidència es pugui creuar amb el log del backend.
+    reply.header(REQUEST_ID_HEADER, request.id);
     done();
   });
 
