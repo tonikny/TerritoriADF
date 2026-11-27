@@ -9,17 +9,18 @@ export const controlItemClass = "pointer-events-auto";
 export const iconButtonClass =
   "inline-flex items-center justify-center min-h-8 min-w-8 p-0 bg-white text-ink border border-border-strong rounded-md cursor-pointer shadow-control hover:bg-soft active:shadow-none disabled:opacity-50";
 
-/* Una sola alçada per als controls (32 px) i un sol padding horitzontal
-   (10 px), compartit amb els botons. Els quadrats de mapa queden a part. */
-export const inputClass =
-  "border border-border-strong rounded-md bg-white text-base w-full min-h-8 py-1 px-2.5";
+/* Base comuna dels camps (input i selects): vora, fons, alçada de 32 px i
+   padding vertical. Cada camp hi afegeix mida de text, amplada i cursor; el
+   padding horitzontal no hi és perquè el select compacte en fa 8 px, no 10. */
+const fieldSurface = "border border-border-strong rounded-md bg-white min-h-8 py-1";
+
+export const inputClass = `${fieldSurface} text-base w-full px-2.5`;
 
 /** Alias amb intenció: avui el `select` comparteix estil amb l'`input`. */
 export const selectClass = inputClass;
 
 /** Select compacte per a files d'etiqueta + control; l'amplada la posa qui l'usa. */
-export const compactSelectClass =
-  "border border-border-strong rounded-md bg-white text-sm min-h-8 py-1 px-2 cursor-pointer";
+export const compactSelectClass = `${fieldSurface} text-sm px-2 cursor-pointer`;
 
 /* Un sol padding horitzontal per a tots els botons (10 px, els mateixos que els
    inputs). Les variants només hi afegeixen alçada, gap i color; repetir un
